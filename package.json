@@ -1,10 +1,39 @@
 {
   "name": "betterprompt",
   "version": "0.0.1",
+  "type": "module",
   "description": "BetterPrompt CLI Tools.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "bin": {
+    "betterprompt": "bin/betterprompt.js"
   },
-  "author": "BetterPrompt"
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "bun build ./src/cli.ts --outdir ./dist --target node",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check"
+  },
+  "author": "BetterPrompt",
+  "devDependencies": {
+    "@clack/prompts": "^1.0.1",
+    "@cmon-labs/betterprompt-shared": "^0.0.76-rc.14",
+    "@eslint/js": "^9.36.0",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.3",
+    "eslint": "^9.36.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "ora": "^9.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3",
+    "zod": "^4.3.6"
+  }
 }
