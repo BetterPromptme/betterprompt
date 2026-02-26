@@ -1,29 +1,32 @@
 import { Command } from "commander";
-import { demoCommand } from "./commands/demo";
+import { configCommand } from "./commands/config";
+import { CLI_MESSAGES, CLI_META } from "./constants";
+import { loadOrInitConfig } from "./core/config";
 
-const globalHelpText = `
-Quick Start:
-  $ betterprompt demo
-  $ betterprompt demo "hello world"
-  $ betterprompt demo "hello world" --repeat 3
+export const createProgram = (): Command => {
+  const program = new Command();
 
-Global Examples:
-  $ betterprompt --help
-  $ betterprompt demo --help
-`;
+  program
+    .name(CLI_META.name)
+    .description(CLI_META.description)
+    .version(CLI_META.version)
+    .showHelpAfterError()
+    .showSuggestionAfterError()
+    .on("--help", () => {
+      console.log(CLI_MESSAGES.globalHelpText);
+    });
 
-const program = new Command();
+  program.addCommand(configCommand);
 
-program
-  .name("betterprompt")
-  .description("BetterPrompt CLI Tools")
-  .version("0.0.1")
-  .showHelpAfterError()
-  .showSuggestionAfterError()
-  .on("--help", () => {
-    console.log(globalHelpText);
-  });
+  return program;
+};
 
-program.addCommand(demoCommand);
+export const runProgram = async (argv = process.argv): Promise<void> => {
+  await loadOrInitConfig();
+  const program = createProgram();
+  await program.parseAsync(argv);
+};
 
-program.parse();
+if (import.meta.main) {
+  await runProgram();
+}
