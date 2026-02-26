@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { configCommand } from "./commands/config";
+import { searchCommand } from "./commands/search";
 import { CLI_MESSAGES, CLI_META } from "./constants";
 import { loadOrInitConfig } from "./core/config";
 
@@ -17,6 +18,7 @@ export const createProgram = (): Command => {
     });
 
   program.addCommand(configCommand);
+  program.addCommand(searchCommand);
 
   return program;
 };
