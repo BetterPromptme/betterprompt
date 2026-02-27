@@ -25,6 +25,16 @@ export const RUN_COMMAND = {
       },
     },
   },
+  get: {
+    name: "get",
+    description: "Get a run by ID",
+    flags: {
+      runId: {
+        flag: "--runId <uuid>",
+        description: "UUID of the run to retrieve",
+      },
+    },
+  },
 } as const;
 
 export const RUN_MESSAGES = {
@@ -38,5 +48,6 @@ Examples:
   inputsRequired: "You must provide --inputs.",
   invalidInputsJson: "inputs must be a valid JSON object.",
   invalidRunOptionsJson: "runOptions must be a valid JSON object.",
+  invalidRunId: "runId must not be empty.",
   failedPrefix: "Run command failed:",
 } as const;
