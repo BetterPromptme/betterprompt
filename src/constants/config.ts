@@ -3,7 +3,7 @@ import { AUTH_API_KEY_URL } from "./auth";
 
 export const API_CONFIG = {
   baseUrl: "https://api.betterprompt.me/v1",
-  timeoutMs: 10_000,
+  timeoutMs: 5 * 60 * 1000, // 5 min
   authHeader: "authorization",
   authScheme: "Bearer",
   defaultHeaders: {
