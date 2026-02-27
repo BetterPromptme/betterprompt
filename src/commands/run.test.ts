@@ -9,6 +9,10 @@ const createDeps = (overrides: Partial<TRunDeps> = {}): TRunDeps => ({
     status: "SUCCESS",
     data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
   })),
+  getRunById: mock(async () => ({
+    status: "SUCCESS",
+    data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
+  })),
   log: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
@@ -160,6 +164,52 @@ describe("run command", () => {
     );
 
     expect(deps.error).toHaveBeenCalledWith("Run command failed: API error");
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.log).not.toHaveBeenCalled();
+  });
+});
+
+describe("run get command", () => {
+  it("fetches a run by ID and prints json result", async () => {
+    const deps = createDeps();
+
+    await runCommand(["get", "--runId", "run-abc-123"], deps);
+
+    expect(deps.getRunById).toHaveBeenCalledWith("run-abc-123");
+    expect(deps.log).toHaveBeenCalledWith(
+      JSON.stringify(
+        {
+          status: "SUCCESS",
+          data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
+        },
+        null,
+        2
+      )
+    );
+  });
+
+  it("logs error and sets exit code when --runId is empty string", async () => {
+    const deps = createDeps();
+
+    await runCommand(["get", "--runId", "   "], deps);
+
+    expect(deps.getRunById).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledWith(
+      "Run command failed: runId must not be empty."
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("logs error and sets exit code when getRunById throws", async () => {
+    const deps = createDeps({
+      getRunById: mock(async () => {
+        throw new Error("not found");
+      }),
+    });
+
+    await runCommand(["get", "--runId", "run-abc-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith("Run command failed: not found");
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.log).not.toHaveBeenCalled();
   });
