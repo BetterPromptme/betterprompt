@@ -1,6 +1,6 @@
 {
   "name": "betterprompt",
-  "version": "0.0.2-dev.1",
+  "version": "0.0.2-dev.4",
   "type": "module",
   "description": "BetterPrompt CLI Tools.",
   "bin": {
@@ -14,6 +14,7 @@
   "scripts": {
     "test": "bun test",
     "build": "bun build ./src/cli.ts --outdir ./dist --target node",
+    "prerelease": "bun pm version prerelease --preid=dev --no-git-tag-version && bun run build && bun publish --tag latest",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",

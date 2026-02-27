@@ -1,7 +1,9 @@
+import packageJson from "../../package.json";
+
 export const CLI_META = {
   name: "betterprompt",
   description: "BetterPrompt CLI Tools",
-  version: "0.0.1",
+  version: packageJson.version,
 } as const;
 
 export const CLI_MESSAGES = {
