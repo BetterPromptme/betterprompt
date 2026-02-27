@@ -72,3 +72,18 @@ export const createRun = async (
 ): Promise<TRunResponse> => {
   return apiClient.post<TRunResponse>("/runs", payload);
 };
+
+type TGetRunApiClient = Pick<ApiClient, "get">;
+
+export const validateRunId = (runId: string): void => {
+  if (!runId.trim()) {
+    throw new Error(RUN_MESSAGES.invalidRunId);
+  }
+};
+
+export const getRun = async (
+  apiClient: TGetRunApiClient,
+  runId: string
+): Promise<TRunResponse> => {
+  return apiClient.get<TRunResponse>(`/runs/${runId}`);
+};
