@@ -168,6 +168,46 @@ describe("api client", () => {
     });
   });
 
+  it("does not classify user-provided signal aborts as timeout", async () => {
+    const fetchMock = mock(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const abortError = new Error("Request aborted");
+          abortError.name = "AbortError";
+
+          if (init?.signal?.aborted) {
+            reject(abortError);
+            return;
+          }
+
+          init?.signal?.addEventListener(
+            "abort",
+            () => {
+              reject(abortError);
+            },
+            { once: true }
+          );
+        })
+    );
+
+    const client = getApiClient({
+      baseUrl: "https://api.example.com",
+      fetch: fetchMock,
+      timeoutMs: 1_000,
+      getApiKey: () => "bp_test_key",
+    });
+
+    const userController = new AbortController();
+    const requestPromise = client.get("/v1/cancel", { signal: userController.signal });
+    userController.abort();
+
+    await expect(requestPromise).rejects.toMatchObject({
+      name: "ApiError",
+      status: 0,
+      message: "Request aborted",
+    });
+  });
+
   it("loads api key from config.json provider", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");

@@ -158,17 +158,21 @@ export class ApiClient {
     }
 
     const controller = new AbortController();
-    const onAbort = () => controller.abort();
+    const timeoutAbortReason = Symbol("timeout-abort-reason");
+    const onAbort = () => controller.abort(options.signal?.reason);
 
     if (options.signal) {
       if (options.signal.aborted) {
-        controller.abort();
+        controller.abort(options.signal.reason);
       } else {
         options.signal.addEventListener("abort", onAbort, { once: true });
       }
     }
 
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = setTimeout(
+      () => controller.abort(timeoutAbortReason),
+      timeoutMs
+    );
 
     const body = this.serializeBody(options.body, headers, method);
 
@@ -226,7 +230,9 @@ export class ApiClient {
 
       const maybeError = error as Error;
       const isTimeoutAbort =
-        controller.signal.aborted && maybeError.name === "AbortError";
+        maybeError.name === "AbortError" &&
+        controller.signal.aborted &&
+        controller.signal.reason === timeoutAbortReason;
       const message = isTimeoutAbort
         ? `Request timed out after ${timeoutMs}ms`
         : maybeError.message || "Network request failed";

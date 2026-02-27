@@ -97,7 +97,9 @@ export const saveAuthConfig = async (
   const nextConfig = {
     ...existing,
     auth: {
-      ...(typeof existing.auth === "object" && existing.auth ? existing.auth : {}),
+      ...(typeof existing.auth === "object" && existing.auth
+        ? existing.auth
+        : {}),
       apiKey: normalizedApiKey,
       updatedAt,
     },
@@ -137,7 +139,12 @@ export const readApiKeyFromAuthConfig = async (
     throw error;
   }
 
-  const parsed: unknown = JSON.parse(raw);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(AUTH_MESSAGES.configMustBeObjectError);
+  }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(AUTH_MESSAGES.configMustBeObjectError);
   }

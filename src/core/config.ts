@@ -37,7 +37,9 @@ export const resolveSystemConfigPath = (
 const isObjectRecord = (value: unknown): value is JsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
-const sanitizeConfig = (value: JsonObject): {
+const sanitizeConfig = (
+  value: JsonObject
+): {
   config: TSystemConfig;
   changed: boolean;
 } => {
@@ -152,7 +154,10 @@ export const loadOrInitConfig = async (
   }
 
   if (!systemConfigCache) {
-    systemConfigCache = doLoadOrInitConfig();
+    systemConfigCache = doLoadOrInitConfig().catch((error) => {
+      systemConfigCache = undefined;
+      throw error;
+    });
   }
 
   loadedSystemConfig = await systemConfigCache;
