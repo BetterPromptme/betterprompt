@@ -37,25 +37,28 @@ export const createRunCommand = (
 ): Command => {
   const command = new Command(RUN_COMMAND.name)
     .description(RUN_COMMAND.description)
-    .requiredOption(
-      RUN_COMMAND.flags.promptVersionId.flag,
-      RUN_COMMAND.flags.promptVersionId.description
-    )
-    .option(
-      RUN_COMMAND.flags.inputs.flag,
-      RUN_COMMAND.flags.inputs.description
-    )
-    .option(
-      RUN_COMMAND.flags.runModel.flag,
-      RUN_COMMAND.flags.runModel.description
-    )
-    .option(
-      RUN_COMMAND.flags.runOptions.flag,
-      RUN_COMMAND.flags.runOptions.description
-    )
     .addHelpText("after", RUN_MESSAGES.helpText);
 
-  command.action(async (opts: TRunCommandOptions) => {
+  const execCommand = new Command(RUN_COMMAND.exec.name)
+    .description(RUN_COMMAND.exec.description)
+    .requiredOption(
+      RUN_COMMAND.exec.flags.promptVersionId.flag,
+      RUN_COMMAND.exec.flags.promptVersionId.description
+    )
+    .option(
+      RUN_COMMAND.exec.flags.inputs.flag,
+      RUN_COMMAND.exec.flags.inputs.description
+    )
+    .option(
+      RUN_COMMAND.exec.flags.runModel.flag,
+      RUN_COMMAND.exec.flags.runModel.description
+    )
+    .option(
+      RUN_COMMAND.exec.flags.runOptions.flag,
+      RUN_COMMAND.exec.flags.runOptions.description
+    );
+
+  execCommand.action(async (opts: TRunCommandOptions) => {
     try {
       const inputs =
         opts.inputs !== undefined ? parseInputsJson(opts.inputs) : undefined;
@@ -79,6 +82,8 @@ export const createRunCommand = (
       deps.setExitCode(1);
     }
   });
+
+  command.addCommand(execCommand);
 
   return command;
 };
