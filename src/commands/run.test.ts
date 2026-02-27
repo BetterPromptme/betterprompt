@@ -26,6 +26,7 @@ describe("run command", () => {
 
     await runCommand(
       [
+        "exec",
         "--promptVersionId",
         "uuid-123",
         "--inputs",
@@ -55,6 +56,7 @@ describe("run command", () => {
 
     await runCommand(
       [
+        "exec",
         "--promptVersionId",
         "uuid-123",
         "--inputs",
@@ -77,6 +79,7 @@ describe("run command", () => {
 
     await runCommand(
       [
+        "exec",
         "--promptVersionId",
         "uuid-123",
         "--inputs",
@@ -97,7 +100,7 @@ describe("run command", () => {
   it("logs error and sets exit code when --inputs is not given", async () => {
     const deps = createDeps();
 
-    await runCommand(["--promptVersionId", "uuid-123"], deps);
+    await runCommand(["exec", "--promptVersionId", "uuid-123"], deps);
 
     expect(deps.run).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
@@ -110,7 +113,7 @@ describe("run command", () => {
     const deps = createDeps();
 
     await runCommand(
-      ["--promptVersionId", "uuid-123", "--inputs", "not-json"],
+      ["exec", "--promptVersionId", "uuid-123", "--inputs", "not-json"],
       deps
     );
 
@@ -126,6 +129,7 @@ describe("run command", () => {
 
     await runCommand(
       [
+        "exec",
         "--promptVersionId",
         "uuid-123",
         "--inputs",
@@ -151,7 +155,7 @@ describe("run command", () => {
     });
 
     await runCommand(
-      ["--promptVersionId", "uuid-123", "--inputs", '{"textInputs":{}}'],
+      ["exec", "--promptVersionId", "uuid-123", "--inputs", '{"textInputs":{}}'],
       deps
     );
 
