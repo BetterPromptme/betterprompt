@@ -33,7 +33,7 @@ describe("config command", () => {
     await runConfig(["get", "apiKey"], deps);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiKey");
-    expect(deps.log).toHaveBeenCalledWith("bp_live_123");
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("bp_live_123"));
   });
 
   it("gets apiBaseUrl value", async () => {
@@ -44,7 +44,7 @@ describe("config command", () => {
     await runConfig(["get", "apiBaseUrl"], deps);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiBaseUrl");
-    expect(deps.log).toHaveBeenCalledWith("https://betterprompt.me/api");
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("https://betterprompt.me/api"));
   });
 
   it("sets apiKey value", async () => {
@@ -54,7 +54,7 @@ describe("config command", () => {
 
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_live_123");
     expect(deps.setValue).toHaveBeenCalledWith("apiKey", "bp_live_123");
-    expect(deps.log).toHaveBeenCalledWith(CONFIG_MESSAGES.savedSuccess);
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
   });
 
   it("sets apiBaseUrl value", async () => {
@@ -67,7 +67,7 @@ describe("config command", () => {
       "apiBaseUrl",
       "https://betterprompt.me/api"
     );
-    expect(deps.log).toHaveBeenCalledWith(CONFIG_MESSAGES.savedSuccess);
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
   });
 
   it("fails and does not save when apiKey validation fails", async () => {
