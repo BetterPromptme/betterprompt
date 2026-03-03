@@ -71,7 +71,6 @@ jobs:
           bun build ./src/cli.ts --compile --minify --target=bun-windows-arm64 --outfile betterprompt-$VERSION-windows-arm64
 
       - name: Publish to npm
-        if: env.DRY_RUN == 'false'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -81,7 +80,11 @@ jobs:
           else
             DIST_TAG="latest"
           fi
-          npm publish --tag "$DIST_TAG"
+          if [[ "$DRY_RUN" == "true" ]]; then
+            npm publish --tag "$DIST_TAG" --dry-run
+          else
+            npm publish --tag "$DIST_TAG"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
