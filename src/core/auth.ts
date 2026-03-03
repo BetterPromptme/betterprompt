@@ -9,13 +9,18 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { AUTH_MESSAGES, AUTH_STORAGE } from "../constants";
+import type { TAuthConfig } from "../types/auth";
 import { TReadAuthOptions, TSaveAuthOptions } from "../types";
 import type { TFetchLike } from "../types/api";
+import type { TApiResponse } from "../types/api";
+import type { TCreditBalance } from "../types/credits";
+import type { TUserIdentity } from "../types/whoami";
 import { loadOrInitConfig, resolveSystemConfigPath } from "./config";
 
 export const resolveAuthConfigPath = (
   getHomeDir: () => string = os.homedir
-): string => resolveSystemConfigPath(getHomeDir);
+): string =>
+  path.join(getHomeDir(), AUTH_STORAGE.configDirName, AUTH_STORAGE.fileName);
 
 export const normalizeApiKey = (value: string): string => {
   const normalized = value.trim();
@@ -93,16 +98,9 @@ export const saveAuthConfig = async (
   const normalizedApiKey = normalizeApiKey(apiKey);
   const configDir = path.dirname(configPath);
   const updatedAt = (options.now ?? new Date()).toISOString();
-  const existing = await loadOrInitConfig({ configPath });
-  const nextConfig = {
-    ...existing,
-    auth: {
-      ...(typeof existing.auth === "object" && existing.auth
-        ? existing.auth
-        : {}),
-      apiKey: normalizedApiKey,
-      updatedAt,
-    },
+  const nextConfig: TAuthConfig = {
+    apiKey: normalizedApiKey,
+    updatedAt,
   };
   const serialized = `${JSON.stringify(nextConfig, null, 2)}\n`;
   const tempPath = `${configPath}.${AUTH_STORAGE.tempFilePrefix}-${process.pid}-${Date.now()}`;
@@ -124,6 +122,27 @@ export const saveAuthConfig = async (
   return configPath;
 };
 
+const extractApiKeyFromParsed = (
+  parsed: Record<string, unknown>
+): string | undefined => {
+  // New flat format: { apiKey, updatedAt }
+  const flat = parsed.apiKey;
+  if (typeof flat === "string" && flat.trim()) {
+    return flat;
+  }
+
+  // Legacy nested format: { auth: { apiKey } }
+  const auth = parsed.auth;
+  if (typeof auth === "object" && auth !== null && !Array.isArray(auth)) {
+    const nested = (auth as Record<string, unknown>).apiKey;
+    if (typeof nested === "string" && nested.trim()) {
+      return nested;
+    }
+  }
+
+  return undefined;
+};
+
 export const readApiKeyFromAuthConfig = async (
   options: TReadAuthOptions = {}
 ): Promise<string> => {
@@ -134,6 +153,12 @@ export const readApiKeyFromAuthConfig = async (
     raw = await readFile(configPath, "utf8");
   } catch (error) {
     if ((error as { code?: string }).code === "ENOENT") {
+      const fallbackPath = resolveSystemConfigPath(() =>
+        path.dirname(path.dirname(configPath))
+      );
+      if (fallbackPath !== configPath) {
+        return readApiKeyFromAuthConfig({ configPath: fallbackPath });
+      }
       throw new Error(AUTH_MESSAGES.apiKeyNotFoundError);
     }
     throw error;
@@ -149,16 +174,42 @@ export const readApiKeyFromAuthConfig = async (
     throw new Error(AUTH_MESSAGES.configMustBeObjectError);
   }
 
-  const auth = (parsed as Record<string, unknown>).auth;
-  const nestedApiKey =
-    typeof auth === "object" && auth !== null && !Array.isArray(auth)
-      ? (auth as Record<string, unknown>).apiKey
-      : undefined;
-  const legacyApiKey = (parsed as Record<string, unknown>).apiKey;
-  const apiKey = typeof nestedApiKey === "string" ? nestedApiKey : legacyApiKey;
-  if (typeof apiKey !== "string" || !apiKey.trim()) {
+  const apiKey = extractApiKeyFromParsed(parsed as Record<string, unknown>);
+  if (!apiKey) {
     throw new Error(AUTH_MESSAGES.apiKeyNotFoundError);
   }
 
   return normalizeApiKey(apiKey);
+};
+
+type TCurrentUserApi = {
+  get: (path: string) => Promise<TApiResponse<TUserIdentity>>;
+};
+
+type TCreditsApi = {
+  get: (path: string) => Promise<TApiResponse<TCreditBalance>>;
+};
+
+export const getCurrentUser = async (
+  apiClient: TCurrentUserApi
+): Promise<TUserIdentity> => {
+  const response = await apiClient.get("/me");
+
+  if (response.status === "SUCCESS" && response.data) {
+    return response.data;
+  }
+
+  throw new Error(response.message ?? "Failed to fetch current user.");
+};
+
+export const getCredits = async (
+  apiClient: TCreditsApi
+): Promise<TCreditBalance> => {
+  const response = await apiClient.get("/me/credits");
+
+  if (response.status === "SUCCESS" && response.data) {
+    return response.data;
+  }
+
+  throw new Error(response.message ?? "Failed to fetch credits.");
 };
