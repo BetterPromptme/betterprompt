@@ -61,15 +61,9 @@ const sanitizeConfig = (
     changed = true;
   }
 
-  const auth = isObjectRecord(value.auth) ? value.auth : {};
-  if (auth !== value.auth) {
-    changed = true;
-  }
-
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
-    auth,
   };
 
   return { config, changed };
@@ -129,7 +123,6 @@ const doLoadOrInitConfig = async (
     const nextConfig: TSystemConfig = {
       version: SYSTEM_CONFIG.version,
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     };
 
     await writeSystemConfig(configPath, nextConfig);
@@ -175,38 +168,15 @@ const normalizeApiBaseUrl = (value: string): string => {
   return normalized;
 };
 
-const normalizeConfigApiKey = (value: string): string => {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error(SYSTEM_MESSAGES.invalidApiKeyError);
-  }
-  return normalized;
-};
-
-const getApiKeyFromConfig = (config: TSystemConfig): string | undefined => {
-  const authValue =
-    typeof config.auth === "object" && config.auth !== null
-      ? (config.auth as Record<string, unknown>).apiKey
-      : undefined;
-
-  if (typeof authValue === "string" && authValue.trim()) {
-    return authValue.trim();
-  }
-
-  return undefined;
-};
-
 export const getSystemConfigValue = async (
   key: TSystemConfigKey,
   options: TLoadOrInitConfigOptions = {}
 ): Promise<string | undefined> => {
-  const config = await loadOrInitConfig(options);
-
-  if (key === "apiBaseUrl") {
-    return config.apiBaseUrl;
+  if (key !== "apiBaseUrl") {
+    return undefined;
   }
-
-  return getApiKeyFromConfig(config);
+  const config = await loadOrInitConfig(options);
+  return config.apiBaseUrl;
 };
 
 export const setSystemConfigValue = async (
@@ -214,29 +184,19 @@ export const setSystemConfigValue = async (
   value: string,
   options: TLoadOrInitConfigOptions = {}
 ): Promise<string> => {
+  if (key !== "apiBaseUrl") {
+    throw new Error(
+      `Cannot set "${key}" via system config. Use saveAuthConfig for API keys.`
+    );
+  }
+
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
   const existing = await loadOrInitConfig({ ...options, configPath });
-
-  let nextConfig: TSystemConfig;
-  if (key === "apiBaseUrl") {
-    nextConfig = {
-      ...existing,
-      apiBaseUrl: normalizeApiBaseUrl(value),
-    };
-  } else {
-    const apiKey = normalizeConfigApiKey(value);
-    nextConfig = {
-      ...existing,
-      auth: {
-        ...(typeof existing.auth === "object" && existing.auth
-          ? existing.auth
-          : {}),
-        apiKey,
-        updatedAt: new Date().toISOString(),
-      },
-    };
-  }
+  const nextConfig: TSystemConfig = {
+    ...existing,
+    apiBaseUrl: normalizeApiBaseUrl(value),
+  };
 
   await writeSystemConfig(configPath, nextConfig);
   loadedSystemConfig = nextConfig;
