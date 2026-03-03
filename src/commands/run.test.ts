@@ -13,7 +13,7 @@ const createDeps = (overrides: Partial<TRunDeps> = {}): TRunDeps => ({
     status: "SUCCESS",
     data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
   })),
-  log: mock(() => {}),
+  printResult: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
   ...overrides,
@@ -43,16 +43,13 @@ describe("run command", () => {
       promptVersionId: "uuid-123",
       inputs: { textInputs: { name: "Alice" } },
     });
-    expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify(
-        {
-          status: "SUCCESS",
-          data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
-        },
-        null,
-        2
-      )
-    );
+    expect(deps.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(data).toEqual({
+      status: "SUCCESS",
+      data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
+    });
+    expect(ctx.outputFormat).toBe("text");
   });
 
   it("includes runModel in payload when --model is provided", async () => {
@@ -108,7 +105,7 @@ describe("run command", () => {
 
     expect(deps.run).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
-      "Run command failed: You must provide --inputs."
+      expect.stringContaining("Run command failed: You must provide --inputs.")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -123,7 +120,7 @@ describe("run command", () => {
 
     expect(deps.run).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
-      "Run command failed: inputs must be a valid JSON object."
+      expect.stringContaining("Run command failed: inputs must be a valid JSON object.")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -146,7 +143,7 @@ describe("run command", () => {
 
     expect(deps.run).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
-      "Run command failed: runOptions must be a valid JSON object."
+      expect.stringContaining("Run command failed: runOptions must be a valid JSON object.")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -163,9 +160,9 @@ describe("run command", () => {
       deps
     );
 
-    expect(deps.error).toHaveBeenCalledWith("Run command failed: API error");
+    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Run command failed: API error"));
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.log).not.toHaveBeenCalled();
+    expect(deps.printResult).not.toHaveBeenCalled();
   });
 });
 
@@ -176,16 +173,13 @@ describe("run get command", () => {
     await runCommand(["get", "--runId", "run-abc-123"], deps);
 
     expect(deps.getRunById).toHaveBeenCalledWith("run-abc-123");
-    expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify(
-        {
-          status: "SUCCESS",
-          data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
-        },
-        null,
-        2
-      )
-    );
+    expect(deps.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(data).toEqual({
+      status: "SUCCESS",
+      data: { runId: "run-1", outputs: {}, runStatus: RunStatus.Succeeded },
+    });
+    expect(ctx.outputFormat).toBe("text");
   });
 
   it("logs error and sets exit code when --runId is empty string", async () => {
@@ -195,7 +189,7 @@ describe("run get command", () => {
 
     expect(deps.getRunById).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
-      "Run command failed: runId must not be empty."
+      expect.stringContaining("Run command failed: runId must not be empty.")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -209,8 +203,8 @@ describe("run get command", () => {
 
     await runCommand(["get", "--runId", "run-abc-123"], deps);
 
-    expect(deps.error).toHaveBeenCalledWith("Run command failed: not found");
+    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Run command failed: not found"));
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.log).not.toHaveBeenCalled();
+    expect(deps.printResult).not.toHaveBeenCalled();
   });
 });
