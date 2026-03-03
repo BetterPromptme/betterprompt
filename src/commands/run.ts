@@ -1,6 +1,10 @@
 import { Command } from "commander";
+import logSymbols from "log-symbols";
 import { RUN_COMMAND, RUN_MESSAGES } from "../constants";
 import { getApiClient } from "../core/api";
+import { getCommandContext } from "../core/context";
+import { printResult } from "../core/output";
+import type { TPrintOptions } from "../types";
 import {
   createRun,
   getRun,
@@ -25,7 +29,7 @@ type TGetRunCommandOptions = {
 type TRunCommandDependencies = {
   run: (payload: TRunPayload) => Promise<unknown>;
   getRunById: (runId: string) => Promise<unknown>;
-  log: (message: string) => void;
+  printResult: (data: unknown, ctx: TPrintOptions) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
 };
@@ -33,7 +37,7 @@ type TRunCommandDependencies = {
 const defaultDeps: TRunCommandDependencies = {
   run: (payload) => createRun(getApiClient(), payload),
   getRunById: (runId) => getRun(getApiClient(), runId),
-  log: (message) => console.log(message),
+  printResult: (data, ctx) => printResult(data, ctx),
   error: (message) => console.error(message),
   setExitCode: (code) => {
     process.exitCode = code;
@@ -66,8 +70,9 @@ export const createRunCommand = (
       RUN_COMMAND.exec.flags.runOptions.description
     );
 
-  execCommand.action(async (opts: TRunCommandOptions) => {
+  execCommand.action(async (opts: TRunCommandOptions, command: Command) => {
     try {
+      const ctx = getCommandContext(command);
       const inputs =
         opts.inputs !== undefined ? parseInputsJson(opts.inputs) : undefined;
       const runOptions = parseRunOptionsJson(opts.runOptions);
@@ -82,11 +87,11 @@ export const createRunCommand = (
       validateRunPayload(payload);
 
       const result = await deps.run(payload);
-      deps.log(JSON.stringify(result, null, 2));
+      deps.printResult(result, ctx);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      deps.error(`${RUN_MESSAGES.failedPrefix} ${errorMessage}`);
+      deps.error(`${logSymbols.error} ${RUN_MESSAGES.failedPrefix} ${errorMessage}`);
       deps.setExitCode(1);
     }
   });
@@ -100,15 +105,16 @@ export const createRunCommand = (
       RUN_COMMAND.get.flags.runId.description
     );
 
-  getCommand.action(async (opts: TGetRunCommandOptions) => {
+  getCommand.action(async (opts: TGetRunCommandOptions, command: Command) => {
     try {
+      const ctx = getCommandContext(command);
       validateRunId(opts.runId);
       const result = await deps.getRunById(opts.runId);
-      deps.log(JSON.stringify(result, null, 2));
+      deps.printResult(result, ctx);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      deps.error(`${RUN_MESSAGES.failedPrefix} ${errorMessage}`);
+      deps.error(`${logSymbols.error} ${RUN_MESSAGES.failedPrefix} ${errorMessage}`);
       deps.setExitCode(1);
     }
   });
