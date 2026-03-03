@@ -1,44 +1,76 @@
 import { Command } from "commander";
-import { SEARCH_COMMAND, SEARCH_MESSAGES } from "../constants";
+import logSymbols from "log-symbols";
+import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../constants";
 import { getApiClient } from "../core/api";
+import { getCommandContext } from "../core/context";
+import { printResult } from "../core/output";
 import { searchSkills, validateSearchQuery } from "../core/skills";
-
-type TSearchCommandDependencies = {
-  validateQuery: (query: string) => string;
-  search: (query: string) => Promise<unknown>;
-  log: (message: string) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
-};
+import type {
+  TSearchCommandDependencies,
+  TSearchCommandOptions,
+  TSearchFilters,
+} from "../types/search";
 
 const defaultDeps: TSearchCommandDependencies = {
   validateQuery: validateSearchQuery,
-  search: (query) => searchSkills(getApiClient(), query),
-  log: (message) => console.log(message),
+  search: (query, filters) => searchSkills(getApiClient(), query, filters),
+  printResult: (data, ctx) => printResult(data, ctx),
   error: (message) => console.error(message),
   setExitCode: (code) => {
     process.exitCode = code;
   },
 };
 
+const buildSearchFilters = (opts: TSearchCommandOptions): TSearchFilters => {
+  const filters: TSearchFilters = {};
+
+  if (opts.type !== undefined) {
+    if (!(SKILL_TYPES as readonly string[]).includes(opts.type)) {
+      throw new Error(
+        `Invalid skill type "${opts.type}". Expected one of: ${SKILL_TYPES.join(", ")}.`
+      );
+    }
+    filters.type = opts.type as TSearchFilters["type"];
+  }
+  if (opts.author !== undefined) {
+    filters.author = opts.author;
+  }
+
+  return filters;
+};
+
+export const addSearchFilterOptions = (command: Command): Command =>
+  command
+    .option(
+      "--type <type>",
+      `Filter by skill type (${SKILL_TYPES.join(", ")})`
+    )
+    .option("--author <author>", "Filter by author");
+
 export const createSearchCommand = (
   deps: TSearchCommandDependencies = defaultDeps
 ): Command => {
-  const command = new Command(SEARCH_COMMAND.name)
+  const command = addSearchFilterOptions(
+    new Command(SEARCH_COMMAND.name)
+  )
     .description(SEARCH_COMMAND.description)
     .addHelpText("after", SEARCH_MESSAGES.helpText);
 
-  command.argument("<query>", SEARCH_COMMAND.queryDescription).action(async (query) => {
-    try {
-      const normalizedQuery = deps.validateQuery(query);
-      const result = await deps.search(normalizedQuery);
-      deps.log(JSON.stringify(result, null, 2));
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      deps.error(`${SEARCH_MESSAGES.failedPrefix} ${errorMessage}`);
-      deps.setExitCode(1);
-    }
-  });
+  command
+    .argument("<query>", SEARCH_COMMAND.queryDescription)
+    .action(async (query: string, opts: TSearchCommandOptions, command: Command) => {
+      try {
+        const ctx = getCommandContext(command);
+        const normalizedQuery = deps.validateQuery(query);
+        const filters = buildSearchFilters(opts);
+        const result = await deps.search(normalizedQuery, filters);
+        deps.printResult(result, ctx);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        deps.error(`${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix} ${errorMessage}`);
+        deps.setExitCode(1);
+      }
+    });
 
   return command;
 };
