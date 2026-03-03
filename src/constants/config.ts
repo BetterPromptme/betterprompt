@@ -1,0 +1,64 @@
+import { CLI_META } from "./cli";
+
+export const API_CONFIG = {
+  baseUrl: "https://api.betterprompt.me/v1",
+  timeoutMs: 10_000,
+  authHeader: "authorization",
+  authScheme: "Bearer",
+  defaultHeaders: {
+    Accept: "application/json",
+  },
+} as const;
+
+export const SYSTEM_CONFIG = {
+  version: CLI_META.version,
+  apiBaseUrl: API_CONFIG.baseUrl,
+  auth: {},
+} as const;
+
+export const SYSTEM_STORAGE = {
+  configDirName: ".betterprompt",
+  fileName: "config.json",
+  directoryMode: 0o700,
+  fileMode: 0o600,
+  tempFilePrefix: "tmp",
+} as const;
+
+export const SYSTEM_MESSAGES = {
+  configMustBeObjectError: "System config must be a JSON object.",
+  invalidApiBaseUrlError: "apiBaseUrl cannot be empty.",
+  invalidApiKeyError: "apiKey cannot be empty.",
+};
+
+export const CONFIG_COMMAND = {
+  name: "config",
+  description: "Read and update BetterPrompt config values",
+  get: {
+    description: "Get a value from config.json",
+    keyDescription: "Config key (apiKey | apiBaseUrl)",
+  },
+  set: {
+    description: "Set a value in config.json",
+    keyDescription: "Config key (apiKey | apiBaseUrl)",
+    valueDescription: "Value to store",
+  },
+} as const;
+
+export const CONFIG_MESSAGES = {
+  helpText: `
+Examples:
+  $ betterprompt config get apiKey
+  $ betterprompt config set apiKey bp_live_123
+  $ betterprompt config get apiBaseUrl
+  $ betterprompt config set apiBaseUrl https://betterprompt.me/api
+`,
+  invalidKeyError: (key: string) =>
+    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl.`,
+  missingValueError: (key: string) => `${key} is not set in config.json.`,
+  savedSuccess: "Config updated successfully.",
+  failedPrefix: "Config command failed:",
+  failedNoChangesPrefix: "No changes were saved to",
+  verifyingApiKey: "Verifying API key...",
+  verifiedApiKey: "API key verified.",
+  failedVerifyApiKey: "API key verification failed.",
+} as const;
