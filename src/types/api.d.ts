@@ -29,3 +29,9 @@ export type TApiRequestOptions = Omit<
   signal?: AbortSignal;
   timeoutMs?: number;
 };
+
+export type TApiResponse<TData = unknown> = {
+  data?: TData;
+  status: string;
+  message?: string;
+};

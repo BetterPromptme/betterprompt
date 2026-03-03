@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { configCommand } from "./commands/config";
+import { runCommand } from "./commands/run";
 import { searchCommand } from "./commands/search";
 import { skillsCommand } from "./commands/skills";
 import { CLI_MESSAGES, CLI_META } from "./constants";
@@ -19,6 +20,7 @@ export const createProgram = (): Command => {
     });
 
   program.addCommand(configCommand);
+  program.addCommand(runCommand);
   program.addCommand(searchCommand);
   program.addCommand(skillsCommand);
 

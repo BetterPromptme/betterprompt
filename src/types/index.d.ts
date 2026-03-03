@@ -1,5 +1,6 @@
 export * from "./api";
 export * from "./config";
+export * from "./run";
 
 type TPromptResult = string | symbol;
 
@@ -30,8 +31,3 @@ export type TReadAuthOptions = {
   configPath?: string;
 };
 
-export type TApiResponse<TData = unknown> = {
-  data?: TData;
-  status: string;
-  message?: string;
-};
