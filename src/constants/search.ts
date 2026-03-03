@@ -1,3 +1,5 @@
+export const SKILL_TYPES = ["image", "video", "text"] as const;
+
 export const SEARCH_COMMAND = {
   name: "search",
   description: "Search BetterPrompt skills",
