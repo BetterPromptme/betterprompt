@@ -29,3 +29,9 @@ export type TSaveAuthOptions = {
 export type TReadAuthOptions = {
   configPath?: string;
 };
+
+export type TApiResponse<TData = unknown> = {
+  data?: TData;
+  status: string;
+  message?: string;
+};

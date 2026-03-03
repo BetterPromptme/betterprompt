@@ -1,4 +1,5 @@
 import { CLI_META } from "./cli";
+import { AUTH_API_KEY_URL } from "./auth";
 
 export const API_CONFIG = {
   baseUrl: "https://api.betterprompt.me/v1",
@@ -46,6 +47,8 @@ export const CONFIG_COMMAND = {
 
 export const CONFIG_MESSAGES = {
   helpText: `
+Get an API key: ${AUTH_API_KEY_URL}
+
 Examples:
   $ betterprompt config get apiKey
   $ betterprompt config set apiKey bp_live_123
