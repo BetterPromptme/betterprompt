@@ -49,12 +49,11 @@ describe("system config core", () => {
     expect(config).toEqual({
       version: SYSTEM_CONFIG.version,
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     });
     expect(parsed).toEqual(config);
   });
 
-  it("auto-fills apiBaseUrl and auth when missing", async () => {
+  it("auto-fills apiBaseUrl when missing", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
     await mkdir(path.dirname(configPath), { recursive: true });
@@ -65,7 +64,6 @@ describe("system config core", () => {
     expect(config).toEqual({
       version: "0.0.1",
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     });
   });
 
@@ -93,13 +91,20 @@ describe("system config core", () => {
     expect(value).toBe("https://runtime.example/api");
   });
 
-  it("sets and gets apiKey value", async () => {
+  it("getSystemConfigValue returns undefined for apiKey (stored in auth.json)", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
 
-    await setSystemConfigValue("apiKey", "bp_from_set", { configPath });
-
     const value = await getSystemConfigValue("apiKey", { configPath });
-    expect(value).toBe("bp_from_set");
+    expect(value).toBeUndefined();
+  });
+
+  it("setSystemConfigValue throws for apiKey (should use saveAuthConfig)", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+
+    await expect(
+      setSystemConfigValue("apiKey", "bp_test", { configPath })
+    ).rejects.toThrow('Cannot set "apiKey" via system config.');
   });
 });
