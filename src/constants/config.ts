@@ -14,7 +14,6 @@ export const API_CONFIG = {
 export const SYSTEM_CONFIG = {
   version: CLI_META.version,
   apiBaseUrl: API_CONFIG.baseUrl,
-  auth: {},
 } as const;
 
 export const SYSTEM_STORAGE = {
@@ -28,7 +27,6 @@ export const SYSTEM_STORAGE = {
 export const SYSTEM_MESSAGES = {
   configMustBeObjectError: "System config must be a JSON object.",
   invalidApiBaseUrlError: "apiBaseUrl cannot be empty.",
-  invalidApiKeyError: "apiKey cannot be empty.",
 };
 
 export const CONFIG_COMMAND = {
