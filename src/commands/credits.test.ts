@@ -34,9 +34,10 @@ describe("credits command", () => {
     expect(deps.setExitCode).not.toHaveBeenCalled();
     expect(deps.printResult).toHaveBeenCalledTimes(1);
 
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(typeof data).toBe("string");
-    expect(data as string).toContain("1,250");
+    expect(data).toEqual(expect.stringContaining("Credits: 1,250,000.0"));
     expect(ctx.outputFormat).toBe("text");
   });
 
@@ -47,7 +48,8 @@ describe("credits command", () => {
 
     expect(deps.getCredits).toHaveBeenCalledTimes(1);
     expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       credits: 1_250_000,
     });
