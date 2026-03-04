@@ -4,8 +4,6 @@ export type TDoctorCheckName =
   | "auth"
   | "registry"
   | "dirs"
-  | "lockfile"
-  | "wrappers"
   | "permissions";
 
 export type TDoctorCheckStatus = "pass" | "fail";
@@ -32,8 +30,6 @@ export type TDoctorCoreDependencies = {
   checkAuth: () => Promise<TDoctorCheck>;
   checkRegistry: () => Promise<TDoctorCheck>;
   checkDirs: () => Promise<TDoctorCheck>;
-  checkLockfile: () => Promise<TDoctorCheck>;
-  checkWrappers: () => Promise<TDoctorCheck>;
   checkPermissions: () => Promise<TDoctorCheck>;
 };
 
