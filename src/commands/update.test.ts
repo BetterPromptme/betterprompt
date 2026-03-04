@@ -2,7 +2,9 @@ import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 import { createUpdateCommand } from "./update";
 
-type TUpdateCommandDeps = NonNullable<Parameters<typeof createUpdateCommand>[0]>;
+type TUpdateCommandDeps = NonNullable<
+  Parameters<typeof createUpdateCommand>[0]
+>;
 type TCheckForUpdateResult = Awaited<
   ReturnType<TUpdateCommandDeps["checkForUpdate"]>
 >;
@@ -84,11 +86,7 @@ describe("update command", () => {
     expect(checkForUpdate).toHaveBeenCalledTimes(1);
     expect(performUpdate).toHaveBeenCalledTimes(1);
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        currentVersion: "0.0.2",
-        latestVersion: "0.1.0",
-        updated: true,
-      }),
+      expect.stringContaining("Updated to 0.1.0"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -116,11 +114,7 @@ describe("update command", () => {
     expect(checkForUpdate).toHaveBeenCalledTimes(1);
     expect(performUpdate).not.toHaveBeenCalled();
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.objectContaining({
-        currentVersion: "0.1.0",
-        latestVersion: "0.1.0",
-        updated: false,
-      }),
+      expect.stringContaining("Already up to date"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -147,6 +141,7 @@ describe("update command", () => {
       expect.objectContaining({
         currentVersion: "1.0.0",
         latestVersion: "1.1.0",
+        hasUpdate: true,
         updated: true,
       }),
       expect.objectContaining({ outputFormat: "json" })
