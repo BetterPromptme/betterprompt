@@ -1,14 +1,26 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { CONFIG_MESSAGES } from "../constants";
+import type { TSystemConfigKey } from "../types";
 import { createConfigCommand } from "./config";
 
 type TConfigDeps = NonNullable<Parameters<typeof createConfigCommand>[0]>;
+type TConfigDepsWithUnset = TConfigDeps & {
+  unsetValue: (key: TSystemConfigKey) => Promise<string>;
+  getAllValues: () => Promise<Partial<Record<TSystemConfigKey, string>>>;
+};
 
-const createDeps = (overrides: Partial<TConfigDeps> = {}): TConfigDeps => ({
+const createDeps = (
+  overrides: Partial<TConfigDepsWithUnset> = {}
+): TConfigDepsWithUnset => ({
   getValue: mock(async () => "value"),
+  getAllValues: mock(async () => ({
+    apiKey: "bp_live_123",
+    apiBaseUrl: "https://betterprompt.me/api",
+  })),
   setValue: mock(async () => "/tmp/.betterprompt/config.json"),
+  unsetValue: mock(async () => "/tmp/.betterprompt/config.json"),
   verifyApiKey: mock(async () => {}),
-  resolveConfigPath: mock((key: "apiKey" | "apiBaseUrl") =>
+  resolveConfigPath: mock((key?: TSystemConfigKey) =>
     key === "apiKey"
       ? "/tmp/.betterprompt/auth.json"
       : "/tmp/.betterprompt/config.json"
@@ -62,6 +74,49 @@ describe("config command", () => {
     expect(deps.log).toHaveBeenCalledWith(
       JSON.stringify({ key: "apiKey", value: "bp_live_123" })
     );
+  });
+
+  it("lists all config values when no key is provided", async () => {
+    const deps = createDeps({
+      getAllValues: mock(async () => ({
+        apiKey: "bp_live_123",
+        apiBaseUrl: "https://betterprompt.me/api",
+      })),
+    });
+
+    await runConfig(["get"], deps);
+
+    expect(deps.getAllValues).toHaveBeenCalledTimes(1);
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("apiKey=bp_live_123"));
+    expect(deps.log).toHaveBeenCalledWith(
+      expect.stringContaining("apiBaseUrl=https://betterprompt.me/api")
+    );
+  });
+
+  it("outputs full config object in JSON mode when no key is provided", async () => {
+    const deps = createDeps({
+      getAllValues: mock(async () => ({
+        apiBaseUrl: "https://betterprompt.me/api",
+      })),
+    });
+
+    await runConfig(["--json", "get"], deps);
+
+    expect(deps.getAllValues).toHaveBeenCalledTimes(1);
+    expect(deps.log).toHaveBeenCalledWith(
+      JSON.stringify({ apiBaseUrl: "https://betterprompt.me/api" })
+    );
+  });
+
+  it("handles empty config gracefully when no key is provided", async () => {
+    const deps = createDeps({
+      getAllValues: mock(async () => ({})),
+    });
+
+    await runConfig(["get"], deps);
+
+    expect(deps.getAllValues).toHaveBeenCalledTimes(1);
+    expect(deps.log).toHaveBeenCalledWith("No config values set.");
   });
 
   it("sets apiKey value", async () => {
@@ -145,6 +200,31 @@ describe("config command", () => {
 
     await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps);
 
+    expect(deps.error).toHaveBeenLastCalledWith(
+      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("unsets existing apiBaseUrl value", async () => {
+    const deps = createDeps();
+
+    await runConfig(["unset", "apiBaseUrl"], deps);
+
+    expect(deps.unsetValue).toHaveBeenCalledWith("apiBaseUrl");
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
+  });
+
+  it("prints clear error when unsetting a missing key", async () => {
+    const deps = createDeps({
+      unsetValue: mock(async () => {
+        throw new Error("apiBaseUrl is not set in config.json.");
+      }),
+    });
+
+    await runConfig(["unset", "apiBaseUrl"], deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(2);
     expect(deps.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
     );
