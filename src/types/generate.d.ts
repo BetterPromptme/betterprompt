@@ -17,7 +17,7 @@ export type TGenerateCommandOptions = TGenerateOptions;
 
 export type TGenerateCommandDependencies = {
   generate: (
-    skillName: string,
+    skillVersionId: string,
     options: TGenerateOptions
   ) => Promise<unknown>;
   printResult: (data: unknown, ctx: TPrintOptions) => void;
