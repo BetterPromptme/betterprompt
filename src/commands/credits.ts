@@ -6,13 +6,10 @@ import { getCredits } from "../core/auth";
 import { getCommandContext } from "../core/context";
 import { printResult } from "../core/output";
 import type { TCreditBalance, TCreditsDependencies } from "../types";
+import formatCredits from "../utils/format-credits";
 
 const formatCreditsText = (credits: TCreditBalance): string =>
-  [
-    `${logSymbols.info} Balance:    ${credits.balance}`,
-    `  Currency:   ${credits.currency}`,
-    `  Updated At: ${credits.updatedAt}`,
-  ].join("\n");
+  `${logSymbols.info} Credits: ${formatCredits(credits.credits)}`;
 
 const defaultDeps: TCreditsDependencies = {
   getCredits: () => getCredits(getApiClient()),
@@ -44,7 +41,9 @@ export const createCreditsCommand = (
         error instanceof Error
           ? error.message
           : String(error ?? CREDITS_MESSAGES.unknownError);
-      deps.error(`${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix} ${message}`);
+      deps.error(
+        `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix} ${message}`
+      );
       deps.setExitCode(1);
     }
   });
