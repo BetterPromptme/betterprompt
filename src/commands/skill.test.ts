@@ -543,6 +543,22 @@ describe("skill list command", () => {
 });
 
 describe("skill update command", () => {
+  it("fails when neither skill name nor --all is provided", async () => {
+    const deps = createDeps();
+
+    await runUpdate([], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Skill command failed: Please provide a skill name or pass "--all" to update all installed skills.'
+      )
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.updateSkill).not.toHaveBeenCalled();
+    expect(deps.updateAllSkills).not.toHaveBeenCalled();
+    expect(deps.printResult).not.toHaveBeenCalled();
+  });
+
   it("updates a single skill and prints human-readable output in default mode", async () => {
     const deps = createDeps();
 
