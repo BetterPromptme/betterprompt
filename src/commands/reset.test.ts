@@ -1,37 +1,32 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
-import { createUninstallCommand } from "./uninstall";
+import { createResetCommand } from "./reset";
 
-type TUninstallCommandDeps = NonNullable<
-  Parameters<typeof createUninstallCommand>[0]
->;
+type TResetCommandDeps = NonNullable<Parameters<typeof createResetCommand>[0]>;
 
-type TRunUninstallResult = Awaited<
-  ReturnType<TUninstallCommandDeps["runUninstall"]>
->;
+type TRunResetResult = Awaited<ReturnType<TResetCommandDeps["runReset"]>>;
 
 const createRunResult = (
-  overrides: Partial<TRunUninstallResult> = {}
-): TRunUninstallResult =>
+  overrides: Partial<TRunResetResult> = {}
+): TRunResetResult =>
   ({
     removedPath: "~/.betterprompt/",
-    removedPackage: false,
     confirmed: true,
     ...overrides,
-  }) as TRunUninstallResult;
+  }) as TRunResetResult;
 
 const createDeps = (
-  overrides: Partial<TUninstallCommandDeps> = {}
-): TUninstallCommandDeps => ({
-  confirmUninstall: mock(async () => true),
-  runUninstall: mock(async () => createRunResult()),
+  overrides: Partial<TResetCommandDeps> = {}
+): TResetCommandDeps => ({
+  confirmReset: mock(async () => true),
+  runReset: mock(async () => createRunResult()),
   printResult: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const createRoot = (deps: TUninstallCommandDeps): Command => {
+const createRoot = (deps: TResetCommandDeps): Command => {
   const root = new Command("betterprompt");
   root
     .option("--project")
@@ -42,60 +37,60 @@ const createRoot = (deps: TUninstallCommandDeps): Command => {
     .option("--verbose")
     .option("--no-color")
     .option("--yes")
-    .addCommand(createUninstallCommand(deps));
+    .addCommand(createResetCommand(deps));
 
   return root;
 };
 
-const runUninstall = async (args: string[], deps: TUninstallCommandDeps) => {
+const runReset = async (args: string[], deps: TResetCommandDeps) => {
   const root = createRoot(deps);
-  await root.parseAsync(["uninstall", ...args], { from: "user" });
+  await root.parseAsync(["reset", ...args], { from: "user" });
 };
 
-describe("uninstall command", () => {
+describe("reset command", () => {
   it("prompts for confirmation by default", async () => {
-    const confirmUninstall = mock(async () => true);
+    const confirmReset = mock(async () => true);
     const deps = createDeps({
-      confirmUninstall,
+      confirmReset,
     });
 
-    await runUninstall([], deps);
+    await runReset([], deps);
 
-    expect(confirmUninstall).toHaveBeenCalledTimes(1);
-    expect(deps.runUninstall).toHaveBeenCalledTimes(1);
+    expect(confirmReset).toHaveBeenCalledTimes(1);
+    expect(deps.runReset).toHaveBeenCalledTimes(1);
   });
 
   it("skips confirmation when --yes is provided", async () => {
-    const confirmUninstall = mock(async () => true);
+    const confirmReset = mock(async () => true);
     const deps = createDeps({
-      confirmUninstall,
+      confirmReset,
     });
 
-    await runUninstall(["--yes"], deps);
+    await runReset(["--yes"], deps);
 
-    expect(confirmUninstall).not.toHaveBeenCalled();
-    expect(deps.runUninstall).toHaveBeenCalledTimes(1);
+    expect(confirmReset).not.toHaveBeenCalled();
+    expect(deps.runReset).toHaveBeenCalledTimes(1);
   });
 
-  it("does not cleanup when user declines confirmation", async () => {
+  it("does not reset when user declines confirmation", async () => {
     const deps = createDeps({
-      confirmUninstall: mock(async () => false),
+      confirmReset: mock(async () => false),
     });
 
-    await runUninstall([], deps);
+    await runReset([], deps);
 
-    expect(deps.runUninstall).not.toHaveBeenCalled();
+    expect(deps.runReset).not.toHaveBeenCalled();
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.stringContaining("Uninstall cancelled"),
+      expect.stringContaining("Reset cancelled"),
       expect.objectContaining({ outputFormat: "text" })
     );
     expect(deps.error).not.toHaveBeenCalled();
     expect(deps.setExitCode).not.toHaveBeenCalled();
   });
 
-  it("removes ~/.betterprompt/ directory when uninstall proceeds", async () => {
+  it("removes ~/.betterprompt/ directory when reset proceeds", async () => {
     const deps = createDeps({
-      runUninstall: mock(async () =>
+      runReset: mock(async () =>
         createRunResult({
           removedPath: "~/.betterprompt/",
           confirmed: true,
@@ -103,36 +98,34 @@ describe("uninstall command", () => {
       ),
     });
 
-    await runUninstall(["--yes"], deps);
+    await runReset(["--yes"], deps);
 
-    expect(deps.runUninstall).toHaveBeenCalledWith(
+    expect(deps.runReset).toHaveBeenCalledWith(
       expect.objectContaining({
         force: true,
       })
     );
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.objectContaining({ removedPath: "~/.betterprompt/" }),
+      expect.stringContaining("Reset complete"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
 
   it("outputs structured result in --json mode", async () => {
     const deps = createDeps({
-      runUninstall: mock(async () =>
+      runReset: mock(async () =>
         createRunResult({
           removedPath: "~/.betterprompt/",
-          removedPackage: true,
           confirmed: true,
         })
       ),
     });
 
-    await runUninstall(["--yes", "--json"], deps);
+    await runReset(["--yes", "--json"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       expect.objectContaining({
         removedPath: "~/.betterprompt/",
-        removedPackage: true,
         confirmed: true,
       }),
       expect.objectContaining({ outputFormat: "json" })
@@ -141,15 +134,15 @@ describe("uninstall command", () => {
 
   it("handles command failures gracefully", async () => {
     const deps = createDeps({
-      runUninstall: mock(async () => {
+      runReset: mock(async () => {
         throw new Error("permission denied");
       }),
     });
 
-    await runUninstall(["--yes"], deps);
+    await runReset(["--yes"], deps);
 
     expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining("Uninstall command failed: permission denied")
+      expect.stringContaining("Reset command failed: permission denied")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
@@ -157,15 +150,15 @@ describe("uninstall command", () => {
 
   it("handles non-Error failures gracefully", async () => {
     const deps = createDeps({
-      runUninstall: mock(async () => {
+      runReset: mock(async () => {
         throw "disk busy";
       }),
     });
 
-    await runUninstall(["--yes"], deps);
+    await runReset(["--yes"], deps);
 
     expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining("Uninstall command failed: disk busy")
+      expect.stringContaining("Reset command failed: disk busy")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
