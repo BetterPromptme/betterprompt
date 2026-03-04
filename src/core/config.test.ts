@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { API_CONFIG, SYSTEM_CONFIG } from "../constants";
@@ -56,6 +63,19 @@ describe("system config core", () => {
       apiBaseUrl: API_CONFIG.baseUrl,
     });
     expect(parsed).toEqual(config);
+  });
+
+  it("creates skills/outputs/logs/tmp directories during config initialization", async () => {
+    const tempDir = await createTempDir();
+    const rootDir = path.join(tempDir, ".betterprompt");
+    const configPath = path.join(rootDir, "config.json");
+
+    await loadOrInitConfig({ configPath });
+
+    await expect(stat(path.join(rootDir, "skills"))).resolves.toBeDefined();
+    await expect(stat(path.join(rootDir, "outputs"))).resolves.toBeDefined();
+    await expect(stat(path.join(rootDir, "logs"))).resolves.toBeDefined();
+    await expect(stat(path.join(rootDir, "tmp"))).resolves.toBeDefined();
   });
 
   it("auto-fills apiBaseUrl when missing", async () => {
