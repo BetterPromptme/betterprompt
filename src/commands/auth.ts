@@ -74,7 +74,6 @@ export const createAuthCommand = (
 
       const configPath = await deps.saveAuthConfig(apiKey);
       const successMessage = `${AUTH_MESSAGES.successPrefix} ${configPath}`;
-      deps.log(`${logSymbols.success} ${successMessage}`);
       deps.outro(successMessage);
     } catch (error) {
       const fallbackPath = deps.resolveAuthConfigPath();
