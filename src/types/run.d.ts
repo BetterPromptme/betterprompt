@@ -1,5 +1,6 @@
 import type { RunStatus } from "../enums/run-status";
 import type { TApiResponse } from "./api";
+import { TPart } from "./output";
 
 export type TImageInputUrl = {
   type: "url";
@@ -35,7 +36,7 @@ export type TRunPayload = {
 
 export type TRunResult = {
   runId: string;
-  outputs: unknown;
+  outputs: TPart[];
   runStatus: RunStatus;
 };
 
