@@ -107,7 +107,7 @@ export const installSkill = async (
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
 
-  const { skillmd, skillId, inputMetadata, ...manifest } = response;
+  const { skillmd, inputMetadata, ...manifest } = response;
 
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
@@ -243,7 +243,7 @@ export const updateSkill = async (
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
 
-  const { skillmd, skillId, inputMetadata, ...latestManifest } = response;
+  const { skillmd, inputMetadata, ...latestManifest } = response;
 
   const toVersion =
     typeof latestManifest.skillVersionId === "string"
@@ -259,19 +259,24 @@ export const updateSkill = async (
     };
   }
 
-  const schemaResponse = await apiClient.get<TApiResponse<unknown>>(
-    `/skills/${normalizedSkillName}/schema`
-  );
-  const schema = requireSuccess(
-    schemaResponse,
-    `Failed to fetch "${normalizedSkillName}" schema.`
-  );
+  const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   await rm(skillDir, { recursive: true, force: true });
   await mkdir(skillDir, { recursive: true });
   await writeJsonFile(path.join(skillDir, "manifest.json"), latestManifest);
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd ?? "");
+
+  const lockfilePath = path.join(options.scope.rootDir, "betterprompt.lock");
+  if (await exists(lockfilePath)) {
+    const existingLock = await readLockfile(lockfilePath);
+    if (
+      Object.prototype.hasOwnProperty.call(existingLock, normalizedSkillName)
+    ) {
+      existingLock[normalizedSkillName] = toVersion;
+      await writeJsonFile(lockfilePath, existingLock);
+    }
+  }
 
   return {
     skillName: normalizedSkillName,
