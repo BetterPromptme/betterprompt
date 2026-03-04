@@ -274,17 +274,16 @@ describe("generate command", () => {
     expect(printCalls[3]?.[0]).toBe("A recoverable part-level error happened.");
   });
 
-  it("fails when <skill-name> is missing", async () => {
+  it("shows clear error when <skill-slug> is missing", async () => {
     const deps = createDeps();
-    const root = createRoot(deps);
-    root.exitOverride();
 
-    await expect(
-      root.parseAsync(["generate"], {
-        from: "user",
-      })
-    ).rejects.toMatchObject({
-      code: "commander.missingArgument",
-    });
+    await runGenerate([], deps);
+
+    expect(deps.generate).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Missing required argument <skill-slug>.")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 });
