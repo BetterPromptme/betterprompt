@@ -256,6 +256,10 @@ export const createSkillCommand = (
             ...(opts.force !== undefined && { force: opts.force }),
           };
 
+          if (skillName !== undefined && opts.all === true) {
+            throw new Error(SKILLS_MESSAGES.updateAllWithSkillNameError);
+          }
+
           if (skillName !== undefined) {
             const result = await deps.updateSkill(skillName, options);
             deps.printResult(result, ctx);
