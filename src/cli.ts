@@ -1,15 +1,15 @@
-import { authCommand } from "./commands/auth";
 import { Command } from "commander";
+import { authCommand } from "./commands/auth";
 import { configCommand } from "./commands/config";
 import { creditsCommand } from "./commands/credits";
 import { doctorCommand } from "./commands/doctor";
 import { generateCommand } from "./commands/generate";
 import { outputsCommand } from "./commands/outputs";
+import { resetCommand } from "./commands/reset";
 import { searchCommand } from "./commands/search";
 import { skillCommand } from "./commands/skills";
-import { whoamiCommand } from "./commands/whoami";
 import { updateCommand } from "./commands/update";
-import { uninstallCommand } from "./commands/uninstall";
+import { whoamiCommand } from "./commands/whoami";
 import { CLI_MESSAGES, CLI_META } from "./constants";
 import { bootstrapGlobalDirectory } from "./core/bootstrap";
 import { installCtrlCHandler } from "./core/error-ux";
@@ -48,7 +48,7 @@ export const createProgram = (): Command => {
   program.addCommand(searchCommand);
   program.addCommand(skillCommand);
   program.addCommand(updateCommand);
-  program.addCommand(uninstallCommand);
+  program.addCommand(resetCommand);
 
   return program;
 };
