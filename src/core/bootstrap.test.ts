@@ -42,7 +42,6 @@ describe("global directory bootstrap", () => {
       expect(JSON.parse(configRaw)).toEqual({
         version: SYSTEM_CONFIG.version,
         apiBaseUrl: API_CONFIG.baseUrl,
-        skillsDir: path.join(rootDir, "skills"),
       });
       expect(JSON.parse(authRaw)).toEqual({});
     } finally {
@@ -50,7 +49,7 @@ describe("global directory bootstrap", () => {
     }
   });
 
-  it("is idempotent on repeated runs and keeps existing config values while filling missing skillsDir", async () => {
+  it("is idempotent on repeated runs and keeps existing config values", async () => {
     const tempHome = await createTempHome();
 
     try {
@@ -87,7 +86,6 @@ describe("global directory bootstrap", () => {
       expect(JSON.parse(configRaw)).toEqual({
         version: "custom-version",
         apiBaseUrl: "https://registry.example/v2",
-        skillsDir: path.join(rootDir, "skills"),
       });
       expect(JSON.parse(authRaw)).toEqual({ apiKey: "bp_live_custom" });
     } finally {
@@ -95,7 +93,7 @@ describe("global directory bootstrap", () => {
     }
   });
 
-  it("does not override an existing custom skillsDir", async () => {
+  it("removes skillsDir from existing config during bootstrap", async () => {
     const tempHome = await createTempHome();
 
     try {
@@ -129,7 +127,6 @@ describe("global directory bootstrap", () => {
       expect(JSON.parse(configRaw)).toEqual({
         version: "custom-version",
         apiBaseUrl: "https://registry.example/v2",
-        skillsDir: "/tmp/custom-skills",
       });
     } finally {
       await rm(tempHome, { recursive: true, force: true });
