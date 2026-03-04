@@ -16,6 +16,8 @@ import type { TPart } from "../types/output";
 import type { TRunResult } from "../types/run";
 
 const GENERATE_FAILED_PREFIX = "Generate command failed:";
+const GENERATE_MISSING_SKILL_SLUG_ERROR =
+  "Missing required argument <skill-slug>.";
 
 const collectInputPairs = (value: string, previous: string[]): string[] => [
   ...previous,
@@ -109,7 +111,7 @@ export const createGenerateCommand = (
   new Command("generate")
     .description("Generate output from an installed skill")
     .exitOverride()
-    .argument("<skill-slug>", "Skill slug to run")
+    .argument("[skill-slug]", "Skill slug to run")
     .option(
       "--input <key=value>",
       "Pass an input key/value pair. Can be repeated.",
@@ -123,11 +125,15 @@ export const createGenerateCommand = (
     .option("--json", "Render output as JSON")
     .action(
       async (
-        skillName: string,
+        skillName: string | undefined,
         opts: TGenerateCommandOptions,
         command: Command
       ) => {
         try {
+          if (skillName === undefined || skillName.trim().length === 0) {
+            throw new Error(GENERATE_MISSING_SKILL_SLUG_ERROR);
+          }
+
           const ctx = getCommandContext(command);
           const options = buildGenerateOptions(opts);
           const result = await runTaskWithSpinner({
