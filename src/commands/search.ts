@@ -1,8 +1,10 @@
 import { Command } from "commander";
 import logSymbols from "log-symbols";
+import ora from "ora";
 import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../constants";
 import { getApiClient } from "../core/api";
 import { getCommandContext } from "../core/context";
+import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
 import { searchSkills, validateSearchQuery } from "../core/skills";
 import type {
@@ -45,7 +47,8 @@ export const addSearchFilterOptions = (command: Command): Command =>
       "--type <type>",
       `Filter by skill type (${SKILL_TYPES.join(", ")})`
     )
-    .option("--author <author>", "Filter by author");
+    .option("--author <author>", "Filter by author")
+    .option("--json", "Render output as JSON");
 
 export const createSearchCommand = (
   deps: TSearchCommandDependencies = defaultDeps
@@ -63,7 +66,11 @@ export const createSearchCommand = (
         const ctx = getCommandContext(command);
         const normalizedQuery = deps.validateQuery(query);
         const filters = buildSearchFilters(opts);
-        const result = await deps.search(normalizedQuery, filters);
+        const result = await runTaskWithSpinner({
+          message: "Searching skills...",
+          createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+          task: () => deps.search(normalizedQuery, filters),
+        });
         deps.printResult(result, ctx);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
