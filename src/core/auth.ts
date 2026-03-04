@@ -8,7 +8,7 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { AUTH_MESSAGES, AUTH_STORAGE } from "../constants";
+import { API_CONFIG, AUTH_MESSAGES, AUTH_STORAGE } from "../constants";
 import type { TAuthConfig } from "../types/auth";
 import { TReadAuthOptions, TSaveAuthOptions } from "../types";
 import type { TFetchLike } from "../types/api";
@@ -66,7 +66,8 @@ export const verifyApiKey = async (
 ): Promise<void> => {
   const normalizedApiKey = normalizeApiKey(apiKey);
   const fetchClient: TFetchLike = options.fetch ?? fetch;
-  const baseUrl = options.baseUrl ?? (await loadOrInitConfig()).apiBaseUrl;
+  const baseUrl =
+    options.baseUrl ?? (await loadOrInitConfig()).apiBaseUrl ?? API_CONFIG.baseUrl;
   const requestUrl = new URL(
     "me",
     baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`
