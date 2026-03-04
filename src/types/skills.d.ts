@@ -1,4 +1,9 @@
-export type TSkillInfoOptions = Record<string, never>;
+export type TSkillInfoOptions = {
+  version?: string;
+  examples?: boolean;
+  schema?: boolean;
+  pricing?: boolean;
+};
 
 export type TSkillInfoCommandOptions = TSkillInfoOptions;
 
