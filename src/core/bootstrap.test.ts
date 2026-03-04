@@ -42,6 +42,7 @@ describe("global directory bootstrap", () => {
       expect(JSON.parse(configRaw)).toEqual({
         version: SYSTEM_CONFIG.version,
         apiBaseUrl: API_CONFIG.baseUrl,
+        skillsDir: path.join(rootDir, "skills"),
       });
       expect(JSON.parse(authRaw)).toEqual({});
     } finally {
@@ -49,7 +50,7 @@ describe("global directory bootstrap", () => {
     }
   });
 
-  it("is idempotent on repeated runs and does not overwrite existing config values", async () => {
+  it("is idempotent on repeated runs and keeps existing config values while filling missing skillsDir", async () => {
     const tempHome = await createTempHome();
 
     try {
@@ -67,7 +68,6 @@ describe("global directory bootstrap", () => {
           {
             version: "custom-version",
             apiBaseUrl: "https://registry.example/v2",
-            telemetry: "false",
           },
           null,
           2
@@ -87,9 +87,50 @@ describe("global directory bootstrap", () => {
       expect(JSON.parse(configRaw)).toEqual({
         version: "custom-version",
         apiBaseUrl: "https://registry.example/v2",
-        telemetry: "false",
+        skillsDir: path.join(rootDir, "skills"),
       });
       expect(JSON.parse(authRaw)).toEqual({ apiKey: "bp_live_custom" });
+    } finally {
+      await rm(tempHome, { recursive: true, force: true });
+    }
+  });
+
+  it("does not override an existing custom skillsDir", async () => {
+    const tempHome = await createTempHome();
+
+    try {
+      await bootstrapGlobalDirectory({
+        getHomeDir: () => tempHome,
+      });
+
+      const rootDir = path.join(tempHome, ".betterprompt");
+      const configPath = path.join(rootDir, "config.json");
+
+      await writeFile(
+        configPath,
+        `${JSON.stringify(
+          {
+            version: "custom-version",
+            apiBaseUrl: "https://registry.example/v2",
+            skillsDir: "/tmp/custom-skills",
+          },
+          null,
+          2
+        )}\n`
+      );
+
+      await expect(
+        bootstrapGlobalDirectory({
+          getHomeDir: () => tempHome,
+        })
+      ).resolves.toBeUndefined();
+
+      const configRaw = await readFile(configPath, "utf8");
+      expect(JSON.parse(configRaw)).toEqual({
+        version: "custom-version",
+        apiBaseUrl: "https://registry.example/v2",
+        skillsDir: "/tmp/custom-skills",
+      });
     } finally {
       await rm(tempHome, { recursive: true, force: true });
     }
