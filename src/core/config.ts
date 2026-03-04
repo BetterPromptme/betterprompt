@@ -61,69 +61,32 @@ const sanitizeConfig = (
     changed = true;
   }
 
-  const defaultOutputFormat =
-    typeof value.default_output_format === "string"
-      ? value.default_output_format.trim()
-      : "";
   if (
-    (defaultOutputFormat || undefined) !== value.default_output_format
+    "default_output_format" in value ||
+    "cache_ttl_seconds" in value ||
+    "telemetry" in value
   ) {
     changed = true;
   }
 
-  const cacheTtlSeconds = (() => {
-    if (typeof value.cache_ttl_seconds === "number") {
-      return Number.isFinite(value.cache_ttl_seconds)
-        ? String(value.cache_ttl_seconds)
+  const rawSkillsDir =
+    typeof value.skillsDir === "string"
+      ? value.skillsDir
+      : typeof value.skills_dir === "string"
+        ? value.skills_dir
         : undefined;
-    }
-    if (typeof value.cache_ttl_seconds === "string") {
-      const normalized = value.cache_ttl_seconds.trim();
-      if (!normalized) {
-        return undefined;
-      }
-      const asNumber = Number(normalized);
-      return Number.isFinite(asNumber) ? normalized : undefined;
-    }
-    return undefined;
-  })();
+  const skillsDir = typeof rawSkillsDir === "string" ? rawSkillsDir.trim() : "";
   if (
-    (cacheTtlSeconds || undefined) !== value.cache_ttl_seconds
+    (skillsDir || undefined) !== value.skillsDir ||
+    "skills_dir" in value
   ) {
-    changed = true;
-  }
-
-  const telemetry = (() => {
-    if (typeof value.telemetry === "boolean") {
-      return String(value.telemetry);
-    }
-    if (typeof value.telemetry === "string") {
-      const normalized = value.telemetry.trim().toLowerCase();
-      if (normalized === "true" || normalized === "false") {
-        return normalized;
-      }
-    }
-    return undefined;
-  })();
-  if ((telemetry || undefined) !== value.telemetry) {
-    changed = true;
-  }
-
-  const skillsDir =
-    typeof value.skills_dir === "string" ? value.skills_dir.trim() : "";
-  if ((skillsDir || undefined) !== value.skills_dir) {
     changed = true;
   }
 
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
-    ...(defaultOutputFormat
-      ? { default_output_format: defaultOutputFormat }
-      : {}),
-    ...(cacheTtlSeconds ? { cache_ttl_seconds: cacheTtlSeconds } : {}),
-    ...(telemetry ? { telemetry } : {}),
-    ...(skillsDir ? { skills_dir: skillsDir } : {}),
+    ...(skillsDir ? { skillsDir } : {}),
   };
 
   return { config, changed };
@@ -241,34 +204,10 @@ const normalizeApiBaseUrl = (value: string): string => {
   return normalized;
 };
 
-const normalizeDefaultOutputFormat = (value: string): string => {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error("default_output_format cannot be empty.");
-  }
-  return normalized;
-};
-
-const normalizeCacheTtlSeconds = (value: string): string => {
-  const normalized = value.trim();
-  if (!normalized || !Number.isFinite(Number(normalized))) {
-    throw new Error("cache_ttl_seconds must be a number.");
-  }
-  return normalized;
-};
-
-const normalizeTelemetry = (value: string): string => {
-  const normalized = value.trim().toLowerCase();
-  if (normalized !== "true" && normalized !== "false") {
-    throw new Error("telemetry must be a boolean.");
-  }
-  return normalized;
-};
-
 const normalizeSkillsDir = (value: string): string => {
   const normalized = value.trim();
   if (!normalized) {
-    throw new Error("skills_dir cannot be empty.");
+    throw new Error("skillsDir cannot be empty.");
   }
   return normalized;
 };
@@ -284,17 +223,8 @@ export const getSystemConfigValue = async (
   if (key === "apiBaseUrl") {
     return config.apiBaseUrl;
   }
-  if (key === "default_output_format") {
-    return config.default_output_format;
-  }
-  if (key === "cache_ttl_seconds") {
-    return config.cache_ttl_seconds;
-  }
-  if (key === "telemetry") {
-    return config.telemetry;
-  }
-  if (key === "skills_dir") {
-    return config.skills_dir;
+  if (key === "skillsDir") {
+    return config.skillsDir;
   }
   return undefined;
 };
@@ -317,14 +247,8 @@ export const setSystemConfigValue = async (
 
   if (key === "apiBaseUrl") {
     nextConfig.apiBaseUrl = normalizeApiBaseUrl(value);
-  } else if (key === "default_output_format") {
-    nextConfig.default_output_format = normalizeDefaultOutputFormat(value);
-  } else if (key === "cache_ttl_seconds") {
-    nextConfig.cache_ttl_seconds = normalizeCacheTtlSeconds(value);
-  } else if (key === "telemetry") {
-    nextConfig.telemetry = normalizeTelemetry(value);
-  } else if (key === "skills_dir") {
-    nextConfig.skills_dir = normalizeSkillsDir(value);
+  } else if (key === "skillsDir") {
+    nextConfig.skillsDir = normalizeSkillsDir(value);
   }
 
   await writeSystemConfig(configPath, nextConfig);
@@ -350,17 +274,8 @@ export const unsetSystemConfigValue = async (
     if (key === "apiBaseUrl") {
       return existing.apiBaseUrl;
     }
-    if (key === "default_output_format") {
-      return existing.default_output_format;
-    }
-    if (key === "cache_ttl_seconds") {
-      return existing.cache_ttl_seconds;
-    }
-    if (key === "telemetry") {
-      return existing.telemetry;
-    }
-    if (key === "skills_dir") {
-      return existing.skills_dir;
+    if (key === "skillsDir") {
+      return existing.skillsDir;
     }
     return undefined;
   })();
