@@ -1,8 +1,10 @@
 import { Command } from "commander";
 import logSymbols from "log-symbols";
+import ora from "ora";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../constants";
 import { getApiClient } from "../core/api";
 import { getCommandContext } from "../core/context";
+import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
 import { resolveScope } from "../core/scope";
 import {
@@ -143,11 +145,16 @@ export const createSkillCommand = (
 
   const infoCommand = new Command(SKILLS_COMMAND.info.name)
     .description(SKILLS_COMMAND.info.description)
-    .argument("<skillName>", SKILLS_COMMAND.info.skillNameDescription)
-    .action(async (skillName: string, _opts: Record<string, never>, command: Command) => {
+    .argument("<skill-slug>", SKILLS_COMMAND.info.skillNameDescription)
+    .option("--json", "Render output as JSON")
+    .action(async (skillName: string, _opts: Record<string, unknown>, command: Command) => {
       try {
         const ctx = getCommandContext(command);
-        const result = await deps.getSkill(skillName);
+        const result = await runTaskWithSpinner({
+          message: "Fetching skill details...",
+          createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+          task: () => deps.getSkill(skillName),
+        });
         deps.printResult(result, ctx);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -159,9 +166,11 @@ export const createSkillCommand = (
   command.addCommand(infoCommand);
   const installCommand = new Command(SKILLS_COMMAND.install.name)
     .description(SKILLS_COMMAND.install.description)
-    .argument("<skillName>", SKILLS_COMMAND.install.skillNameDescription)
+    .argument("<skill-slug>", SKILLS_COMMAND.install.skillNameDescription)
+    .option("--version <version>", "Install a specific skill version")
     .option("--pin", SKILLS_COMMAND.install.flags.pin.description)
     .option("--overwrite", SKILLS_COMMAND.install.flags.overwrite.description)
+    .option("--json", "Render output as JSON")
     .action(
       async (
         skillName: string,
@@ -176,7 +185,11 @@ export const createSkillCommand = (
             ...(opts.overwrite !== undefined && { overwrite: opts.overwrite }),
           };
 
-          const result = await deps.installSkill(skillName, options);
+          const result = await runTaskWithSpinner({
+            message: "Installing skill...",
+            createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+            task: () => deps.installSkill(skillName, options),
+          });
           deps.printResult(result, ctx);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -189,7 +202,8 @@ export const createSkillCommand = (
   command.addCommand(installCommand);
   const uninstallCommand = new Command(SKILLS_COMMAND.uninstall.name)
     .description(SKILLS_COMMAND.uninstall.description)
-    .argument("<skillName>", SKILLS_COMMAND.uninstall.skillNameDescription)
+    .argument("<skill-slug>", SKILLS_COMMAND.uninstall.skillNameDescription)
+    .option("--json", "Render output as JSON")
     .action(
       async (
         skillName: string,
@@ -202,7 +216,11 @@ export const createSkillCommand = (
             scope: ctx.scope,
           };
 
-          const result = await deps.uninstallSkill(skillName, options);
+          const result = await runTaskWithSpinner({
+            message: "Uninstalling skill...",
+            createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+            task: () => deps.uninstallSkill(skillName, options),
+          });
           deps.printResult(result, ctx);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -216,6 +234,7 @@ export const createSkillCommand = (
 
   const listCommand = new Command(SKILLS_COMMAND.list.name)
     .description(SKILLS_COMMAND.list.description)
+    .option("--json", "Render output as JSON")
     .action(async (_opts: TSkillListCommandOptions, command: Command) => {
       try {
         const ctx = getCommandContext(command);
@@ -223,7 +242,11 @@ export const createSkillCommand = (
           scope: ctx.scope,
         };
 
-        const result = await deps.listSkills(options);
+        const result = await runTaskWithSpinner({
+          message: "Listing installed skills...",
+          createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+          task: () => deps.listSkills(options),
+        });
         if (result.length === 0 && ctx.outputFormat !== "json") {
           deps.printResult(`${logSymbols.warning} No installed skills found.`, ctx);
         } else {
@@ -240,9 +263,11 @@ export const createSkillCommand = (
 
   const updateCommand = new Command(SKILLS_COMMAND.update.name)
     .description(SKILLS_COMMAND.update.description)
-    .argument("[skillName]", SKILLS_COMMAND.update.skillNameDescription)
+    .argument("[skill-slug]", SKILLS_COMMAND.update.skillNameDescription)
+    .option("--version <version>", "Update to a specific version")
     .option("--force", SKILLS_COMMAND.update.flags.force.description)
     .option("--all", SKILLS_COMMAND.update.flags.all.description)
+    .option("--json", "Render output as JSON")
     .action(
       async (
         skillName: string | undefined,
@@ -265,10 +290,18 @@ export const createSkillCommand = (
           }
 
           if (skillName !== undefined) {
-            const result = await deps.updateSkill(skillName, options);
+            const result = await runTaskWithSpinner({
+              message: "Updating skill...",
+              createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+              task: () => deps.updateSkill(skillName, options),
+            });
             deps.printResult(result, ctx);
           } else {
-            const results = await deps.updateAllSkills(options);
+            const results = await runTaskWithSpinner({
+              message: "Updating all skills...",
+              createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+              task: () => deps.updateAllSkills(options),
+            });
             deps.printResult(results, ctx);
           }
         } catch (error) {
