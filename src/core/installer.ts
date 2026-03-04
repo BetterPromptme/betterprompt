@@ -7,7 +7,6 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import type { TApiResponse } from "../types";
 import type {
   TInstallApiClient,
   TInstallSkillOptions,
@@ -22,9 +21,9 @@ import type {
   TUpdateSkillOptions,
   TUpdateSkillResult,
 } from "../types/installer";
+import { generateZodSchema } from "../utils/schema";
 import { validateSkillName } from "./skill-name";
 import { getSkillByName, TSkillSearchRow } from "./skills";
-import { generateZodSchema } from "../utils/schema";
 
 type TSkillManifest = Omit<TSkillSearchRow, "skillId" | "inputMetadata">;
 
@@ -76,25 +75,6 @@ const writeMdFile = async (
 ): Promise<void> => {
   const normalized = content.endsWith("\n") ? content : `${content}\n`;
   await writeFile(targetPath, normalized, "utf8");
-};
-
-const resolveSchema = async (
-  apiClient: TInstallApiClient,
-  skillName: string,
-  inputMetadata: TSkillSearchRow["inputMetadata"]
-): Promise<unknown> => {
-  try {
-    const schemaResponse = await apiClient.get<TApiResponse<unknown>>(
-      `/skills/${skillName}/schema`
-    );
-    if (schemaResponse.status === "SUCCESS" && schemaResponse.data !== undefined) {
-      return schemaResponse.data;
-    }
-  } catch {
-    // Fall back to local schema generation when schema endpoint is unavailable.
-  }
-
-  return generateZodSchema(inputMetadata).toJSONSchema();
 };
 
 export const installSkill = async (
@@ -267,11 +247,7 @@ export const updateSkill = async (
     };
   }
 
-  const schema = await resolveSchema(
-    apiClient,
-    normalizedSkillName,
-    inputMetadata
-  );
+  const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   await rm(skillDir, { recursive: true, force: true });
   await mkdir(skillDir, { recursive: true });
