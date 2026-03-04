@@ -8,7 +8,11 @@ const createDeps = (overrides: Partial<TConfigDeps> = {}): TConfigDeps => ({
   getValue: mock(async () => "value"),
   setValue: mock(async () => "/tmp/.betterprompt/config.json"),
   verifyApiKey: mock(async () => {}),
-  resolveConfigPath: mock(() => "/tmp/.betterprompt/config.json"),
+  resolveConfigPath: mock((key: "apiKey" | "apiBaseUrl") =>
+    key === "apiKey"
+      ? "/tmp/.betterprompt/auth.json"
+      : "/tmp/.betterprompt/config.json"
+  ),
   log: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
@@ -112,6 +116,9 @@ describe("config command", () => {
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_bad_key");
     expect(deps.setValue).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledTimes(2);
+    expect(deps.error).toHaveBeenLastCalledWith(
+      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
+    );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 
@@ -123,6 +130,24 @@ describe("config command", () => {
     await runConfig(["get", "apiKey"], deps);
 
     expect(deps.error).toHaveBeenCalledTimes(2);
+    expect(deps.error).toHaveBeenLastCalledWith(
+      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows system config path when setting apiBaseUrl fails", async () => {
+    const deps = createDeps({
+      setValue: mock(async () => {
+        throw new Error("write failed");
+      }),
+    });
+
+    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps);
+
+    expect(deps.error).toHaveBeenLastCalledWith(
+      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
+    );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 });
