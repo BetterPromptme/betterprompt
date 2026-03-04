@@ -722,12 +722,19 @@ describe("skill update command", () => {
     expect(deps.printResult).not.toHaveBeenCalled();
   });
 
-  it("does not call updateAllSkills when a skill name is provided with --all", async () => {
+  it("fails when a skill name is provided with --all", async () => {
     const deps = createDeps();
 
     await runUpdate(["react-hooks", "--all"], deps);
 
-    expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", expect.objectContaining({ scope: expect.anything() }));
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Skill command failed: Cannot use "--all" together with a specific skill name.'
+      )
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.updateSkill).not.toHaveBeenCalled();
     expect(deps.updateAllSkills).not.toHaveBeenCalled();
+    expect(deps.printResult).not.toHaveBeenCalled();
   });
 });
