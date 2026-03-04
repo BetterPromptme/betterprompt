@@ -248,9 +248,7 @@ describe("auth core", () => {
       get: mock(async () => ({
         status: "SUCCESS",
         data: {
-          balance: 1250,
-          currency: "USD",
-          updatedAt: "2026-03-03T12:00:00.000Z",
+          credits: 1250,
         },
       })),
     };
@@ -259,9 +257,7 @@ describe("auth core", () => {
 
     expect(apiClient.get).toHaveBeenCalledWith("/me/credits");
     expect(result).toEqual({
-      balance: 1250,
-      currency: "USD",
-      updatedAt: "2026-03-03T12:00:00.000Z",
+      credits: 1250,
     });
   });
 
