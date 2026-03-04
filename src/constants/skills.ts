@@ -54,5 +54,7 @@ Examples:
   $ betterprompt skill update --all
 `,
   invalidSkillNameError: "Skill name must not be empty.",
+  updateAllWithSkillNameError:
+    'Cannot use "--all" together with a specific skill name.',
   failedPrefix: "Skill command failed:",
 } as const;
