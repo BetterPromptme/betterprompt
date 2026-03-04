@@ -1,9 +1,9 @@
 import { cancel, intro, isCancel, outro, password } from "@clack/prompts";
 import { Command } from "commander";
-import logSymbols from "log-symbols";
 import ora from "ora";
 import { AUTH_COMMAND, AUTH_MESSAGES } from "../constants";
 import { getCommandContext } from "../core/context";
+import { createErrorFormatter, runTaskWithSpinner } from "../core/error-ux";
 import { resolveAuthConfigPath, saveAuthConfig, verifyApiKey } from "../core/auth";
 import type { TAuthDependencies } from "../types";
 
@@ -34,9 +34,11 @@ export const createAuthCommand = (
 
   command.action(async (opts: { apiKey?: string }, command: Command) => {
     deps.intro(AUTH_MESSAGES.introTitle);
+    let formatError = createErrorFormatter({ color: true });
 
     try {
-      getCommandContext(command);
+      const ctx = getCommandContext(command);
+      formatError = createErrorFormatter({ color: ctx.color });
 
       const keyInput =
         opts.apiKey ??
@@ -63,14 +65,13 @@ export const createAuthCommand = (
         throw new Error(AUTH_MESSAGES.emptyKeyError);
       }
 
-      const spinner = deps.createSpinner(AUTH_MESSAGES.verifyKeyText).start();
-      try {
-        await deps.verifyApiKey(apiKey);
-        spinner.succeed();
-      } catch (error) {
-        spinner.fail();
-        throw error;
-      }
+      await runTaskWithSpinner({
+        message: AUTH_MESSAGES.verifyKeyText,
+        createSpinner: deps.createSpinner,
+        task: async () => {
+          await deps.verifyApiKey(apiKey);
+        },
+      });
 
       const configPath = await deps.saveAuthConfig(apiKey);
       const successMessage = `${AUTH_MESSAGES.successPrefix} ${configPath}`;
@@ -79,7 +80,7 @@ export const createAuthCommand = (
       const fallbackPath = deps.resolveAuthConfigPath();
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      deps.error(`${logSymbols.error} ${AUTH_MESSAGES.failedPrefix} ${errorMessage}`);
+      deps.error(formatError(AUTH_MESSAGES.failedPrefix, errorMessage));
       deps.error(`${AUTH_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
       deps.setExitCode(1);
     }
