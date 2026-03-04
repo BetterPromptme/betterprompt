@@ -55,6 +55,18 @@ export const createUpdateCommand = (
             }),
         });
         updated = updateResult.updated;
+      }
+
+      const resultData = {
+        currentVersion: checkResult.currentVersion,
+        latestVersion: checkResult.latestVersion,
+        hasUpdate: checkResult.hasUpdate,
+        updated,
+      };
+
+      if (ctx.outputFormat === "json") {
+        deps.printResult(resultData, ctx);
+      } else if (updated) {
         deps.printResult(
           `${logSymbols.info} Updated to ${checkResult.latestVersion}`,
           ctx
