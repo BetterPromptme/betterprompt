@@ -10,7 +10,6 @@ type TInstallOptions = {
     type: "global" | "project" | "dir";
     rootDir: string;
   };
-  pin?: boolean;
   overwrite?: boolean;
 };
 
@@ -82,52 +81,7 @@ describe("installer core", () => {
     expect(skillMd).toContain("# React Hooks");
   });
 
-  it("writes version pin into betterprompt.lock when --pin mode is enabled", async () => {
-    const rootDir = await createTempDir();
-    const apiClient = {
-      get: mock(async (resource: string) => {
-        if (resource === "/skills/react-hooks") {
-          return {
-            status: "SUCCESS",
-            data: {
-              skillId: "skill_123",
-              skillVersionId: "2.0.0",
-              name: "react-hooks",
-              title: "React Hooks",
-              description: null,
-              author: null,
-              sample: { inputs: null, outputs: null },
-              inputMetadata: { variables: {}, images: [] },
-              skillmd: "# React Hooks",
-            },
-          };
-        }
-
-        return {
-          status: "ERROR",
-          message: `Unhandled route: ${resource}`,
-        };
-      }),
-    };
-
-    await (
-      installSkill as unknown as (
-        client: unknown,
-        options: TInstallOptions
-      ) => Promise<unknown>
-    )(apiClient, {
-      skillName: "react-hooks",
-      scope: { type: "project", rootDir },
-      pin: true,
-    });
-
-    const lockfileRaw = await readFile(path.join(rootDir, "betterprompt.lock"), "utf8");
-
-    expect(lockfileRaw).toContain("react-hooks");
-    expect(lockfileRaw).toContain("2.0.0");
-  });
-
-  it("does not write betterprompt.lock when --pin mode is disabled", async () => {
+  it("does not write betterprompt.lock on install", async () => {
     const rootDir = await createTempDir();
     const apiClient = {
       get: mock(async (resource: string) => {
@@ -347,7 +301,7 @@ describe("installer core", () => {
     });
   });
 
-  it("uninstallSkill removes lockfile entry for skill when present", async () => {
+  it("uninstallSkill does not modify existing lockfile", async () => {
     const rootDir = await createTempDir();
     const skillDir = path.join(rootDir, "skills", "react-hooks");
     const lockfilePath = path.join(rootDir, "betterprompt.lock");
@@ -372,8 +326,10 @@ describe("installer core", () => {
     });
 
     const lockfileRaw = await readFile(lockfilePath, "utf8");
-    expect(lockfileRaw).not.toContain("react-hooks");
-    expect(lockfileRaw).toContain("vue-composer");
+    expect(JSON.parse(lockfileRaw)).toEqual({
+      "react-hooks": "1.2.3",
+      "vue-composer": "2.0.0",
+    });
   });
 
   it("uninstallSkill throws when skill is not found", async () => {
@@ -538,7 +494,7 @@ describe("updateSkill core", () => {
     expect(JSON.parse(manifestRaw)).toMatchObject({ skillVersionId: "2.0.0" });
   });
 
-  it("updates lockfile pinned version when skill was previously pinned", async () => {
+  it("does not update lockfile entries when updating a skill", async () => {
     const rootDir = await createTempDir();
     const skillDir = path.join(rootDir, "skills", "react-hooks");
     const lockfilePath = path.join(rootDir, "betterprompt.lock");
@@ -590,7 +546,7 @@ describe("updateSkill core", () => {
 
     const lockfileRaw = await readFile(lockfilePath, "utf8");
     expect(JSON.parse(lockfileRaw)).toEqual({
-      "react-hooks": "2.0.0",
+      "react-hooks": "1.0.0",
       "seo-writer": "3.0.0",
     });
   });
