@@ -14,12 +14,10 @@ export type TSkillInstallScope =
 
 export type TSkillInstallOptions = {
   scope: TSkillInstallScope;
-  pin?: boolean;
   overwrite?: boolean;
 };
 
 export type TSkillInstallCommandOptions = {
-  pin?: boolean;
   overwrite?: boolean;
 };
 
