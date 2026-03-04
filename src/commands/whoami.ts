@@ -1,10 +1,12 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import logSymbols from "log-symbols";
+import ora from "ora";
 import { WHOAMI_COMMAND, WHOAMI_MESSAGES } from "../constants";
 import { getApiClient } from "../core/api";
 import { getCurrentUser } from "../core/auth";
 import { getCommandContext } from "../core/context";
+import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
 import type { TUserIdentity, TWhoamiDependencies } from "../types";
 
@@ -35,7 +37,11 @@ export const createWhoamiCommand = (
   command.action(async (_opts: Record<string, unknown>, command: Command) => {
     try {
       const ctx = getCommandContext(command);
-      const identity = await deps.getCurrentUser();
+      const identity = await runTaskWithSpinner({
+        message: "Fetching account identity...",
+        createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+        task: () => deps.getCurrentUser(),
+      });
       deps.printResult(
         ctx.outputFormat === "json" ? identity : formatIdentityText(identity),
         ctx
