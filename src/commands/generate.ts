@@ -16,15 +16,20 @@ import type { TPart } from "../types/output";
 import type { TRunResult } from "../types/run";
 
 const GENERATE_FAILED_PREFIX = "Generate command failed:";
-const GENERATE_MISSING_SKILL_SLUG_ERROR =
-  "Missing required argument <skill-slug>.";
+const GENERATE_INPUT_MISSING_ARGUMENT_FRAGMENT = "--input <key=value>";
+const GENERATE_INPUT_MISSING_ARGUMENT_HINT =
+  "Hint: pass --input as key=value (example: --input topic=ai).\n";
+const GENERATE_DESCRIPTION =
+  'Generate output from an installed skill. Get <skillVersionId> via "bp skill list" or "bp skill info <skill-slug>".';
 
 const collectInputPairs = (value: string, previous: string[]): string[] => [
   ...previous,
   value,
 ];
 
-const buildTextInputs = (input: string[] | undefined): Record<string, string> => {
+const buildTextInputs = (
+  input: string[] | undefined
+): Record<string, string> => {
   if (input === undefined || input.length === 0) {
     return {};
   }
@@ -51,9 +56,9 @@ const buildTextInputs = (input: string[] | undefined): Record<string, string> =>
 };
 
 const defaultDeps: TGenerateCommandDependencies = {
-  generate: async (skillName, options) => {
+  generate: async (skillVersionId, options) => {
     const result = await createRun(getApiClient(), {
-      promptVersionId: skillName,
+      promptVersionId: skillVersionId,
       inputs: {
         textInputs: buildTextInputs(options.input),
       },
@@ -105,13 +110,27 @@ const formatPartForTextOutput = (part: TPart): string => {
   }
 };
 
+export const formatGenerateOptionErrorMessage = (message: string): string => {
+  if (message.includes(GENERATE_INPUT_MISSING_ARGUMENT_FRAGMENT)) {
+    return `${message}${GENERATE_INPUT_MISSING_ARGUMENT_HINT}`;
+  }
+
+  return message;
+};
+
 export const createGenerateCommand = (
   deps: TGenerateCommandDependencies = defaultDeps
 ): Command =>
   new Command("generate")
-    .description("Generate output from an installed skill")
-    .exitOverride()
-    .argument("[skill-slug]", "Skill slug to run")
+    .description(GENERATE_DESCRIPTION)
+    .showHelpAfterError()
+    .showSuggestionAfterError()
+    .configureOutput({
+      outputError: (message, write) => {
+        write(formatGenerateOptionErrorMessage(message));
+      },
+    })
+    .argument("<skillVersionId>", "Skill version ID to run")
     .option(
       "--input <key=value>",
       "Pass an input key/value pair. Can be repeated.",
@@ -125,21 +144,18 @@ export const createGenerateCommand = (
     .option("--json", "Render output as JSON")
     .action(
       async (
-        skillName: string | undefined,
+        skillVersionId: string,
         opts: TGenerateCommandOptions,
         command: Command
       ) => {
         try {
-          if (skillName === undefined || skillName.trim().length === 0) {
-            throw new Error(GENERATE_MISSING_SKILL_SLUG_ERROR);
-          }
-
           const ctx = getCommandContext(command);
           const options = buildGenerateOptions(opts);
           const result = await runTaskWithSpinner({
             message: "Running skill generation...",
-            createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
-            task: () => deps.generate(skillName, options),
+            createSpinner: (message) =>
+              ora({ text: message, isEnabled: process.stderr.isTTY }),
+            task: () => deps.generate(skillVersionId, options),
           });
 
           if (ctx.outputFormat === "json") {
@@ -161,6 +177,7 @@ export const createGenerateCommand = (
           deps.error(
             `${logSymbols.error} ${GENERATE_FAILED_PREFIX} ${errorMessage}`
           );
+          deps.error(command.helpInformation());
           deps.setExitCode(1);
         }
       }
