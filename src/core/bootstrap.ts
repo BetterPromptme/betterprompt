@@ -4,7 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { AUTH_STORAGE, SYSTEM_STORAGE } from "../constants";
 import type { TBootstrapGlobalDirectoryOptions } from "../types";
-import { loadOrInitConfig, resolveSystemConfigPath } from "./config";
+import {
+  loadOrInitConfig,
+  resolveSystemConfigPath,
+  setSystemConfigValue,
+} from "./config";
 
 const getBootstrapRootDir = (getHomeDir: () => string): string =>
   path.join(getHomeDir(), SYSTEM_STORAGE.configDirName);
@@ -53,6 +57,7 @@ export const bootstrapGlobalDirectory = async (
 ): Promise<void> => {
   const getHomeDir = options.getHomeDir ?? os.homedir;
   const rootDir = getBootstrapRootDir(getHomeDir);
+  const defaultSkillsDir = path.join(rootDir, "skills");
   const configPath = resolveSystemConfigPath(getHomeDir);
   const authPath = path.join(rootDir, AUTH_STORAGE.fileName);
 
@@ -60,6 +65,12 @@ export const bootstrapGlobalDirectory = async (
     await ensureDirectory(directoryPath);
   }
 
-  await loadOrInitConfig({ configPath });
+  const config = await loadOrInitConfig({ configPath });
+  if (
+    typeof config.skillsDir !== "string" ||
+    config.skillsDir.trim().length === 0
+  ) {
+    await setSystemConfigValue("skillsDir", defaultSkillsDir, { configPath });
+  }
   await ensureAuthConfig(authPath);
 };
