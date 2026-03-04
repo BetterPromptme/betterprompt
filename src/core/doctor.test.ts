@@ -5,8 +5,6 @@ type TCheckName =
   | "auth"
   | "registry"
   | "dirs"
-  | "lockfile"
-  | "wrappers"
   | "permissions";
 
 type TCheckStatus = "pass" | "fail";
@@ -21,8 +19,6 @@ type TDoctorDeps = {
   checkAuth: () => Promise<TCheckResult>;
   checkRegistry: () => Promise<TCheckResult>;
   checkDirs: () => Promise<TCheckResult>;
-  checkLockfile: () => Promise<TCheckResult>;
-  checkWrappers: () => Promise<TCheckResult>;
   checkPermissions: () => Promise<TCheckResult>;
 };
 
@@ -51,8 +47,6 @@ const createDeps = (overrides: Partial<TDoctorDeps> = {}): TDoctorDeps => ({
   checkAuth: mock(async () => pass("Auth key is valid.")),
   checkRegistry: mock(async () => pass("Registry is reachable.")),
   checkDirs: mock(async () => pass("All required directories exist.")),
-  checkLockfile: mock(async () => pass("Lockfile matches installed skills.")),
-  checkWrappers: mock(async () => pass("All skill wrappers are present.")),
   checkPermissions: mock(async () => pass("Write permissions are valid.")),
   ...overrides,
 });
@@ -76,13 +70,11 @@ describe("doctor core", () => {
     const result = await runDoctor(deps);
 
     expect(result.healthy).toBe(true);
-    expect(result.checks).toHaveLength(6);
+    expect(result.checks).toHaveLength(4);
     expect(result.checks.map((check) => check.name)).toEqual([
       "auth",
       "registry",
       "dirs",
-      "lockfile",
-      "wrappers",
       "permissions",
     ]);
     expect(result.checks.every((check) => check.status === "pass")).toBe(true);
@@ -111,30 +103,16 @@ describe("doctor core", () => {
       {
         name: "dirs",
         override: {
-          checkDirs: mock(async () => fail("Missing ~/.betterprompt/outputs directory.")),
+          checkDirs: mock(async () => fail("Missing skills directory: ~/.betterprompt/skills.")),
         },
-        expectedMessage: "Missing ~/.betterprompt/outputs directory.",
-      },
-      {
-        name: "lockfile",
-        override: {
-          checkLockfile: mock(async () => fail("Lockfile mismatch for skill react-hooks.")),
-        },
-        expectedMessage: "Lockfile mismatch for skill react-hooks.",
-      },
-      {
-        name: "wrappers",
-        override: {
-          checkWrappers: mock(async () => fail("Missing wrapper script for skill caption-generator.")),
-        },
-        expectedMessage: "Missing wrapper script for skill caption-generator.",
+        expectedMessage: "Missing skills directory: ~/.betterprompt/skills.",
       },
       {
         name: "permissions",
         override: {
-          checkPermissions: mock(async () => fail("No write permission to ~/.betterprompt/tmp.")),
+          checkPermissions: mock(async () => fail("No write permission to skills directory: ~/.betterprompt/skills.")),
         },
-        expectedMessage: "No write permission to ~/.betterprompt/tmp.",
+        expectedMessage: "No write permission to skills directory: ~/.betterprompt/skills.",
       },
     ];
 
@@ -193,7 +171,7 @@ describe("doctor core", () => {
     const fixDirs = mock(async () => {});
     const deps = createDeps({
       checkDirs: mock(async () =>
-        fail("Missing ~/.betterprompt/outputs directory.", fixDirs)
+        fail("Missing skills directory: ~/.betterprompt/skills.", fixDirs)
       ),
     });
 
@@ -210,7 +188,7 @@ describe("doctor core", () => {
     const fixPermissions = mock(async () => {});
     const deps = createDeps({
       checkPermissions: mock(async () =>
-        fail("No write permission to ~/.betterprompt/tmp.", fixPermissions)
+        fail("No write permission to skills directory: ~/.betterprompt/skills.", fixPermissions)
       ),
     });
 
@@ -227,16 +205,16 @@ describe("doctor core", () => {
 
   it("--fix does not mark failed checks as fixed when no remediation callback exists", async () => {
     const deps = createDeps({
-      checkLockfile: mock(async () => fail("Lockfile mismatch for skill react-hooks.")),
+      checkRegistry: mock(async () => fail("Registry unreachable: timeout.")),
     });
 
     const result = await runDoctor(deps, true);
 
-    const lockfileCheck = result.checks.find((check) => check.name === "lockfile");
-    expect(lockfileCheck).toMatchObject({
+    const registryCheck = result.checks.find((check) => check.name === "registry");
+    expect(registryCheck).toMatchObject({
       status: "fail",
-      message: "Lockfile mismatch for skill react-hooks.",
+      message: "Registry unreachable: timeout.",
     });
-    expect(lockfileCheck?.fixed).toBeUndefined();
+    expect(registryCheck?.fixed).toBeUndefined();
   });
 });
