@@ -64,20 +64,8 @@ const sanitizeConfig = (
   if (
     "default_output_format" in value ||
     "cache_ttl_seconds" in value ||
-    "telemetry" in value
-  ) {
-    changed = true;
-  }
-
-  const rawSkillsDir =
-    typeof value.skillsDir === "string"
-      ? value.skillsDir
-      : typeof value.skills_dir === "string"
-        ? value.skills_dir
-        : undefined;
-  const skillsDir = typeof rawSkillsDir === "string" ? rawSkillsDir.trim() : "";
-  if (
-    (skillsDir || undefined) !== value.skillsDir ||
+    "telemetry" in value ||
+    "skillsDir" in value ||
     "skills_dir" in value
   ) {
     changed = true;
@@ -86,7 +74,6 @@ const sanitizeConfig = (
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
-    ...(skillsDir ? { skillsDir } : {}),
   };
 
   return { config, changed };
@@ -135,24 +122,11 @@ const writeSystemConfig = async (
   }
 };
 
-const ensureRuntimeDirectories = async (configPath: string): Promise<void> => {
-  const rootDir = path.dirname(configPath);
-  const requiredDirectories = ["skills", "outputs", "logs", "tmp"];
-
-  for (const name of requiredDirectories) {
-    await mkdir(path.join(rootDir, name), {
-      recursive: true,
-      mode: SYSTEM_STORAGE.directoryMode,
-    });
-  }
-};
-
 const doLoadOrInitConfig = async (
   options: TLoadOrInitConfigOptions = {}
 ): Promise<TSystemConfig> => {
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
-  await ensureRuntimeDirectories(configPath);
   const existing = await readExistingConfig(configPath);
 
   if (!existing) {
@@ -204,14 +178,6 @@ const normalizeApiBaseUrl = (value: string): string => {
   return normalized;
 };
 
-const normalizeSkillsDir = (value: string): string => {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error("skillsDir cannot be empty.");
-  }
-  return normalized;
-};
-
 export const getSystemConfigValue = async (
   key: TSystemConfigKey,
   options: TLoadOrInitConfigOptions = {}
@@ -222,9 +188,6 @@ export const getSystemConfigValue = async (
   const config = await loadOrInitConfig(options);
   if (key === "apiBaseUrl") {
     return config.apiBaseUrl;
-  }
-  if (key === "skillsDir") {
-    return config.skillsDir;
   }
   return undefined;
 };
@@ -247,8 +210,6 @@ export const setSystemConfigValue = async (
 
   if (key === "apiBaseUrl") {
     nextConfig.apiBaseUrl = normalizeApiBaseUrl(value);
-  } else if (key === "skillsDir") {
-    nextConfig.skillsDir = normalizeSkillsDir(value);
   }
 
   await writeSystemConfig(configPath, nextConfig);
@@ -273,9 +234,6 @@ export const unsetSystemConfigValue = async (
   const currentValue = (() => {
     if (key === "apiBaseUrl") {
       return existing.apiBaseUrl;
-    }
-    if (key === "skillsDir") {
-      return existing.skillsDir;
     }
     return undefined;
   })();
