@@ -36,4 +36,13 @@ describe("CLI run deprecation contract", () => {
     expect(source).toContain("createRun(");
     expect(source).not.toContain('post("/generate"');
   });
+
+  it("bootstraps global directories at startup instead of direct config init", () => {
+    const cliPath = path.resolve(import.meta.dir, "cli.ts");
+    const source = readFileSync(cliPath, "utf8");
+
+    expect(source).toContain('from "./core/bootstrap"');
+    expect(source).toContain("await bootstrapGlobalDirectory()");
+    expect(source).not.toContain("await loadOrInitConfig()");
+  });
 });
