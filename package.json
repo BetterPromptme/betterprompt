@@ -4,7 +4,8 @@
   "type": "module",
   "description": "BetterPrompt CLI Tools.",
   "bin": {
-    "betterprompt": "bin/betterprompt.js"
+    "betterprompt": "bin/betterprompt.js",
+    "bp": "bin/betterprompt.js"
   },
   "files": [
     "bin",
