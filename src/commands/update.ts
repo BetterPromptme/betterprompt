@@ -34,7 +34,8 @@ export const createUpdateCommand = (
       const ctx = getCommandContext(cmd);
       const checkResult = await runTaskWithSpinner({
         message: "Checking for updates...",
-        createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+        createSpinner: (message) =>
+          ora({ text: message, isEnabled: process.stderr.isTTY }),
         task: () =>
           deps.checkForUpdate({
             registry: ctx.registry,
@@ -45,7 +46,8 @@ export const createUpdateCommand = (
       if (checkResult.hasUpdate) {
         const updateResult = await runTaskWithSpinner({
           message: `Updating to ${checkResult.latestVersion}...`,
-          createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+          createSpinner: (message) =>
+            ora({ text: message, isEnabled: process.stderr.isTTY }),
           task: () =>
             deps.performUpdate({
               registry: ctx.registry,
@@ -53,19 +55,16 @@ export const createUpdateCommand = (
             }),
         });
         updated = updateResult.updated;
+        deps.printResult(
+          `${logSymbols.info} Updated to ${checkResult.latestVersion}`,
+          ctx
+        );
+      } else {
+        deps.printResult(`${logSymbols.info} Already up to date`, ctx);
       }
-
-      deps.printResult(
-        {
-          currentVersion: checkResult.currentVersion,
-          latestVersion: checkResult.latestVersion,
-          hasUpdate: checkResult.hasUpdate,
-          updated,
-        },
-        ctx
-      );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       deps.error(
         `${logSymbols.error} ${UPDATE_MESSAGES.failedPrefix} ${errorMessage}`
       );
