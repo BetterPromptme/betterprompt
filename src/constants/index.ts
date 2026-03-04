@@ -6,3 +6,5 @@ export * from "./run";
 export * from "./search";
 export * from "./skills";
 export * from "./whoami";
+export * from "./update";
+export * from "./uninstall";
