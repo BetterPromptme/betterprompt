@@ -7,7 +7,6 @@ type TSkillInstallOptions = {
     type: "global" | "project" | "dir";
     path?: string;
   };
-  pin?: boolean;
   overwrite?: boolean;
 };
 
@@ -67,7 +66,6 @@ const createDeps = (overrides: Partial<TSkillCommandDeps> = {}): TSkillCommandDe
   installSkill: mock(async () => ({
     skillName: "react-hooks",
     installPath: "/tmp/project/.betterprompt/skills/react-hooks",
-    pinnedVersion: "1.2.3",
   })),
   uninstallSkill: mock(async () => ({
     skillName: "react-hooks",
@@ -156,7 +154,6 @@ describe("skill install command", () => {
     expect(installData).toEqual({
       skillName: "react-hooks",
       installPath: "/tmp/project/.betterprompt/skills/react-hooks",
-      pinnedVersion: "1.2.3",
     });
     expect(installCtx.outputFormat).toBe("text");
   });
@@ -170,7 +167,6 @@ describe("skill install command", () => {
       string,
       TSkillInstallOptions
     ];
-    expect(options.pin).toBeUndefined();
     expect(options.overwrite).toBeUndefined();
   });
 
@@ -187,7 +183,6 @@ describe("skill install command", () => {
     expect(installJsonData).toEqual({
       skillName: "react-hooks",
       installPath: "/tmp/project/.betterprompt/skills/react-hooks",
-      pinnedVersion: "1.2.3",
     });
     expect(installJsonCtx.outputFormat).toBe("json");
   });
@@ -222,26 +217,14 @@ describe("skill install command", () => {
     });
   });
 
-  it("forwards --pin and --overwrite flags", async () => {
+  it("forwards --overwrite flag", async () => {
     const deps = createDeps();
 
-    await runInstall(["react-hooks", "--pin", "--overwrite"], deps);
+    await runInstall(["react-hooks", "--overwrite"], deps);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
-      pin: true,
       overwrite: true,
-    });
-  });
-
-  it("supports combining --dir scope with --pin", async () => {
-    const deps = createDeps();
-
-    await runInstall(["react-hooks", "--dir", "/work/demo", "--pin"], deps);
-
-    expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
-      scope: { type: "dir", path: "/work/demo" },
-      pin: true,
     });
   });
 
