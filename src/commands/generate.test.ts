@@ -1,6 +1,9 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
-import { createGenerateCommand } from "./generate";
+import {
+  createGenerateCommand,
+  formatGenerateOptionErrorMessage,
+} from "./generate";
 import { PART_TYPE, RunStatus } from "../enums";
 
 const createDeps = (overrides = {}) =>
@@ -49,25 +52,56 @@ const getGenerateInvocation = (deps: ReturnType<typeof createDeps>) => {
 
   if (typeof firstArg === "string") {
     return {
-      skillName: firstArg,
+      skillVersionId: firstArg,
       options: (firstCall[1] as Record<string, unknown> | undefined) ?? {},
     };
   }
 
   return {
-    skillName: (firstArg as { skillName?: string }).skillName,
+    skillVersionId: (firstArg as { skillVersionId?: string }).skillVersionId,
     options: (firstArg as Record<string, unknown>) ?? {},
   };
 };
 
 describe("generate command", () => {
-  it("accepts <skill-name> argument", async () => {
+  it("includes help hints for finding skillVersionId", () => {
+    const deps = createDeps();
+    const command = createGenerateCommand(deps);
+    const help = command.helpInformation();
+    const normalizedHelp = help.replace(/\s+/g, " ");
+
+    expect(normalizedHelp).toContain("Get <skillVersionId> via");
+    expect(normalizedHelp).toContain("bp skill list");
+    expect(normalizedHelp).toContain("bp skill info <skill-slug>");
+  });
+
+  it("formats missing --input option error with an actionable hint", () => {
+    const formatted = formatGenerateOptionErrorMessage(
+      "error: option '--input <key=value>' argument missing\n"
+    );
+
+    expect(formatted).toContain(
+      "error: option '--input <key=value>' argument missing"
+    );
+    expect(formatted).toContain(
+      "Hint: pass --input as key=value (example: --input topic=ai)."
+    );
+  });
+
+  it("keeps unrelated option errors unchanged", () => {
+    const message = "error: unknown option '--inpoot'\n";
+    const formatted = formatGenerateOptionErrorMessage(message);
+
+    expect(formatted).toBe(message);
+  });
+
+  it("accepts <skillVersionId> argument", async () => {
     const deps = createDeps();
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     const invocation = getGenerateInvocation(deps);
-    expect(invocation.skillName).toBe("seo-blog-writer");
+    expect(invocation.skillVersionId).toBe("skill-version-123");
     expect(deps.printResult).toHaveBeenCalledTimes(1);
   });
 
@@ -76,7 +110,7 @@ describe("generate command", () => {
 
     await runGenerate(
       [
-        "seo-blog-writer",
+        "skill-version-123",
         "--input",
         "topic=ai",
         "--input",
@@ -86,7 +120,7 @@ describe("generate command", () => {
     );
 
     const invocation = getGenerateInvocation(deps);
-    expect(invocation.skillName).toBe("seo-blog-writer");
+    expect(invocation.skillVersionId).toBe("skill-version-123");
     expect(invocation.options).toMatchObject({
       input: ["topic=ai", "tone=professional"],
     });
@@ -97,7 +131,7 @@ describe("generate command", () => {
 
     await runGenerate(
       [
-        "seo-blog-writer",
+        "skill-version-123",
         "--model",
         "gpt-4.1",
         "--save-run",
@@ -108,7 +142,7 @@ describe("generate command", () => {
     );
 
     const invocation = getGenerateInvocation(deps);
-    expect(invocation.skillName).toBe("seo-blog-writer");
+    expect(invocation.skillVersionId).toBe("skill-version-123");
     expect(invocation.options).toMatchObject({
       model: "gpt-4.1",
       saveRun: true,
@@ -120,7 +154,7 @@ describe("generate command", () => {
   it("parses --json from global flags into command output context", async () => {
     const deps = createDeps();
 
-    await runGenerate(["seo-blog-writer", "--json"], deps);
+    await runGenerate(["skill-version-123", "--json"], deps);
 
     expect(deps.printResult).toHaveBeenCalledTimes(1);
     const [, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
@@ -142,7 +176,7 @@ describe("generate command", () => {
       })),
     });
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       "## Generated Markdown\n\nThis is a body.",
@@ -164,7 +198,7 @@ describe("generate command", () => {
       })),
     });
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       "outputs/run-123/image-1.png",
@@ -186,7 +220,7 @@ describe("generate command", () => {
       })),
     });
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       "outputs/run-123/video-1.mp4",
@@ -208,7 +242,7 @@ describe("generate command", () => {
       })),
     });
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       "Generation failed due to invalid input.",
@@ -230,7 +264,7 @@ describe("generate command", () => {
       generate: mock(async () => rawRunResult),
     });
 
-    await runGenerate(["seo-blog-writer", "--json"], deps);
+    await runGenerate(["skill-version-123", "--json"], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
       rawRunResult,
@@ -264,7 +298,7 @@ describe("generate command", () => {
       })),
     });
 
-    await runGenerate(["seo-blog-writer"], deps);
+    await runGenerate(["skill-version-123"], deps);
 
     const printCalls = (deps.printResult as ReturnType<typeof mock>).mock.calls;
     expect(printCalls).toHaveLength(4);
@@ -274,16 +308,22 @@ describe("generate command", () => {
     expect(printCalls[3]?.[0]).toBe("A recoverable part-level error happened.");
   });
 
-  it("shows clear error when <skill-slug> is missing", async () => {
-    const deps = createDeps();
+  it("shows help text when generation request fails", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new Error("Network unavailable");
+      }),
+    });
 
-    await runGenerate([], deps);
+    await runGenerate(["skill-version-123"], deps);
 
-    expect(deps.generate).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledTimes(1);
     expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining("Missing required argument <skill-slug>.")
+      expect.stringContaining("Network unavailable")
+    );
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Usage: betterprompt generate")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
+
 });
