@@ -50,7 +50,7 @@ export type TInputMetadata = {
   images: TImageInputMetadata[];
 };
 
-enum INPUT_TYPE {
+export enum INPUT_TYPE {
   TEXT,
   SELECT,
   IMAGE,
@@ -59,11 +59,9 @@ enum INPUT_TYPE {
 const imageItem = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("url"),
-    url: z.string().check(
-      z.url({
-        protocol: /^https?$/,
-      })
-    ),
+    url: z.url({
+      protocol: /^https?$/,
+    }),
   }),
   z.object({
     type: z.literal("base64"),
@@ -72,16 +70,41 @@ const imageItem = z.discriminatedUnion("type", [
 ]);
 
 export function generateZodSchema(metadata: TInputMetadata) {
-  const textShape: Record<string, z.ZodString> = {};
+  const variableShape: Record<string, z.ZodType> = {};
 
   for (const [name, varMeta] of Object.entries(metadata.variables)) {
-    const allowEmpty =
-      varMeta.type === INPUT_TYPE.TEXT && varMeta.allowEmpty === true;
-    textShape[name] = allowEmpty ? z.string() : z.string().min(1);
+    if (varMeta.type === INPUT_TYPE.TEXT) {
+      const allowEmpty = varMeta.allowEmpty === true;
+      variableShape[name] = allowEmpty ? z.string() : z.string().min(1);
+      continue;
+    }
+
+    const allowedOptions = new Set(Object.keys(varMeta.options));
+    const optionValueSchema = z
+      .string()
+      .refine((value) => allowedOptions.has(value), {
+        message: "Invalid select option",
+      });
+
+    if (varMeta.multiple) {
+      let selectSchema = z.array(optionValueSchema);
+      if (varMeta.multiple !== true) {
+        if (typeof varMeta.multiple.min === "number") {
+          selectSchema = selectSchema.min(varMeta.multiple.min);
+        }
+        if (typeof varMeta.multiple.max === "number") {
+          selectSchema = selectSchema.max(varMeta.multiple.max);
+        }
+      }
+      variableShape[name] = selectSchema;
+      continue;
+    }
+
+    variableShape[name] = optionValueSchema;
   }
 
   return z.object({
-    textInputs: z.object(textShape),
+    textInputs: z.object(variableShape),
     imageInputs: z.array(imageItem).length(metadata.images.length),
   });
 }
