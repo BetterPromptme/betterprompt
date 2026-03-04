@@ -47,6 +47,19 @@ describe("config command", () => {
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("https://betterprompt.me/api"));
   });
 
+  it("outputs JSON for get when --json is provided", async () => {
+    const deps = createDeps({
+      getValue: mock(async () => "bp_live_123"),
+    });
+
+    await runConfig(["--json", "get", "apiKey"], deps);
+
+    expect(deps.getValue).toHaveBeenCalledWith("apiKey");
+    expect(deps.log).toHaveBeenCalledWith(
+      JSON.stringify({ key: "apiKey", value: "bp_live_123" })
+    );
+  });
+
   it("sets apiKey value", async () => {
     const deps = createDeps();
 
@@ -68,6 +81,23 @@ describe("config command", () => {
       "https://betterprompt.me/api"
     );
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
+  });
+
+  it("outputs JSON for set when --json is provided", async () => {
+    const deps = createDeps();
+
+    await runConfig(
+      ["--json", "set", "apiBaseUrl", "https://betterprompt.me/api"],
+      deps
+    );
+
+    expect(deps.setValue).toHaveBeenCalledWith(
+      "apiBaseUrl",
+      "https://betterprompt.me/api"
+    );
+    expect(deps.log).toHaveBeenCalledWith(
+      JSON.stringify({ success: true, key: "apiBaseUrl" })
+    );
   });
 
   it("fails and does not save when apiKey validation fails", async () => {
