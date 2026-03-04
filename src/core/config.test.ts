@@ -10,7 +10,6 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { API_CONFIG, SYSTEM_CONFIG } from "../constants";
-import type { TSystemConfigKey } from "../types";
 import {
   getSystemConfigValue,
   getLoadedSystemConfig,
@@ -20,9 +19,6 @@ import {
   setSystemConfigValue,
   unsetSystemConfigValue,
 } from "./config";
-
-const asConfigKey = (key: string): TSystemConfigKey =>
-  key as unknown as TSystemConfigKey;
 
 const tempDirs: string[] = [];
 
@@ -161,133 +157,49 @@ describe("system config core", () => {
     ).rejects.toThrow("apiBaseUrl is not set in config.json.");
   });
 
-  it("sets/gets/unsets default_output_format", async () => {
+  it("sets/gets/unsets skillsDir", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
 
-    await setSystemConfigValue(
-      asConfigKey("default_output_format"),
-      "json",
-      { configPath }
-    );
-
-    await expect(
-      getSystemConfigValue(asConfigKey("default_output_format"), {
-        configPath,
-      })
-    ).resolves.toBe("json");
-
-    await unsetSystemConfigValue(asConfigKey("default_output_format"), {
-      configPath,
-    });
-    await expect(
-      getSystemConfigValue(asConfigKey("default_output_format"), {
-        configPath,
-      })
-    ).resolves.toBeUndefined();
-  });
-
-  it("sets/gets/unsets cache_ttl_seconds", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue(asConfigKey("cache_ttl_seconds"), "3600", {
+    await setSystemConfigValue("skillsDir", "/tmp/skills", {
       configPath,
     });
 
     await expect(
-      getSystemConfigValue(asConfigKey("cache_ttl_seconds"), { configPath })
-    ).resolves.toBe("3600");
-
-    await unsetSystemConfigValue(asConfigKey("cache_ttl_seconds"), {
-      configPath,
-    });
-    await expect(
-      getSystemConfigValue(asConfigKey("cache_ttl_seconds"), { configPath })
-    ).resolves.toBeUndefined();
-  });
-
-  it("sets/gets/unsets telemetry", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue(asConfigKey("telemetry"), "true", {
-      configPath,
-    });
-
-    await expect(
-      getSystemConfigValue(asConfigKey("telemetry"), { configPath })
-    ).resolves.toBe("true");
-
-    await unsetSystemConfigValue(asConfigKey("telemetry"), { configPath });
-    await expect(
-      getSystemConfigValue(asConfigKey("telemetry"), { configPath })
-    ).resolves.toBeUndefined();
-  });
-
-  it("accepts telemetry=false as a valid boolean value", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue(asConfigKey("telemetry"), "false", {
-      configPath,
-    });
-
-    await expect(
-      getSystemConfigValue(asConfigKey("telemetry"), { configPath })
-    ).resolves.toBe("false");
-  });
-
-  it("sets/gets/unsets skills_dir", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue(asConfigKey("skills_dir"), "/tmp/skills", {
-      configPath,
-    });
-
-    await expect(
-      getSystemConfigValue(asConfigKey("skills_dir"), { configPath })
+      getSystemConfigValue("skillsDir", { configPath })
     ).resolves.toBe("/tmp/skills");
 
-    await unsetSystemConfigValue(asConfigKey("skills_dir"), { configPath });
+    await unsetSystemConfigValue("skillsDir", { configPath });
     await expect(
-      getSystemConfigValue(asConfigKey("skills_dir"), { configPath })
+      getSystemConfigValue("skillsDir", { configPath })
     ).resolves.toBeUndefined();
   });
 
-  it("rejects non-numeric cache_ttl_seconds with clear error", async () => {
+  it("migrates legacy skills_dir to skillsDir on load", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await expect(
-      setSystemConfigValue(asConfigKey("cache_ttl_seconds"), "abc", {
-        configPath,
-      })
-    ).rejects.toThrow("cache_ttl_seconds must be a number.");
-  });
-
-  it("rejects non-boolean telemetry with clear error", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await expect(
-      setSystemConfigValue(asConfigKey("telemetry"), "enabled", {
-        configPath,
-      })
-    ).rejects.toThrow("telemetry must be a boolean.");
-  });
-
-  it("accepts cache_ttl_seconds=0 as a valid numeric value", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue(asConfigKey("cache_ttl_seconds"), "0", {
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(
       configPath,
-    });
+      `${JSON.stringify(
+        {
+          version: "0.0.1",
+          apiBaseUrl: "https://runtime.example/api",
+          skills_dir: "/tmp/legacy-skills",
+        },
+        null,
+        2
+      )}\n`
+    );
 
-    await expect(
-      getSystemConfigValue(asConfigKey("cache_ttl_seconds"), { configPath })
-    ).resolves.toBe("0");
+    const loaded = await loadOrInitConfig({ configPath });
+    const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+
+    expect(loaded.skillsDir).toBe("/tmp/legacy-skills");
+    expect(parsed.skillsDir).toBe("/tmp/legacy-skills");
+    expect(parsed.skills_dir).toBeUndefined();
   });
 });
