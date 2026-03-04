@@ -12,8 +12,6 @@ const createResult = (overrides: Partial<TDoctorResult> = {}): TDoctorResult =>
       { name: "auth", status: "pass", message: "Auth key is valid." },
       { name: "registry", status: "pass", message: "Registry is reachable." },
       { name: "dirs", status: "pass", message: "Directories exist." },
-      { name: "lockfile", status: "pass", message: "Lockfile is synced." },
-      { name: "wrappers", status: "pass", message: "Wrappers are present." },
       { name: "permissions", status: "pass", message: "Permissions are valid." },
     ],
     ...overrides,
