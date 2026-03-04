@@ -11,7 +11,7 @@ import { whoamiCommand } from "./commands/whoami";
 import { updateCommand } from "./commands/update";
 import { uninstallCommand } from "./commands/uninstall";
 import { CLI_MESSAGES, CLI_META } from "./constants";
-import { loadOrInitConfig } from "./core/config";
+import { bootstrapGlobalDirectory } from "./core/bootstrap";
 import { installCtrlCHandler } from "./core/error-ux";
 import { formatHelp } from "./core/help";
 
@@ -67,7 +67,7 @@ export const runProgram = async (argv = process.argv): Promise<void> => {
   });
 
   try {
-    await loadOrInitConfig();
+    await bootstrapGlobalDirectory();
     const program = createProgram();
     await program.parseAsync(argv);
   } finally {
