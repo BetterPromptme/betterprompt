@@ -18,11 +18,14 @@ const BETTERPROMPT_DIR_MODE = 0o700;
 
 const getRootDir = (): string => path.join(os.homedir(), ".betterprompt");
 
+const getSkillsDir = (): string => path.join(getRootDir(), "skills");
+
 const getRequiredDirs = (): string[] => {
   const rootDir = getRootDir();
+  const skillsDir = getSkillsDir();
   return [
     rootDir,
-    path.join(rootDir, "skills"),
+    skillsDir,
     path.join(rootDir, "outputs"),
     path.join(rootDir, "logs"),
     path.join(rootDir, "tmp"),
@@ -57,7 +60,7 @@ const checkRegistry = async (): Promise<TDoctorCheck> => {
   try {
     const config = await loadOrInitConfig();
     const baseUrl = config.apiBaseUrl ?? API_CONFIG.baseUrl;
-    const response = await fetch(baseUrl, { method: "GET" });
+    const response = await fetch(baseUrl + "/", { method: "GET" });
 
     if (response.status >= 500) {
       return fail(`Registry unreachable: HTTP ${response.status}.`);
@@ -70,6 +73,18 @@ const checkRegistry = async (): Promise<TDoctorCheck> => {
 };
 
 const checkDirs = async (): Promise<TDoctorCheck> => {
+  const skillsDir = getSkillsDir();
+  try {
+    await access(skillsDir, constants.F_OK);
+  } catch {
+    return fail(`Missing skills directory: ${skillsDir}.`, async () => {
+      await mkdir(skillsDir, {
+        recursive: true,
+        mode: BETTERPROMPT_DIR_MODE,
+      });
+    });
+  }
+
   const requiredDirs = getRequiredDirs();
   const missingDirs: string[] = [];
 
@@ -94,13 +109,22 @@ const checkDirs = async (): Promise<TDoctorCheck> => {
   });
 };
 
-const checkLockfile = async (): Promise<TDoctorCheck> =>
-  pass("Lockfile check passed.");
-
-const checkWrappers = async (): Promise<TDoctorCheck> =>
-  pass("Wrapper check passed.");
-
 const checkPermissions = async (): Promise<TDoctorCheck> => {
+  const skillsDir = getSkillsDir();
+  try {
+    await access(skillsDir, constants.W_OK);
+  } catch {
+    return fail(
+      `No write permission to skills directory: ${skillsDir}.`,
+      async () => {
+        const stats = await stat(skillsDir).catch(() => undefined);
+        if (stats?.isDirectory()) {
+          await chmod(skillsDir, BETTERPROMPT_DIR_MODE).catch(() => {});
+        }
+      }
+    );
+  }
+
   const requiredDirs = getRequiredDirs();
   const deniedDirs: string[] = [];
 
@@ -132,8 +156,6 @@ const defaultDeps: TDoctorCoreDependencies = {
   checkAuth,
   checkRegistry,
   checkDirs,
-  checkLockfile,
-  checkWrappers,
   checkPermissions,
 };
 
@@ -144,8 +166,6 @@ const CHECK_ORDER: Array<{
   { name: "auth", run: (deps) => deps.checkAuth() },
   { name: "registry", run: (deps) => deps.checkRegistry() },
   { name: "dirs", run: (deps) => deps.checkDirs() },
-  { name: "lockfile", run: (deps) => deps.checkLockfile() },
-  { name: "wrappers", run: (deps) => deps.checkWrappers() },
   { name: "permissions", run: (deps) => deps.checkPermissions() },
 ];
 
