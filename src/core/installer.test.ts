@@ -542,6 +542,66 @@ describe("updateSkill core", () => {
     expect(JSON.parse(manifestRaw)).toMatchObject({ skillVersionId: "2.0.0" });
   });
 
+  it("updates lockfile pinned version when skill was previously pinned", async () => {
+    const rootDir = await createTempDir();
+    const skillDir = path.join(rootDir, "skills", "react-hooks");
+    const lockfilePath = path.join(rootDir, "betterprompt.lock");
+
+    await mkdir(skillDir, { recursive: true });
+    await writeFile(
+      path.join(skillDir, "manifest.json"),
+      JSON.stringify({ name: "react-hooks", skillVersionId: "1.0.0" })
+    );
+    await writeFile(
+      lockfilePath,
+      JSON.stringify({
+        "react-hooks": "1.0.0",
+        "seo-writer": "3.0.0",
+      })
+    );
+
+    const apiClient = {
+      get: mock(async (resource: string) => {
+        if (resource === "/skills/react-hooks") {
+          return {
+            status: "SUCCESS",
+            data: {
+              skillId: "skill_123",
+              skillVersionId: "2.0.0",
+              name: "react-hooks",
+              title: "React Hooks",
+              description: null,
+              author: null,
+              sample: { inputs: null, outputs: null },
+              inputMetadata: { variables: {}, images: [] },
+              skillmd: "# React Hooks v2",
+            },
+          };
+        }
+        if (resource === "/skills/react-hooks/schema") {
+          return { status: "SUCCESS", data: { type: "object" } };
+        }
+        return { status: "ERROR", message: `Unhandled: ${resource}` };
+      }),
+    };
+
+    await (
+      updateSkill as unknown as (
+        client: unknown,
+        options: TInstallOptions & { force?: boolean }
+      ) => Promise<{ skillName: string; fromVersion: string | undefined; toVersion: string; updated: boolean }>
+    )(apiClient, {
+      skillName: "react-hooks",
+      scope: { type: "dir", rootDir },
+    });
+
+    const lockfileRaw = await readFile(lockfilePath, "utf8");
+    expect(JSON.parse(lockfileRaw)).toEqual({
+      "react-hooks": "2.0.0",
+      "seo-writer": "3.0.0",
+    });
+  });
+
   it("returns updated: false and does not re-install when version is already latest", async () => {
     const rootDir = await createTempDir();
     const skillDir = path.join(rootDir, "skills", "react-hooks");
@@ -670,7 +730,7 @@ describe("updateSkill core", () => {
     await mkdir(skillDir, { recursive: true });
     await writeFile(
       path.join(skillDir, "manifest.json"),
-      JSON.stringify({ name: "react-hooks", version: "1.0.0" })
+      JSON.stringify({ name: "react-hooks", skillVersionId: "1.0.0" })
     );
 
     const apiClient = {
