@@ -1,9 +1,11 @@
 import { Command } from "commander";
 import logSymbols from "log-symbols";
+import ora from "ora";
 import { CREDITS_COMMAND, CREDITS_MESSAGES } from "../constants";
 import { getApiClient } from "../core/api";
 import { getCredits } from "../core/auth";
 import { getCommandContext } from "../core/context";
+import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
 import type { TCreditBalance, TCreditsDependencies } from "../types";
 import formatCredits from "../utils/format-credits";
@@ -31,7 +33,11 @@ export const createCreditsCommand = (
   command.action(async (_opts: Record<string, unknown>, command: Command) => {
     try {
       const ctx = getCommandContext(command);
-      const credits = await deps.getCredits();
+      const credits = await runTaskWithSpinner({
+        message: "Fetching credits balance...",
+        createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
+        task: () => deps.getCredits(),
+      });
       deps.printResult(
         ctx.outputFormat === "json" ? credits : formatCreditsText(credits),
         ctx
