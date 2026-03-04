@@ -6,9 +6,7 @@ type TCreditsDeps = NonNullable<Parameters<typeof createCreditsCommand>[0]>;
 
 const createDeps = (overrides: Partial<TCreditsDeps> = {}): TCreditsDeps => ({
   getCredits: mock(async () => ({
-    balance: 1250,
-    currency: "USD",
-    updatedAt: "2026-03-03T12:00:00.000Z",
+    credits: 1_250_000,
   })),
   printResult: mock(() => {}),
   error: mock(() => {}),
@@ -38,9 +36,7 @@ describe("credits command", () => {
 
     const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(typeof data).toBe("string");
-    expect(data as string).toContain("1250");
-    expect(data as string).toContain("USD");
-    expect(data as string).toContain("2026-03-03T12:00:00.000Z");
+    expect(data as string).toContain("1,250");
     expect(ctx.outputFormat).toBe("text");
   });
 
@@ -53,9 +49,7 @@ describe("credits command", () => {
     expect(deps.printResult).toHaveBeenCalledTimes(1);
     const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
-      balance: 1250,
-      currency: "USD",
-      updatedAt: "2026-03-03T12:00:00.000Z",
+      credits: 1_250_000,
     });
     expect(ctx.outputFormat).toBe("json");
     expect(deps.error).not.toHaveBeenCalled();
