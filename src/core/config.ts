@@ -172,11 +172,24 @@ const writeSystemConfig = async (
   }
 };
 
+const ensureRuntimeDirectories = async (configPath: string): Promise<void> => {
+  const rootDir = path.dirname(configPath);
+  const requiredDirectories = ["skills", "outputs", "logs", "tmp"];
+
+  for (const name of requiredDirectories) {
+    await mkdir(path.join(rootDir, name), {
+      recursive: true,
+      mode: SYSTEM_STORAGE.directoryMode,
+    });
+  }
+};
+
 const doLoadOrInitConfig = async (
   options: TLoadOrInitConfigOptions = {}
 ): Promise<TSystemConfig> => {
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
+  await ensureRuntimeDirectories(configPath);
   const existing = await readExistingConfig(configPath);
 
   if (!existing) {
