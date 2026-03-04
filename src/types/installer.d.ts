@@ -8,14 +8,12 @@ export type TInstallScope = {
 export type TInstallSkillOptions = {
   skillName: string;
   scope: TInstallScope;
-  pin?: boolean;
   overwrite?: boolean;
 };
 
 export type TInstallSkillResult = {
   skillName: string;
   installPath: string;
-  pinnedVersion?: string;
 };
 
 export type TUninstallSkillOptions = {
