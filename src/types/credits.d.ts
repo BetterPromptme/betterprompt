@@ -1,9 +1,7 @@
 import type { TPrintOptions } from "./output";
 
 export type TCreditBalance = {
-  balance: number;
-  currency: string;
-  updatedAt: string;
+  credits: number;
 };
 
 export type TCreditsDependencies = {
