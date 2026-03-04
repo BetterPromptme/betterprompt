@@ -6,6 +6,7 @@ import type {
   TPerformUpdateOptions,
   TPerformUpdateResult,
 } from "../types/update";
+import { isCommandAvailable } from "../utils/command";
 
 const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 
@@ -13,6 +14,29 @@ type TNpmMetadata = {
   "dist-tags"?: {
     latest?: string;
   };
+};
+
+type TPackageManagerInfo = {
+  command: string;
+  args: (pkg: string, registry: string) => string[];
+};
+
+const PM_BUN: TPackageManagerInfo = {
+  command: "bun",
+  args: (pkg, registry) => ["add", "-g", pkg, "--registry", registry],
+};
+
+const PM_NPM: TPackageManagerInfo = {
+  command: "npm",
+  args: (pkg, registry) => ["install", "-g", pkg, "--registry", registry],
+};
+
+export const detectPackageManager = (): TPackageManagerInfo => {
+  if (isCommandAvailable("bun")) return PM_BUN;
+  if (isCommandAvailable("npm")) return PM_NPM;
+  throw new Error(
+    "No supported package manager found. Please install bun or npm."
+  );
 };
 
 const normalizeRegistry = (registry: string | undefined): string =>
@@ -49,11 +73,12 @@ export const performUpdate = async (
   const packageName = String(packageJson.name);
   const target = options.targetVersion ? `@${options.targetVersion}` : "";
   const registry = normalizeRegistry(options.registry);
+  const pm = detectPackageManager();
 
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
-      "bun",
-      ["add", "-g", `${packageName}${target}`, "--registry", registry],
+      pm.command,
+      pm.args(`${packageName}${target}`, registry),
       {
         stdio: "ignore",
       }
