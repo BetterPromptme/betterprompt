@@ -1,13 +1,11 @@
 export type TSystemConfig = {
   version: string;
   apiBaseUrl?: string;
-  skillsDir?: string;
 };
 
 export type TSystemConfigKey =
   | "apiKey"
-  | "apiBaseUrl"
-  | "skillsDir";
+  | "apiBaseUrl";
 
 export type TLoadOrInitConfigOptions = {
   configPath?: string;
