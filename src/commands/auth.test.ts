@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+import { Command } from "commander";
 import { AUTH_MESSAGES } from "../constants";
 import { createAuthCommand } from "./auth";
 
 type TAuthDeps = NonNullable<Parameters<typeof createAuthCommand>[0]>;
+const hasAnsiEscape = (value: string): boolean =>
+  value.split("").some((char) => char.charCodeAt(0) === 27);
 
 type TSpinner = ReturnType<TAuthDeps["createSpinner"]>;
 
@@ -35,6 +38,21 @@ const runAuth = async (args: string[], deps: TAuthDeps) => {
   await command.parseAsync(args, { from: "user" });
 };
 
+const runAuthFromRoot = async (args: string[], deps: TAuthDeps) => {
+  const root = new Command("betterprompt");
+  root
+    .option("--project")
+    .option("--global")
+    .option("--dir <path>")
+    .option("--json")
+    .option("--quiet")
+    .option("--verbose")
+    .option("--no-color")
+    .option("--yes");
+  root.addCommand(createAuthCommand(deps));
+  await root.parseAsync(args, { from: "user" });
+};
+
 describe("auth command", () => {
   afterEach(() => {
     mock.restore();
@@ -57,7 +75,9 @@ describe("auth command", () => {
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_live_123");
     expect(deps.saveAuthConfig).toHaveBeenCalledWith("bp_live_123");
     expect(deps.intro).toHaveBeenCalledWith(AUTH_MESSAGES.introTitle);
-    expect(deps.createSpinner).toHaveBeenCalledWith(AUTH_MESSAGES.verifyKeyText);
+    expect(deps.createSpinner).toHaveBeenCalledWith(
+      AUTH_MESSAGES.verifyKeyText
+    );
     expect(spinner.start).toHaveBeenCalledTimes(1);
     expect(spinner.succeed).toHaveBeenCalledTimes(1);
     expect(spinner.fail).not.toHaveBeenCalled();
@@ -89,8 +109,11 @@ describe("auth command", () => {
 
     expect(deps.saveAuthConfig).not.toHaveBeenCalled();
     expect(spinner.fail).toHaveBeenCalledTimes(1);
-    expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining(`${AUTH_MESSAGES.failedPrefix} API key verification failed. Unauthorized`)
+    const errorCalls = (deps.error as ReturnType<typeof mock>).mock.calls;
+    const firstError = errorCalls[0]?.[0] as string | undefined;
+    expect(firstError).toBeDefined();
+    expect(firstError).toMatch(
+      /Authentication failed:.*API key verification failed\. Unauthorized/
     );
     expect(deps.error).toHaveBeenCalledWith(
       `${AUTH_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
@@ -105,8 +128,11 @@ describe("auth command", () => {
 
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.saveAuthConfig).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining(`${AUTH_MESSAGES.failedPrefix} ${AUTH_MESSAGES.emptyKeyError}`)
+    const errorCalls = (deps.error as ReturnType<typeof mock>).mock.calls;
+    const firstError = errorCalls[0]?.[0] as string | undefined;
+    expect(firstError).toBeDefined();
+    expect(firstError).toMatch(
+      /Authentication failed:.*API key cannot be empty\./
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -148,8 +174,11 @@ describe("auth command", () => {
 
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.saveAuthConfig).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith(
-      expect.stringContaining(`${AUTH_MESSAGES.failedPrefix} ${AUTH_MESSAGES.emptyKeyError}`)
+    const errorCalls = (deps.error as ReturnType<typeof mock>).mock.calls;
+    const firstError = errorCalls[0]?.[0] as string | undefined;
+    expect(firstError).toBeDefined();
+    expect(firstError).toMatch(
+      /Authentication failed:.*API key cannot be empty\./
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
