@@ -11,9 +11,6 @@ export const SKILLS_COMMAND = {
     description: "Install a skill by name",
     skillNameDescription: "Skill name to install",
     flags: {
-      pin: {
-        description: "Pin installed version in betterprompt.lock",
-      },
       overwrite: {
         description: "Overwrite an existing installed skill",
       },
