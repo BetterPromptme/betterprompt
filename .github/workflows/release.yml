@@ -1,0 +1,120 @@
+name: Release
+
+run-name: "Release ${{ inputs.tag || github.ref_name }}${{ inputs.dry_run == true && ' [dry-run]' || '' }}"
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (skip npm publish, create draft release)"
+        type: boolean
+        default: true
+      tag:
+        description: "Version tag to simulate (e.g. v0.0.1-test.1)"
+        type: string
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: "Build and release${{ inputs.dry_run == true && ' [dry-run]' || '' }}"
+    needs: [test]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is on main
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag must point to a commit on the main branch."
+            exit 1
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun ci
+
+      - name: Resolve version and dry-run flag
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+            DRY_RUN="${{ inputs.dry_run }}"
+          else
+            TAG="${{ github.ref_name }}"
+            DRY_RUN="false"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "DRY_RUN=$DRY_RUN" >> "$GITHUB_ENV"
+
+      - name: Validate version matches package.json
+        run: |
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$PKG_VERSION" != "$VERSION" ]; then
+            echo "::error::Tag version ($VERSION) does not match package.json version ($PKG_VERSION). Update package.json before tagging."
+            exit 1
+          fi
+
+      - name: Build npm bundle
+        run: bun build ./src/cli.ts --outdir ./dist --target node
+
+      - name: Cross-compile standalone binaries
+        run: |
+          bun build ./src/cli.ts --compile --minify --target=bun-linux-x64     --outfile betterprompt-$VERSION-linux-x64
+          bun build ./src/cli.ts --compile --minify --target=bun-linux-arm64   --outfile betterprompt-$VERSION-linux-arm64
+          bun build ./src/cli.ts --compile --minify --target=bun-darwin-x64    --outfile betterprompt-$VERSION-darwin-x64
+          bun build ./src/cli.ts --compile --minify --target=bun-darwin-arm64  --outfile betterprompt-$VERSION-darwin-arm64
+          bun build ./src/cli.ts --compile --minify --target=bun-windows-x64   --outfile betterprompt-$VERSION-windows-x64
+          bun build ./src/cli.ts --compile --minify --target=bun-windows-arm64 --outfile betterprompt-$VERSION-windows-arm64
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          if [[ "$VERSION" == *-* ]]; then
+            DIST_TAG="dev"
+          else
+            DIST_TAG="latest"
+          fi
+          if [[ "$DRY_RUN" == "true" ]]; then
+            npm publish --tag "$DIST_TAG" --dry-run
+          else
+            npm publish --tag "$DIST_TAG"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          draft: ${{ env.DRY_RUN == 'true' }}
+          generate_release_notes: true
+          prerelease: ${{ contains(env.VERSION, '-') }}
+          files: |
+            betterprompt-${{ env.VERSION }}-linux-x64
+            betterprompt-${{ env.VERSION }}-linux-arm64
+            betterprompt-${{ env.VERSION }}-darwin-x64
+            betterprompt-${{ env.VERSION }}-darwin-arm64
+            betterprompt-${{ env.VERSION }}-windows-x64.exe
+            betterprompt-${{ env.VERSION }}-windows-arm64.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
