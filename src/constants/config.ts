@@ -34,11 +34,13 @@ export const CONFIG_COMMAND = {
   description: "Read and update BetterPrompt config values",
   get: {
     description: "Get a value from config.json",
-    keyDescription: "Config key (apiKey | apiBaseUrl)",
+    keyDescription:
+      "Config key (apiKey | apiBaseUrl | default_output_format | cache_ttl_seconds | telemetry | skills_dir)",
   },
   set: {
     description: "Set a value in config.json",
-    keyDescription: "Config key (apiKey | apiBaseUrl)",
+    keyDescription:
+      "Config key (apiKey | apiBaseUrl | default_output_format | cache_ttl_seconds | telemetry | skills_dir)",
     valueDescription: "Value to store",
   },
 } as const;
@@ -52,9 +54,13 @@ Examples:
   $ betterprompt config set apiKey bp_live_123
   $ betterprompt config get apiBaseUrl
   $ betterprompt config set apiBaseUrl https://betterprompt.me/api
+  $ betterprompt config set default_output_format json
+  $ betterprompt config set cache_ttl_seconds 3600
+  $ betterprompt config set telemetry true
+  $ betterprompt config set skills_dir ~/.betterprompt/skills
 `,
   invalidKeyError: (key: string) =>
-    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl.`,
+    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl, default_output_format, cache_ttl_seconds, telemetry, skills_dir.`,
   missingValueError: (key: string) => `${key} is not set in config.json.`,
   savedSuccess: "Config updated successfully.",
   failedPrefix: "Config command failed:",
