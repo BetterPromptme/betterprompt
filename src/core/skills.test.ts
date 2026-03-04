@@ -180,13 +180,7 @@ describe("getSkillByName", () => {
       })),
     } as Parameters<typeof getSkillByName>[0];
 
-    await (
-      getSkillByName as unknown as (
-        client: Parameters<typeof getSkillByName>[0],
-        skillName: string,
-        options: Record<string, unknown>
-      ) => Promise<unknown>
-    )(apiClient, "react-hooks", {
+    await getSkillByName(apiClient, "react-hooks", {
       version: "1.2.3",
       examples: true,
       schema: true,
@@ -223,13 +217,7 @@ describe("getSkillByName", () => {
       })),
     } as Parameters<typeof getSkillByName>[0];
 
-    await (
-      getSkillByName as unknown as (
-        client: Parameters<typeof getSkillByName>[0],
-        skillName: string,
-        options: Record<string, unknown>
-      ) => Promise<unknown>
-    )(apiClient, "react-hooks", {
+    await getSkillByName(apiClient, "react-hooks", {
       version: "1.2.3",
       examples: undefined,
       schema: undefined,
@@ -264,13 +252,7 @@ describe("getSkillByName", () => {
       })),
     } as Parameters<typeof getSkillByName>[0];
 
-    await (
-      getSkillByName as unknown as (
-        client: Parameters<typeof getSkillByName>[0],
-        skillName: string,
-        options: Record<string, unknown>
-      ) => Promise<unknown>
-    )(apiClient, "react-hooks", {
+    await getSkillByName(apiClient, "react-hooks", {
       examples: false,
       schema: false,
       pricing: false,
