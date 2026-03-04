@@ -72,7 +72,6 @@ describe("installer core", () => {
     const skillMd = await readFile(path.join(skillDir, "SKILL.md"), "utf8");
 
     expect(apiClient.get).toHaveBeenCalledWith("/skills/react-hooks");
-    expect(apiClient.get).not.toHaveBeenCalledWith("/skills/react-hooks/schema");
     expect(JSON.parse(manifestRaw)).toMatchObject({
       name: "react-hooks",
       skillVersionId: "1.2.3",
@@ -291,7 +290,7 @@ describe("installer core", () => {
     ).rejects.toThrow("Skill not found");
   });
 
-  it("stops immediately when manifest fetch fails and does not fetch schema", async () => {
+  it("stops immediately when manifest fetch fails", async () => {
     const rootDir = await createTempDir();
     const apiClient = {
       get: mock(async (resource: string) => {
@@ -516,9 +515,6 @@ describe("updateSkill core", () => {
             },
           };
         }
-        if (resource === "/skills/react-hooks/schema") {
-          return { status: "SUCCESS", data: { type: "object" } };
-        }
         return { status: "ERROR", message: `Unhandled: ${resource}` };
       }),
     };
@@ -577,9 +573,6 @@ describe("updateSkill core", () => {
               skillmd: "# React Hooks v2",
             },
           };
-        }
-        if (resource === "/skills/react-hooks/schema") {
-          return { status: "SUCCESS", data: { type: "object" } };
         }
         return { status: "ERROR", message: `Unhandled: ${resource}` };
       }),
@@ -646,7 +639,6 @@ describe("updateSkill core", () => {
     expect(result.updated).toBe(false);
     expect(result.fromVersion).toBe("2.0.0");
     expect(result.toVersion).toBe("2.0.0");
-    expect(apiClient.get).not.toHaveBeenCalledWith("/skills/react-hooks/schema");
   });
 
   it("re-installs skill when --force is set even if version matches", async () => {
@@ -677,9 +669,6 @@ describe("updateSkill core", () => {
             },
           };
         }
-        if (resource === "/skills/react-hooks/schema") {
-          return { status: "SUCCESS", data: { type: "object" } };
-        }
         return { status: "ERROR", message: `Unhandled: ${resource}` };
       }),
     };
@@ -700,7 +689,6 @@ describe("updateSkill core", () => {
 
     const skillMd = await readFile(path.join(skillDir, "SKILL.md"), "utf8");
     expect(skillMd).toContain("# refreshed content");
-    expect(apiClient.get).toHaveBeenCalledWith("/skills/react-hooks/schema");
   });
 
   it("throws when skill is not installed", async () => {
@@ -808,9 +796,6 @@ describe("updateAllSkills core", () => {
             },
           };
         }
-        if (resource === "/skills/react-hooks/schema") {
-          return { status: "SUCCESS", data: { type: "object" } };
-        }
         if (resource === "/skills/seo-writer") {
           return {
             status: "SUCCESS",
@@ -900,9 +885,6 @@ describe("updateAllSkills core", () => {
               skillmd: "# forced refresh",
             },
           };
-        }
-        if (resource === "/skills/react-hooks/schema") {
-          return { status: "SUCCESS", data: { type: "object" } };
         }
         return { status: "ERROR", message: `Unhandled: ${resource}` };
       }),
