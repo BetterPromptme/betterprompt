@@ -7,7 +7,6 @@ import type { TCliContext } from "../types/context";
 import type { TResolvedScope, TResolveScope } from "../types/scope";
 
 const PROJECT_CONFIG_FILE = "betterprompt.json";
-const PROJECT_LOCK_FILE = "betterprompt.lock";
 
 const ensureFile = async (filePath: string, content: string): Promise<void> => {
   try {
@@ -38,11 +37,9 @@ const initializeProjectScope = async (projectRootDir: string): Promise<void> => 
   const projectDir = process.cwd();
   const projectName = path.basename(projectDir);
   const projectConfigPath = path.join(projectDir, PROJECT_CONFIG_FILE);
-  const projectLockPath = path.join(projectDir, PROJECT_LOCK_FILE);
   const projectConfig = `${JSON.stringify({ name: projectName }, null, 2)}\n`;
 
   await ensureFile(projectConfigPath, projectConfig);
-  await ensureFile(projectLockPath, "{}\n");
 };
 
 const resolveRootDir = async (ctx: TCliContext): Promise<TResolvedScope> => {
