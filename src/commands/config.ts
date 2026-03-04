@@ -6,6 +6,7 @@ import { ApiClient } from "../core/api";
 import { getCommandContext } from "../core/context";
 import {
   getSystemConfigValue,
+  resolveSystemConfigPath,
   setSystemConfigValue,
 } from "../core/config";
 import {
@@ -19,7 +20,7 @@ type TConfigCommandDependencies = {
   getValue: (key: TSystemConfigKey) => Promise<string | undefined>;
   setValue: (key: TSystemConfigKey, value: string) => Promise<string>;
   verifyApiKey: (apiKey: string) => Promise<void>;
-  resolveConfigPath: () => string;
+  resolveConfigPath: (key: TSystemConfigKey) => string;
   log: (message: string) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
@@ -49,7 +50,8 @@ const defaultDeps: TConfigCommandDependencies = {
     });
     await client.get("/me");
   },
-  resolveConfigPath: () => resolveAuthConfigPath(),
+  resolveConfigPath: (key) =>
+    key === "apiKey" ? resolveAuthConfigPath() : resolveSystemConfigPath(),
   log: (message) => console.log(message),
   error: (message) => console.error(message),
   setExitCode: (code) => {
@@ -90,7 +92,7 @@ export const createConfigCommand = (
           deps.log(`${logSymbols.info} ${value}`);
         }
       } catch (error) {
-        const fallbackPath = deps.resolveConfigPath();
+        const fallbackPath = deps.resolveConfigPath(key);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         deps.error(`${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`);
@@ -131,7 +133,7 @@ export const createConfigCommand = (
           deps.log(`${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`);
         }
       } catch (error) {
-        const fallbackPath = deps.resolveConfigPath();
+        const fallbackPath = deps.resolveConfigPath(key);
         const errorMessage =
           error instanceof Error ? error.message : String(error);
         deps.error(`${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`);
