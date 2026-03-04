@@ -63,7 +63,6 @@ const defaultDeps: TSkillsCommandDependencies = {
     const installOptions: TInstallSkillOptions = {
       skillName,
       scope: resolvedScope,
-      pin: options.pin,
       overwrite: options.overwrite,
     };
 
@@ -168,7 +167,6 @@ export const createSkillCommand = (
     .description(SKILLS_COMMAND.install.description)
     .argument("<skill-slug>", SKILLS_COMMAND.install.skillNameDescription)
     .option("--version <version>", "Install a specific skill version")
-    .option("--pin", SKILLS_COMMAND.install.flags.pin.description)
     .option("--overwrite", SKILLS_COMMAND.install.flags.overwrite.description)
     .option("--json", "Render output as JSON")
     .action(
@@ -181,7 +179,6 @@ export const createSkillCommand = (
           const ctx = getCommandContext(command);
           const options: TSkillInstallOptions = {
             scope: ctx.scope,
-            ...(opts.pin !== undefined && { pin: opts.pin }),
             ...(opts.overwrite !== undefined && { overwrite: opts.overwrite }),
           };
 
