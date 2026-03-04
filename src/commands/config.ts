@@ -44,7 +44,6 @@ const defaultDeps: TConfigCommandDependencies = {
     }
     const keyList: TSystemConfigKey[] = [
       "apiBaseUrl",
-      "skillsDir",
     ];
 
     for (const key of keyList) {
@@ -94,13 +93,9 @@ const defaultDeps: TConfigCommandDependencies = {
 const parseConfigKey = (value: string): TSystemConfigKey => {
   if (
     value === "apiKey" ||
-    value === "apiBaseUrl" ||
-    value === "skillsDir"
+    value === "apiBaseUrl"
   ) {
     return value;
-  }
-  if (value === "skills_dir") {
-    return "skillsDir";
   }
 
   throw new InvalidArgumentError(CONFIG_MESSAGES.invalidKeyError(value));
@@ -211,7 +206,7 @@ export const createConfigCommand = (
     .description("Unset a value from config.json")
     .argument(
       "<key>",
-      "Config key (apiKey | apiBaseUrl | skillsDir)",
+      "Config key (apiKey | apiBaseUrl)",
       parseConfigKey
     )
     .action(
