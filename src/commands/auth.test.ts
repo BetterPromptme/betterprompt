@@ -1,12 +1,8 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import { Command } from "commander";
 import { AUTH_MESSAGES } from "../constants";
 import { createAuthCommand } from "./auth";
 
 type TAuthDeps = NonNullable<Parameters<typeof createAuthCommand>[0]>;
-const hasAnsiEscape = (value: string): boolean =>
-  value.split("").some((char) => char.charCodeAt(0) === 27);
-
 type TSpinner = ReturnType<TAuthDeps["createSpinner"]>;
 
 const createSpinner = (): TSpinner => {
@@ -36,21 +32,6 @@ const createDeps = (overrides: Partial<TAuthDeps> = {}): TAuthDeps => ({
 const runAuth = async (args: string[], deps: TAuthDeps) => {
   const command = createAuthCommand(deps);
   await command.parseAsync(args, { from: "user" });
-};
-
-const runAuthFromRoot = async (args: string[], deps: TAuthDeps) => {
-  const root = new Command("betterprompt");
-  root
-    .option("--project")
-    .option("--global")
-    .option("--dir <path>")
-    .option("--json")
-    .option("--quiet")
-    .option("--verbose")
-    .option("--no-color")
-    .option("--yes");
-  root.addCommand(createAuthCommand(deps));
-  await root.parseAsync(args, { from: "user" });
 };
 
 describe("auth command", () => {
