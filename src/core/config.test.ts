@@ -61,17 +61,25 @@ describe("system config core", () => {
     expect(parsed).toEqual(config);
   });
 
-  it("creates skills/outputs/logs/tmp directories during config initialization", async () => {
+  it("does not create skills/outputs/logs/tmp directories during config initialization", async () => {
     const tempDir = await createTempDir();
     const rootDir = path.join(tempDir, ".betterprompt");
     const configPath = path.join(rootDir, "config.json");
 
     await loadOrInitConfig({ configPath });
 
-    await expect(stat(path.join(rootDir, "skills"))).resolves.toBeDefined();
-    await expect(stat(path.join(rootDir, "outputs"))).resolves.toBeDefined();
-    await expect(stat(path.join(rootDir, "logs"))).resolves.toBeDefined();
-    await expect(stat(path.join(rootDir, "tmp"))).resolves.toBeDefined();
+    await expect(stat(path.join(rootDir, "skills"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "outputs"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "logs"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "tmp"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
   it("auto-fills apiBaseUrl when missing", async () => {
@@ -157,25 +165,7 @@ describe("system config core", () => {
     ).rejects.toThrow("apiBaseUrl is not set in config.json.");
   });
 
-  it("sets/gets/unsets skillsDir", async () => {
-    const tempDir = await createTempDir();
-    const configPath = path.join(tempDir, ".betterprompt", "config.json");
-
-    await setSystemConfigValue("skillsDir", "/tmp/skills", {
-      configPath,
-    });
-
-    await expect(
-      getSystemConfigValue("skillsDir", { configPath })
-    ).resolves.toBe("/tmp/skills");
-
-    await unsetSystemConfigValue("skillsDir", { configPath });
-    await expect(
-      getSystemConfigValue("skillsDir", { configPath })
-    ).resolves.toBeUndefined();
-  });
-
-  it("migrates legacy skills_dir to skillsDir on load", async () => {
+  it("removes legacy skills_dir and skillsDir keys on load", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
     await mkdir(path.dirname(configPath), { recursive: true });
@@ -186,20 +176,20 @@ describe("system config core", () => {
           version: "0.0.1",
           apiBaseUrl: "https://runtime.example/api",
           skills_dir: "/tmp/legacy-skills",
+          skillsDir: "/tmp/current-skills",
         },
         null,
         2
       )}\n`
     );
 
-    const loaded = await loadOrInitConfig({ configPath });
+    await loadOrInitConfig({ configPath });
     const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<
       string,
       unknown
     >;
 
-    expect(loaded.skillsDir).toBe("/tmp/legacy-skills");
-    expect(parsed.skillsDir).toBe("/tmp/legacy-skills");
     expect(parsed.skills_dir).toBeUndefined();
+    expect(parsed.skillsDir).toBeUndefined();
   });
 });
