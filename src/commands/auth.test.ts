@@ -118,9 +118,7 @@ describe("auth command", () => {
 
     await runAuth(["--api-key", "bp_live_123"], deps);
 
-    expect(deps.log).toHaveBeenCalledWith(
-      expect.stringContaining(`${AUTH_MESSAGES.successPrefix} /tmp/custom/auth.json`)
-    );
+    expect(deps.log).not.toHaveBeenCalled();
     expect(deps.outro).toHaveBeenCalledWith(
       `${AUTH_MESSAGES.successPrefix} /tmp/custom/auth.json`
     );
