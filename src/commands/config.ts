@@ -70,6 +70,7 @@ export const createConfigCommand = (
 ): Command => {
   const command = new Command(CONFIG_COMMAND.name)
     .description(CONFIG_COMMAND.description)
+    .option("--json", "Render output as JSON")
     .addHelpText("after", CONFIG_MESSAGES.helpText);
 
   command
@@ -78,12 +79,16 @@ export const createConfigCommand = (
     .argument("<key>", CONFIG_COMMAND.get.keyDescription, parseConfigKey)
     .action(async (key: TSystemConfigKey, _opts: Record<string, unknown>, command: Command) => {
       try {
-        getCommandContext(command);
+        const ctx = getCommandContext(command);
         const value = await deps.getValue(key);
         if (typeof value !== "string" || !value.trim()) {
           throw new Error(CONFIG_MESSAGES.missingValueError(key));
         }
-        deps.log(`${logSymbols.info} ${value}`);
+        if (ctx.outputFormat === "json") {
+          deps.log(JSON.stringify({ key, value }));
+        } else {
+          deps.log(`${logSymbols.info} ${value}`);
+        }
       } catch (error) {
         const fallbackPath = deps.resolveConfigPath();
         const errorMessage =
@@ -107,7 +112,7 @@ export const createConfigCommand = (
         command: Command
       ) => {
       try {
-        getCommandContext(command);
+        const ctx = getCommandContext(command);
         if (key === "apiKey") {
           const spinner = ora(CONFIG_MESSAGES.verifyingApiKey).start();
           try {
@@ -120,7 +125,11 @@ export const createConfigCommand = (
         }
 
         await deps.setValue(key, value);
-        deps.log(`${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`);
+        if (ctx.outputFormat === "json") {
+          deps.log(JSON.stringify({ success: true, key }));
+        } else {
+          deps.log(`${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`);
+        }
       } catch (error) {
         const fallbackPath = deps.resolveConfigPath();
         const errorMessage =
