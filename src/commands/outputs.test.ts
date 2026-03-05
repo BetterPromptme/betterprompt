@@ -64,12 +64,15 @@ const runOutputs = async (
 };
 
 describe("outputs command", () => {
-  it("fetches run result by ID from API", async () => {
+  it("fetches run result by ID from local persistence by default", async () => {
     const deps = createDeps();
 
     await runOutputs(["run-123"], deps);
 
-    expect(deps.fetchRun).toHaveBeenCalledWith("run-123");
+    expect(deps.fetchRun).toHaveBeenCalledWith("run-123", {
+      remote: false,
+      rootDir: "/tmp/.betterprompt",
+    });
   });
 
   it("prints text output to stdout in text mode", async () => {
@@ -172,7 +175,10 @@ describe("outputs command", () => {
 
     await runOutputs(["run-123", "--remote"], deps);
 
-    expect(deps.fetchRun).toHaveBeenCalledWith("run-123", { remote: true });
+    expect(deps.fetchRun).toHaveBeenCalledWith("run-123", {
+      remote: true,
+      rootDir: "/tmp/.betterprompt",
+    });
   });
 
   it("handles invalid run ID error", async () => {
@@ -198,6 +204,24 @@ describe("outputs command", () => {
 
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed: Run not found: run-404")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.printResult).not.toHaveBeenCalled();
+  });
+
+  it("shows --remote hint when local fetch fails", async () => {
+    const deps = createDeps({
+      fetchRun: mock(async () => {
+        throw new Error("Run not found in local persistence: run-404");
+      }),
+    });
+
+    await runOutputs(["run-404"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "Outputs command failed: Run not found in local persistence: run-404\nHint: retry with --remote to fetch from API."
+      )
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
