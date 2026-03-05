@@ -1,3 +1,5 @@
+import { PART_TYPE } from "../enums";
+
 export type TOutputFormat = "text" | "json";
 
 export type TPrintOptions = {
