@@ -24,6 +24,7 @@ import type { TRunResult } from "../types/run";
 
 const OUTPUTS_FAILED_PREFIX = "Outputs command failed:";
 const OUTPUTS_REMOTE_HINT = "Hint: retry with --remote to fetch from API.";
+const OUTPUTS_EMPTY_MESSAGE_PREFIX = "No outputs found for run";
 const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Queued,
   RunStatus.Running,
@@ -373,6 +374,11 @@ export const createOutputsCommand = (
             });
             return;
           }
+
+          deps.printResult(
+            `${logSymbols.warning} ${OUTPUTS_EMPTY_MESSAGE_PREFIX} ${run.runId}.`,
+            ctx
+          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
