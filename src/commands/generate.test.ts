@@ -13,6 +13,14 @@ const createDeps = (overrides = {}) =>
       outputs: [],
       runStatus: RunStatus.Queued,
     })),
+    resolveScope: mock(async () => ({
+      type: "project" as const,
+      rootDir: "/tmp/.betterprompt",
+    })),
+    persistRunOutput: mock(async () => ({
+      outputDir: "/tmp/.betterprompt/outputs/2026/03/run-123",
+      historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
+    })),
     printResult: mock(() => {}),
     error: mock(() => {}),
     setExitCode: mock(() => {}),
@@ -126,7 +134,7 @@ describe("generate command", () => {
     });
   });
 
-  it("parses --model, --save-run, --stdin, and --interactive flags", async () => {
+  it("parses --model, --stdin, and --interactive flags", async () => {
     const deps = createDeps();
 
     await runGenerate(
@@ -134,7 +142,6 @@ describe("generate command", () => {
         "skill-version-123",
         "--model",
         "gpt-4.1",
-        "--save-run",
         "--stdin",
         "--interactive",
       ],
@@ -145,9 +152,27 @@ describe("generate command", () => {
     expect(invocation.skillVersionId).toBe("skill-version-123");
     expect(invocation.options).toMatchObject({
       model: "gpt-4.1",
-      saveRun: true,
       stdin: true,
       interactive: true,
+    });
+  });
+
+  it("parses --run-option json flag", async () => {
+    const deps = createDeps();
+
+    await runGenerate(
+      [
+        "skill-version-123",
+        "--run-option",
+        '{"reasoningEffort":"high","quality":"hd"}',
+      ],
+      deps
+    );
+
+    const invocation = getGenerateInvocation(deps);
+    expect(invocation.skillVersionId).toBe("skill-version-123");
+    expect(invocation.options).toMatchObject({
+      runOption: '{"reasoningEffort":"high","quality":"hd"}',
     });
   });
 
@@ -270,6 +295,50 @@ describe("generate command", () => {
       rawRunResult,
       expect.objectContaining({ outputFormat: "json" })
     );
+    expect(deps.persistRunOutput).toHaveBeenCalledTimes(1);
+  });
+
+  it("automatically persists run outputs locally when generate returns a run result", async () => {
+    const deps = createDeps({
+      generate: mock(async () => ({
+        runId: "run-123",
+        runStatus: RunStatus.Succeeded,
+        outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+      })),
+    });
+
+    await runGenerate(["skill-version-123", "--model", "gpt-5"], deps);
+
+    expect(deps.resolveScope).toHaveBeenCalledTimes(1);
+    expect(deps.persistRunOutput).toHaveBeenCalledTimes(1);
+    expect(deps.persistRunOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: { type: "project", rootDir: "/tmp/.betterprompt" },
+        runId: "run-123",
+        skillVersionId: "skill-version-123",
+        request: {
+          promptVersionId: "skill-version-123",
+          inputs: { textInputs: {} },
+          runModel: "gpt-5",
+        },
+        response: {
+          runId: "run-123",
+          runStatus: RunStatus.Succeeded,
+          outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+        },
+      })
+    );
+  });
+
+  it("does not persist when generate result is not a run payload", async () => {
+    const deps = createDeps({
+      generate: mock(async () => ({ ok: true })),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.resolveScope).not.toHaveBeenCalled();
+    expect(deps.persistRunOutput).not.toHaveBeenCalled();
   });
 
   it("handles multiple output parts in order", async () => {
