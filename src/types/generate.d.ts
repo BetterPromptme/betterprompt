@@ -23,6 +23,7 @@ export type TGenerateCommandOptions = TGenerateOptions;
 export type TGenerateCommandDependencies = {
   generate: (payload: TRunPayload) => Promise<unknown>;
   readStdin: () => Promise<string>;
+  isStdinTTY: () => boolean;
   resolveScope: TResolveScope;
   persistRunOutput: (
     args: TPersistRunOutputArgs
