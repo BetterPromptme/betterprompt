@@ -38,6 +38,8 @@ export type TRunResult = {
   runId: string;
   outputs: TPart[];
   runStatus: RunStatus;
+  createdAt: string;
+  promptVersionId: string;
 };
 
 export type TRunResponse = TApiResponse<TRunResult>;
