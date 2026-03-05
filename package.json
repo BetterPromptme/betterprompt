@@ -3,6 +3,19 @@
   "version": "0.0.2-dev.8",
   "type": "module",
   "description": "BetterPrompt CLI Tools.",
+  "license": "MIT",
+  "homepage": "https://github.com/BetterPromptme/betterprompt#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BetterPromptme/betterprompt.git"
+  },
+  "keywords": [
+    "betterprompt",
+    "cli",
+    "tools",
+    "betterprompt-cli",
+    "betterprompt-tools"
+  ],
   "bin": {
     "betterprompt": "bin/betterprompt.js",
     "bp": "bin/betterprompt.js"
