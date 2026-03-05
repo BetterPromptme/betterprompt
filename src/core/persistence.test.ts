@@ -7,11 +7,6 @@ import { persistRunOutput, shouldPersistRunOutput } from "./persistence";
 
 type TPersistRunOutputArgs = Parameters<typeof persistRunOutput>[0];
 
-type TPersistedAsset = {
-  fileName: string;
-  content: string;
-};
-
 const tempDirs: string[] = [];
 
 const createTempDir = async (): Promise<string> => {
@@ -34,9 +29,9 @@ const createPersistArgs = (rootDir: string): TPersistRunOutputArgs => ({
   },
   now: new Date("2026-03-04T12:00:00.000Z"),
   runId: "run_abc123",
-  skillName: "seo-blog-writer",
+  skillVersionId: "skill-version-123",
   request: {
-    skillName: "seo-blog-writer",
+    skillVersionId: "skill-version-123",
     input: ["topic=agentic-ai"],
     model: "gpt-5",
     saveRun: true,
@@ -45,22 +40,20 @@ const createPersistArgs = (rootDir: string): TPersistRunOutputArgs => ({
     runId: "run_abc123",
     runStatus: "SUCCEEDED",
     outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+    createdAt: "2026-03-04T11:59:00.000Z",
   },
   metadata: {
     runStatus: "SUCCEEDED",
     persistedAt: "2026-03-04T12:00:00.000Z",
   },
-  assets: [{ fileName: "preview.txt", content: "Rendered preview" }],
 });
 
 describe("persistRunOutput", () => {
-  it("creates output folder at outputs/<year>/<month>/output_<id>/", async () => {
+  it("creates output folder at outputs/<runId>/", async () => {
     const rootDir = await createTempDir();
     const result = await persistRunOutput(createPersistArgs(rootDir));
 
-    expect(result.outputDir).toBe(
-      path.join(rootDir, "outputs", "2026", "03", "output_run_abc123")
-    );
+    expect(result.outputDir).toBe(path.join(rootDir, "outputs", "run_abc123"));
   });
 
   it("writes request.json, response.json, and metadata.json", async () => {
@@ -79,24 +72,13 @@ describe("persistRunOutput", () => {
     );
   });
 
-  it("saves assets to assets/ subdirectory", async () => {
+  it("does not create assets/ subdirectory", async () => {
     const rootDir = await createTempDir();
-    const assets: TPersistedAsset[] = [
-      { fileName: "image-1.txt", content: "asset-one" },
-      { fileName: "image-2.txt", content: "asset-two" },
-    ];
-
-    const result = await persistRunOutput({
-      ...createPersistArgs(rootDir),
-      assets,
-    });
+    const result = await persistRunOutput(createPersistArgs(rootDir));
 
     await expect(
       readFile(path.join(result.outputDir, "assets", "image-1.txt"), "utf8")
-    ).resolves.toBe("asset-one");
-    await expect(
-      readFile(path.join(result.outputDir, "assets", "image-2.txt"), "utf8")
-    ).resolves.toBe("asset-two");
+    ).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("appends a history entry to outputs/history.jsonl", async () => {
@@ -110,6 +92,7 @@ describe("persistRunOutput", () => {
       runId: "run_def456",
       runStatus: "SUCCEEDED",
       outputs: [{ type: PART_TYPE.IMAGE, data: "outputs/run_def456/image.png" }],
+      createdAt: "2026-03-04T12:00:00.000Z",
     };
     await persistRunOutput(second);
 
@@ -126,11 +109,50 @@ describe("persistRunOutput", () => {
 
     expect(first).toMatchObject({
       runId: "run_abc123",
-      outputDir: path.join("outputs", "2026", "03", "output_run_abc123"),
+      skillVersionId: "skill-version-123",
+      createdAt: "2026-03-04T11:59:00.000Z",
+      outputDir: path.join("outputs", "run_abc123"),
     });
     expect(latest).toMatchObject({
       runId: "run_def456",
-      outputDir: path.join("outputs", "2026", "03", "output_run_def456"),
+      skillVersionId: "skill-version-123",
+      createdAt: "2026-03-04T12:00:00.000Z",
+      outputDir: path.join("outputs", "run_def456"),
+    });
+  });
+
+  it("updates existing history entry when runId already exists", async () => {
+    const rootDir = await createTempDir();
+    const base = createPersistArgs(rootDir);
+
+    await persistRunOutput(base);
+
+    await persistRunOutput({
+      ...base,
+      now: new Date("2026-03-04T12:10:00.000Z"),
+      response: {
+        ...base.response,
+        runStatus: "FAILED",
+      },
+      metadata: {
+        runStatus: "FAILED",
+        persistedAt: "2026-03-04T12:10:00.000Z",
+      },
+    });
+
+    const historyRaw = await readFile(
+      path.join(rootDir, "outputs", "history.jsonl"),
+      "utf8"
+    );
+    const lines = historyRaw.trim().split("\n");
+    expect(lines).toHaveLength(1);
+
+    const entry = JSON.parse(lines[0] ?? "{}");
+    expect(entry).toMatchObject({
+      runId: "run_abc123",
+      runStatus: "FAILED",
+      persistedAt: "2026-03-04T12:10:00.000Z",
+      outputDir: path.join("outputs", "run_abc123"),
     });
   });
 
@@ -153,6 +175,31 @@ describe("persistRunOutput", () => {
     expect(projectResult.outputDir.startsWith(projectRoot)).toBe(true);
     expect(globalResult.outputDir.startsWith(globalRoot)).toBe(true);
     expect(projectResult.outputDir).not.toBe(globalResult.outputDir);
+  });
+
+  it("uses runId as-is for folder name", async () => {
+    const rootDir = await createTempDir();
+    const result = await persistRunOutput({
+      ...createPersistArgs(rootDir),
+      runId: "output_abc123",
+      response: {
+        runId: "output_abc123",
+        runStatus: "SUCCEEDED",
+        outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+      },
+    });
+
+    expect(result.outputDir).toBe(path.join(rootDir, "outputs", "output_abc123"));
+
+    const historyRaw = await readFile(
+      path.join(rootDir, "outputs", "history.jsonl"),
+      "utf8"
+    );
+    const entry = JSON.parse(historyRaw.trim());
+    expect(entry).toMatchObject({
+      runId: "output_abc123",
+      outputDir: path.join("outputs", "output_abc123"),
+    });
   });
 });
 
