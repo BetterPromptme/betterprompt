@@ -10,7 +10,7 @@ export type TGenerateOptions = {
   inputPayload?: string;
   stdin?: boolean;
   model?: string;
-  runOption?: string;
+  options?: string;
 };
 
 export type TGenerateResult = {
