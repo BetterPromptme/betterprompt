@@ -99,6 +99,27 @@ describe("outputs command", () => {
     );
   });
 
+  it("prints feedback when run has no outputs", async () => {
+    const deps = createDeps({
+      fetchRun: mock(async () => ({
+        runId: "run-empty",
+        promptVersionId: "skill-version-empty",
+        runStatus: RunStatus.Succeeded,
+        createdAt: "2026-03-04T11:00:00.000Z",
+        outputs: [],
+      })),
+    });
+
+    await runOutputs(["run-empty"], deps);
+
+    expect(deps.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("No outputs found for run run-empty"),
+      expect.objectContaining({ outputFormat: "text" })
+    );
+    expect(deps.error).not.toHaveBeenCalled();
+    expect(deps.setExitCode).not.toHaveBeenCalled();
+  });
+
   it("persists output artifacts when --sync is provided", async () => {
     const deps = createDeps({
       fetchRun: mock(async () => ({
