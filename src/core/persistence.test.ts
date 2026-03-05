@@ -3,7 +3,11 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { PART_TYPE } from "../enums";
-import { persistRunOutput, shouldPersistRunOutput } from "./persistence";
+import {
+  persistRunOutput,
+  readPersistedRunOutput,
+  shouldPersistRunOutput,
+} from "./persistence";
 
 type TPersistRunOutputArgs = Parameters<typeof persistRunOutput>[0];
 
@@ -257,5 +261,37 @@ describe("shouldPersistRunOutput", () => {
     });
 
     expect(value).toBe(false);
+  });
+});
+
+describe("readPersistedRunOutput", () => {
+  it("reads outputs/<runId>/response.json as run result", async () => {
+    const rootDir = await createTempDir();
+    const args = createPersistArgs(rootDir);
+    await persistRunOutput(args);
+
+    const run = await readPersistedRunOutput({
+      rootDir,
+      runId: args.runId,
+    });
+
+    expect(run.runId).toBe(args.response.runId);
+    expect(run.outputs).toEqual(args.response.outputs);
+    expect(run.createdAt).toBe(
+      args.response.createdAt ?? new Date(0).toISOString()
+    );
+    expect(String(run.runStatus)).toBe(args.response.runStatus);
+    expect(run.promptVersionId).toBe("-");
+  });
+
+  it("throws when response.json is missing", async () => {
+    const rootDir = await createTempDir();
+
+    await expect(
+      readPersistedRunOutput({
+        rootDir,
+        runId: "run_missing",
+      })
+    ).rejects.toThrow("Run not found in local persistence: run_missing");
   });
 });
