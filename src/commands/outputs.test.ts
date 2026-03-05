@@ -1,7 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 import { PART_TYPE, RunStatus } from "../enums";
-import { createOutputsCommand } from "./outputs";
+import { buildOutputsListQuery, createOutputsCommand } from "./outputs";
 
 type TOutputsCommandDeps = NonNullable<Parameters<typeof createOutputsCommand>[0]>;
 type TListOutputsResult = Awaited<ReturnType<TOutputsCommandDeps["listOutputs"]>>;
@@ -11,9 +11,15 @@ type THistoryEntriesResult = Awaited<
 
 const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsCommandDeps =>
   ({
+    resolveScope: mock(async () => ({
+      type: "project" as const,
+      rootDir: "/tmp/.betterprompt",
+    })),
     fetchRun: mock(async () => ({
       runId: "run-123",
+      promptVersionId: "skill-version-123",
       runStatus: RunStatus.Succeeded,
+      createdAt: "2026-03-04T11:00:00.000Z",
       outputs: [
         {
           type: PART_TYPE.TEXT,
@@ -21,9 +27,9 @@ const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsComma
         },
       ],
     })),
-    downloadAssets: mock(async () => ({
-      outputPath: "/tmp/outputs/run-123",
-      downloadedFiles: [],
+    persistRunOutput: mock(async () => ({
+      outputDir: "/tmp/.betterprompt/outputs/run-123",
+      historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
     })),
     listOutputs: mock(async () => [] as TListOutputsResult),
     readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
@@ -70,7 +76,9 @@ describe("outputs command", () => {
     const deps = createDeps({
       fetchRun: mock(async () => ({
         runId: "run-text",
+        promptVersionId: "skill-version-text",
         runStatus: RunStatus.Succeeded,
+        createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
             type: PART_TYPE.TEXT,
@@ -88,11 +96,13 @@ describe("outputs command", () => {
     );
   });
 
-  it("downloads assets to --out path", async () => {
+  it("persists output artifacts when --sync is provided", async () => {
     const deps = createDeps({
       fetchRun: mock(async () => ({
         runId: "run-image",
+        promptVersionId: "skill-version-789",
         runStatus: RunStatus.Succeeded,
+        createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
             type: PART_TYPE.IMAGE,
@@ -102,19 +112,29 @@ describe("outputs command", () => {
       })),
     });
 
-    await runOutputs(["run-image", "--out", "/tmp/custom-out"], deps);
+    await runOutputs(["run-image", "--sync"], deps);
 
-    expect(deps.downloadAssets).toHaveBeenCalledWith(
-      expect.objectContaining({ runId: "run-image" }),
-      "/tmp/custom-out"
+    expect(deps.persistRunOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: { type: "project", rootDir: "/tmp/.betterprompt" },
+        runId: "run-image",
+        skillVersionId: "skill-version-789",
+      })
+    );
+    expect(deps.persistRunOutput).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        assets: expect.anything(),
+      })
     );
   });
 
-  it("uses default asset download location when --out is not provided", async () => {
+  it("does not persist output artifacts when --sync is not provided", async () => {
     const deps = createDeps({
       fetchRun: mock(async () => ({
         runId: "run-video",
+        promptVersionId: "skill-version-video",
         runStatus: RunStatus.Succeeded,
+        createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
             type: PART_TYPE.VIDEO,
@@ -126,33 +146,33 @@ describe("outputs command", () => {
 
     await runOutputs(["run-video"], deps);
 
-    expect(deps.downloadAssets).toHaveBeenCalledWith(
-      expect.objectContaining({ runId: "run-video" }),
-      undefined
-    );
+    expect(deps.persistRunOutput).not.toHaveBeenCalled();
   });
 
   it("returns structured metadata in --json mode", async () => {
-    const deps = createDeps({
-      downloadAssets: mock(async () => ({
-        outputPath: "/tmp/json-out",
-        downloadedFiles: ["/tmp/json-out/image.png"],
-      })),
-    });
+    const deps = createDeps();
 
     await runOutputs(["run-123", "--json"], deps);
 
     expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
-      .calls[0] as [Record<string, unknown>, { outputFormat: string }];
+    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [
+      Record<string, unknown>,
+      { outputFormat: string },
+    ];
 
     expect(ctx.outputFormat).toBe("json");
     expect(result).toMatchObject({
       runId: "run-123",
       runStatus: RunStatus.Succeeded,
-      outputPath: "/tmp/json-out",
-      downloadedFiles: ["/tmp/json-out/image.png"],
     });
+  });
+
+  it("passes --remote to fetch run", async () => {
+    const deps = createDeps();
+
+    await runOutputs(["run-123", "--remote"], deps);
+
+    expect(deps.fetchRun).toHaveBeenCalledWith("run-123", { remote: true });
   });
 
   it("handles invalid run ID error", async () => {
@@ -209,40 +229,40 @@ describe("outputs list command", () => {
     await root.parseAsync(["outputs", "list", ...args], { from: "user" });
   };
 
-  it("queries API and displays results", async () => {
-    const listOutputs = mock(async () => [
-      {
-        runId: "run-1",
-        skillName: "caption-generator",
-        runStatus: RunStatus.Succeeded,
-        createdAt: "2026-03-04T11:00:00.000Z",
-      },
-    ]);
-
-    const deps = {
-      ...createDeps(),
-      listOutputs,
-    };
+  it("reads local history by default and displays results", async () => {
+    const deps = createDeps({
+      readHistoryEntries: mock(async () => [
+        {
+          runId: "run-1",
+          skillVersionId: "caption-generator",
+          runStatus: RunStatus.Succeeded,
+          persistedAt: "2026-03-04T11:00:00.000Z",
+          outputPath: "/tmp/outputs/run-1",
+        },
+      ]),
+    });
 
     await runOutputsList([], deps);
 
-    expect(listOutputs).toHaveBeenCalledWith({});
+    expect(deps.listOutputs).not.toHaveBeenCalled();
+    expect(deps.readHistoryEntries).toHaveBeenCalledWith("/tmp/.betterprompt");
     expect(deps.printResult).toHaveBeenCalledWith(
       expect.stringContaining("run-1"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
 
-  it("forwards --skill filter", async () => {
+  it("uses remote API only when --remote is provided", async () => {
     const listOutputs = mock(async () => []);
     const deps = {
       ...createDeps(),
       listOutputs,
     };
 
-    await runOutputsList(["--skill", "caption-generator"], deps);
+    await runOutputsList(["--remote"], deps);
 
-    expect(listOutputs).toHaveBeenCalledWith({ skill: "caption-generator" });
+    expect(listOutputs).toHaveBeenCalledWith({ remote: true });
+    expect(deps.readHistoryEntries).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -257,9 +277,9 @@ describe("outputs list command", () => {
       listOutputs,
     };
 
-    await runOutputsList(["--status", status], deps);
+    await runOutputsList(["--status", status, "--remote"], deps);
 
-    expect(listOutputs).toHaveBeenCalledWith({ status });
+    expect(listOutputs).toHaveBeenCalledWith({ status, remote: true });
   });
 
   it("forwards --limit as number", async () => {
@@ -269,9 +289,9 @@ describe("outputs list command", () => {
       listOutputs,
     };
 
-    await runOutputsList(["--limit", "25"], deps);
+    await runOutputsList(["--limit", "25", "--remote"], deps);
 
-    expect(listOutputs).toHaveBeenCalledWith({ limit: 25 });
+    expect(listOutputs).toHaveBeenCalledWith({ limit: 25, remote: true });
   });
 
   it("forwards --since filter", async () => {
@@ -281,9 +301,12 @@ describe("outputs list command", () => {
       listOutputs,
     };
 
-    await runOutputsList(["--since", "2026-03-01"], deps);
+    await runOutputsList(["--since", "2026-03-01", "--remote"], deps);
 
-    expect(listOutputs).toHaveBeenCalledWith({ since: "2026-03-01" });
+    expect(listOutputs).toHaveBeenCalledWith({
+      since: "2026-03-01",
+      remote: true,
+    });
   });
 
   it("forwards combined filters in a single request", async () => {
@@ -295,43 +318,38 @@ describe("outputs list command", () => {
 
     await runOutputsList(
       [
-        "--skill",
-        "caption-generator",
         "--status",
         RunStatus.Succeeded,
         "--limit",
         "10",
         "--since",
         "2026-03-01",
+        "--remote",
       ],
       deps
     );
 
     expect(listOutputs).toHaveBeenCalledWith({
-      skill: "caption-generator",
       status: RunStatus.Succeeded,
       limit: 10,
       since: "2026-03-01",
+      remote: true,
     });
   });
 
   it("returns structured JSON with local history matches in --json mode", async () => {
-    const listOutputs = mock(async () => [
+    const readHistoryEntries = mock(async () => [
       {
         runId: "run-7",
-        skillName: "caption-generator",
+        skillVersionId: "caption-generator",
         runStatus: RunStatus.Succeeded,
-        createdAt: "2026-03-04T11:00:00.000Z",
+        persistedAt: "2026-03-04T11:00:00.000Z",
+        outputPath: "/tmp/outputs/2026/03/output_run-7",
       },
-    ]);
-
-    const readHistoryEntries = mock(async () => [
-      { runId: "run-7", outputPath: "/tmp/outputs/2026/03/output_run-7" },
     ]);
 
     const deps = {
       ...createDeps(),
-      listOutputs,
       readHistoryEntries,
     };
 
@@ -346,7 +364,7 @@ describe("outputs list command", () => {
       rows: [
         {
           runId: "run-7",
-          skillName: "caption-generator",
+          skillVersionId: "caption-generator",
           runStatus: RunStatus.Succeeded,
           createdAt: "2026-03-04T11:00:00.000Z",
           localOutputPath: "/tmp/outputs/2026/03/output_run-7",
@@ -355,15 +373,51 @@ describe("outputs list command", () => {
     });
   });
 
+  it("prefers createdAt from local history when available", async () => {
+    const deps = {
+      ...createDeps(),
+      readHistoryEntries: mock(async () => [
+        {
+          runId: "run-11",
+          skillVersionId: "caption-generator",
+          runStatus: RunStatus.Succeeded,
+          createdAt: "2026-03-04T10:30:00.000Z",
+          persistedAt: "2026-03-04T11:00:00.000Z",
+          outputPath: "/tmp/local/run-11",
+        },
+      ]),
+    };
+
+    await runOutputsList(["--json"], deps);
+
+    expect(deps.printResult).toHaveBeenCalledTimes(1);
+    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [Record<string, unknown>, { outputFormat: string }];
+
+    expect(ctx.outputFormat).toBe("json");
+    expect(result).toEqual({
+      rows: [
+        {
+          runId: "run-11",
+          skillVersionId: "caption-generator",
+          runStatus: RunStatus.Succeeded,
+          createdAt: "2026-03-04T10:30:00.000Z",
+          localOutputPath: "/tmp/local/run-11",
+        },
+      ],
+    });
+  });
+
   it("renders human-readable tabular output", async () => {
     const deps = {
       ...createDeps(),
-      listOutputs: mock(async () => [
+      readHistoryEntries: mock(async () => [
         {
           runId: "run-10",
-          skillName: "caption-generator",
+          skillVersionId: "caption-generator",
           runStatus: RunStatus.Running,
-          createdAt: "2026-03-04T11:00:00.000Z",
+          persistedAt: "2026-03-04T11:00:00.000Z",
+          outputPath: "/tmp/local/run-10",
         },
       ]),
     };
@@ -371,7 +425,7 @@ describe("outputs list command", () => {
     await runOutputsList([], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.stringMatching(/RUN ID\s+SKILL\s+STATUS\s+CREATED AT/i),
+      expect.stringMatching(/RUN ID\s+SKILL VERSION ID\s+STATUS\s+CREATED AT/i),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -379,23 +433,21 @@ describe("outputs list command", () => {
   it("cross-references local history.jsonl when present", async () => {
     const deps = {
       ...createDeps(),
-      listOutputs: mock(async () => [
+      readHistoryEntries: mock(async () => [
         {
           runId: "run-local",
-          skillName: "caption-generator",
+          skillVersionId: "caption-generator",
           runStatus: RunStatus.Succeeded,
-          createdAt: "2026-03-04T11:00:00.000Z",
+          persistedAt: "2026-03-04T11:00:00.000Z",
+          outputDir: "outputs/run-local",
         },
-      ]),
-      readHistoryEntries: mock(async () => [
-        { runId: "run-local", outputPath: "/tmp/local/run-local" },
       ]),
     };
 
     await runOutputsList([], deps);
 
     expect(deps.printResult).toHaveBeenCalledWith(
-      expect.stringContaining("/tmp/local/run-local"),
+      expect.stringContaining("run-local"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -441,12 +493,27 @@ describe("outputs list command", () => {
       }),
     };
 
-    await runOutputsList([], deps);
+    await runOutputsList(["--remote"], deps);
 
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed: API unavailable")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildOutputsListQuery", () => {
+  it("omits non-api filters and unsupported fields", () => {
+    expect(
+      buildOutputsListQuery({
+        remote: true,
+        status: RunStatus.Succeeded,
+        limit: 10,
+        since: "2026-03-01",
+      })
+    ).toEqual({
+      limit: 10,
+    });
   });
 });
