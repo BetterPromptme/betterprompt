@@ -22,6 +22,7 @@ const createDeps = (overrides = {}) =>
       outputDir: "/tmp/.betterprompt/outputs/2026/03/run-123",
       historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
     })),
+    isStdinTTY: mock(() => false),
     printResult: mock(() => {}),
     error: mock(() => {}),
     setExitCode: mock(() => {}),
@@ -192,6 +193,22 @@ describe("generate command", () => {
       },
     });
     expect(deps.readStdin).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows stdin guidance when --stdin is used without piped input", async () => {
+    const deps = createDeps({
+      isStdinTTY: mock(() => true),
+    });
+
+    await runGenerate(["skill-version-123", "--stdin"], deps);
+
+    expect(deps.generate).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "No stdin input detected. Pipe a TRunInputs JSON object when using --stdin."
+      )
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("parses --run-option json flag", async () => {
