@@ -61,15 +61,19 @@ const sanitizeConfig = (
     changed = true;
   }
 
-  const auth = isObjectRecord(value.auth) ? value.auth : {};
-  if (auth !== value.auth) {
+  if (
+    "default_output_format" in value ||
+    "cache_ttl_seconds" in value ||
+    "telemetry" in value ||
+    "skillsDir" in value ||
+    "skills_dir" in value
+  ) {
     changed = true;
   }
 
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
-    auth,
   };
 
   return { config, changed };
@@ -129,7 +133,6 @@ const doLoadOrInitConfig = async (
     const nextConfig: TSystemConfig = {
       version: SYSTEM_CONFIG.version,
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     };
 
     await writeSystemConfig(configPath, nextConfig);
@@ -175,38 +178,18 @@ const normalizeApiBaseUrl = (value: string): string => {
   return normalized;
 };
 
-const normalizeConfigApiKey = (value: string): string => {
-  const normalized = value.trim();
-  if (!normalized) {
-    throw new Error(SYSTEM_MESSAGES.invalidApiKeyError);
-  }
-  return normalized;
-};
-
-const getApiKeyFromConfig = (config: TSystemConfig): string | undefined => {
-  const authValue =
-    typeof config.auth === "object" && config.auth !== null
-      ? (config.auth as Record<string, unknown>).apiKey
-      : undefined;
-
-  if (typeof authValue === "string" && authValue.trim()) {
-    return authValue.trim();
-  }
-
-  return undefined;
-};
-
 export const getSystemConfigValue = async (
   key: TSystemConfigKey,
   options: TLoadOrInitConfigOptions = {}
 ): Promise<string | undefined> => {
+  if (key === "apiKey") {
+    return undefined;
+  }
   const config = await loadOrInitConfig(options);
-
   if (key === "apiBaseUrl") {
     return config.apiBaseUrl;
   }
-
-  return getApiKeyFromConfig(config);
+  return undefined;
 };
 
 export const setSystemConfigValue = async (
@@ -214,29 +197,57 @@ export const setSystemConfigValue = async (
   value: string,
   options: TLoadOrInitConfigOptions = {}
 ): Promise<string> => {
+  if (key === "apiKey") {
+    throw new Error(
+      `Cannot set "${key}" via system config. Use saveAuthConfig for API keys.`
+    );
+  }
+
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
   const existing = await loadOrInitConfig({ ...options, configPath });
+  const nextConfig: TSystemConfig = { ...existing };
 
-  let nextConfig: TSystemConfig;
   if (key === "apiBaseUrl") {
-    nextConfig = {
-      ...existing,
-      apiBaseUrl: normalizeApiBaseUrl(value),
-    };
-  } else {
-    const apiKey = normalizeConfigApiKey(value);
-    nextConfig = {
-      ...existing,
-      auth: {
-        ...(typeof existing.auth === "object" && existing.auth
-          ? existing.auth
-          : {}),
-        apiKey,
-        updatedAt: new Date().toISOString(),
-      },
-    };
+    nextConfig.apiBaseUrl = normalizeApiBaseUrl(value);
   }
+
+  await writeSystemConfig(configPath, nextConfig);
+  loadedSystemConfig = nextConfig;
+  return configPath;
+};
+
+export const unsetSystemConfigValue = async (
+  key: TSystemConfigKey,
+  options: TLoadOrInitConfigOptions = {}
+): Promise<string> => {
+  if (key === "apiKey") {
+    throw new Error(
+      `Cannot unset "${key}" via system config. API keys are stored in auth.json.`
+    );
+  }
+  if (key !== "apiBaseUrl") {
+    throw new Error(
+      `Cannot unset "${key}" via system config. Only "apiBaseUrl" can be unset.`
+    );
+  }
+
+  const configPath =
+    options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
+  const existing = await loadOrInitConfig({ ...options, configPath });
+  const currentValue = existing.apiBaseUrl;
+
+  if (
+    typeof currentValue !== "string" ||
+    !currentValue.trim() ||
+    currentValue === API_CONFIG.baseUrl
+  ) {
+    throw new Error(`${key} is not set in config.json.`);
+  }
+
+  const nextConfig: TSystemConfig = {
+    version: existing.version,
+  };
 
   await writeSystemConfig(configPath, nextConfig);
   loadedSystemConfig = nextConfig;

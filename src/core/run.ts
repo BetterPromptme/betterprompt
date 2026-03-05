@@ -83,7 +83,10 @@ export const validateRunId = (runId: string): void => {
 
 export const getRun = async (
   apiClient: TGetRunApiClient,
-  runId: string
+  runId: string,
+  opts: { remote?: boolean } = {}
 ): Promise<TRunResponse> => {
-  return apiClient.get<TRunResponse>(`/runs/${runId}`);
+  return apiClient.get<TRunResponse>(`/runs/${runId}`, {
+    query: opts.remote === true ? { remote: true } : undefined,
+  });
 };

@@ -1,8 +1,16 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { API_CONFIG, SYSTEM_CONFIG } from "../constants";
+import type { TSystemConfigKey } from "../types";
 import {
   getSystemConfigValue,
   getLoadedSystemConfig,
@@ -10,6 +18,7 @@ import {
   resetSystemConfigForTests,
   resolveSystemConfigPath,
   setSystemConfigValue,
+  unsetSystemConfigValue,
 } from "./config";
 
 const tempDirs: string[] = [];
@@ -49,12 +58,32 @@ describe("system config core", () => {
     expect(config).toEqual({
       version: SYSTEM_CONFIG.version,
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     });
     expect(parsed).toEqual(config);
   });
 
-  it("auto-fills apiBaseUrl and auth when missing", async () => {
+  it("does not create skills/outputs/logs/tmp directories during config initialization", async () => {
+    const tempDir = await createTempDir();
+    const rootDir = path.join(tempDir, ".betterprompt");
+    const configPath = path.join(rootDir, "config.json");
+
+    await loadOrInitConfig({ configPath });
+
+    await expect(stat(path.join(rootDir, "skills"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "outputs"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "logs"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(stat(path.join(rootDir, "tmp"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+  });
+
+  it("auto-fills apiBaseUrl when missing", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
     await mkdir(path.dirname(configPath), { recursive: true });
@@ -65,7 +94,6 @@ describe("system config core", () => {
     expect(config).toEqual({
       version: "0.0.1",
       apiBaseUrl: API_CONFIG.baseUrl,
-      auth: {},
     });
   });
 
@@ -93,13 +121,88 @@ describe("system config core", () => {
     expect(value).toBe("https://runtime.example/api");
   });
 
-  it("sets and gets apiKey value", async () => {
+  it("getSystemConfigValue returns undefined for apiKey (stored in auth.json)", async () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
 
-    await setSystemConfigValue("apiKey", "bp_from_set", { configPath });
-
     const value = await getSystemConfigValue("apiKey", { configPath });
-    expect(value).toBe("bp_from_set");
+    expect(value).toBeUndefined();
+  });
+
+  it("setSystemConfigValue throws for apiKey (should use saveAuthConfig)", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+
+    await expect(
+      setSystemConfigValue("apiKey", "bp_test", { configPath })
+    ).rejects.toThrow('Cannot set "apiKey" via system config.');
+  });
+
+  it("unsets apiBaseUrl and keeps config file valid JSON", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+    await setSystemConfigValue("apiBaseUrl", "https://runtime.example/api", {
+      configPath,
+    });
+
+    await unsetSystemConfigValue("apiBaseUrl", { configPath });
+
+    const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+
+    expect(parsed.version).toBeDefined();
+    expect(parsed.apiBaseUrl).toBeUndefined();
+  });
+
+  it("unsetSystemConfigValue throws when key does not exist", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+    await loadOrInitConfig({ configPath });
+
+    await expect(
+      unsetSystemConfigValue("apiBaseUrl", { configPath })
+    ).rejects.toThrow("apiBaseUrl is not set in config.json.");
+  });
+
+  it("rejects unsetting reserved keys such as version", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+    await loadOrInitConfig({ configPath });
+
+    await expect(
+      unsetSystemConfigValue("version" as TSystemConfigKey, {
+        configPath,
+      })
+    ).rejects.toThrow('Cannot unset "version" via system config.');
+  });
+
+  it("removes legacy skills_dir and skillsDir keys on load", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(
+      configPath,
+      `${JSON.stringify(
+        {
+          version: "0.0.1",
+          apiBaseUrl: "https://runtime.example/api",
+          skills_dir: "/tmp/legacy-skills",
+          skillsDir: "/tmp/current-skills",
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await loadOrInitConfig({ configPath });
+    const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
+
+    expect(parsed.skills_dir).toBeUndefined();
+    expect(parsed.skillsDir).toBeUndefined();
   });
 });

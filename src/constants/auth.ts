@@ -31,12 +31,12 @@ Get an API key: ${AUTH_API_KEY_URL}
   configMustBeObjectError: "Auth config must be a JSON object.",
   apiKeyVerifyFailedError: "API key verification failed.",
   apiKeyNotFoundError:
-    "API key not found. Run `betterprompt config set apiKey <value>` to configure config.json.",
+    "API key not found. Run `betterprompt config set apiKey <value>` to configure auth.json.",
 } as const;
 
 export const AUTH_STORAGE = {
   configDirName: ".betterprompt",
-  fileName: "config.json",
+  fileName: "auth.json",
   directoryMode: 0o700,
   fileMode: 0o600,
   tempFilePrefix: "tmp",

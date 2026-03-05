@@ -1,33 +1,22 @@
 export * from "./api";
+export * from "./auth";
+export * from "./bootstrap";
 export * from "./config";
+export * from "./context";
+export * from "./credits";
+export * from "./doctor";
+export * from "./error-ux";
+export * from "./generate";
+export * from "./installer";
+export * from "./logger";
+export * from "./output";
+export * from "./outputs";
+export * from "./persistence";
+export * from "./reset";
 export * from "./run";
-
-type TPromptResult = string | symbol;
-
-export type TAuthDependencies = {
-  intro: (message: string) => void;
-  outro: (message: string) => void;
-  cancel: (message: string) => void;
-  isCancel: (value: unknown) => boolean;
-  password: (opts: {
-    message: string;
-    placeholder?: string;
-    validate?: (value: string | undefined) => string | Error | undefined;
-  }) => Promise<TPromptResult>;
-  verifyApiKey: (apiKey: string) => Promise<void>;
-  saveAuthConfig: (apiKey: string) => Promise<string>;
-  resolveAuthConfigPath: () => string;
-  log: (message: string) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
-};
-
-export type TSaveAuthOptions = {
-  configPath?: string;
-  now?: Date;
-};
-
-export type TReadAuthOptions = {
-  configPath?: string;
-};
-
+export * from "./scope";
+export * from "./search";
+export * from "./skill-name";
+export * from "./skills";
+export * from "./update";
+export * from "./whoami";

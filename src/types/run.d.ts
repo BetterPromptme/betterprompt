@@ -1,5 +1,6 @@
 import type { RunStatus } from "../enums/run-status";
 import type { TApiResponse } from "./api";
+import type { TPart } from "./output";
 
 export type TImageInputUrl = {
   type: "url";
@@ -35,8 +36,10 @@ export type TRunPayload = {
 
 export type TRunResult = {
   runId: string;
-  outputs: unknown;
+  outputs: TPart[];
   runStatus: RunStatus;
+  createdAt: string;
+  promptVersionId: string;
 };
 
 export type TRunResponse = TApiResponse<TRunResult>;

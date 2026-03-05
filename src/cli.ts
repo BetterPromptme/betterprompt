@@ -1,10 +1,19 @@
 import { Command } from "commander";
+import { authCommand } from "./commands/auth";
 import { configCommand } from "./commands/config";
-import { runCommand } from "./commands/run";
+import { creditsCommand } from "./commands/credits";
+import { doctorCommand } from "./commands/doctor";
+import { generateCommand } from "./commands/generate";
+import { outputsCommand } from "./commands/outputs";
+import { resetCommand } from "./commands/reset";
 import { searchCommand } from "./commands/search";
-import { skillsCommand } from "./commands/skills";
+import { skillCommand } from "./commands/skills";
+import { updateCommand } from "./commands/update";
+import { whoamiCommand } from "./commands/whoami";
 import { CLI_MESSAGES, CLI_META } from "./constants";
-import { loadOrInitConfig } from "./core/config";
+import { bootstrapGlobalDirectory } from "./core/bootstrap";
+import { installCtrlCHandler } from "./core/error-ux";
+import { formatHelp } from "./core/help";
 
 export const createProgram = (): Command => {
   const program = new Command();
@@ -13,6 +22,16 @@ export const createProgram = (): Command => {
     .name(CLI_META.name)
     .description(CLI_META.description)
     .version(CLI_META.version)
+    .option("--project", "Use project scope")
+    .option("--global", "Use global scope")
+    .option("--dir <path>", "Use an explicit working directory")
+    .option("--registry <url>", "Override API registry endpoint")
+    .option("--json", "Render output as JSON")
+    .option("--quiet", "Reduce non-essential output")
+    .option("--verbose", "Enable verbose output")
+    .option("--no-color", "Disable ANSI colors")
+    .option("--yes", "Answer yes to all confirmations")
+    .configureHelp({ formatHelp })
     .showHelpAfterError()
     .showSuggestionAfterError()
     .on("--help", () => {
@@ -20,17 +39,40 @@ export const createProgram = (): Command => {
     });
 
   program.addCommand(configCommand);
-  program.addCommand(runCommand);
+  program.addCommand(authCommand);
+  program.addCommand(whoamiCommand);
+  program.addCommand(creditsCommand);
+  program.addCommand(doctorCommand);
+  program.addCommand(generateCommand);
+  program.addCommand(outputsCommand);
   program.addCommand(searchCommand);
-  program.addCommand(skillsCommand);
+  program.addCommand(skillCommand);
+  program.addCommand(updateCommand);
+  program.addCommand(resetCommand);
 
   return program;
 };
 
 export const runProgram = async (argv = process.argv): Promise<void> => {
-  await loadOrInitConfig();
-  const program = createProgram();
-  await program.parseAsync(argv);
+  const uninstallCtrlCHandler = installCtrlCHandler({
+    register: (signal, handler) => process.on(signal, handler),
+    unregister: (signal, handler) => process.off(signal, handler),
+    cleanup: () => {},
+    setExitCode: (code) => {
+      process.exitCode = code;
+    },
+    log: (message) => {
+      console.error(message);
+    },
+  });
+
+  try {
+    await bootstrapGlobalDirectory();
+    const program = createProgram();
+    await program.parseAsync(argv);
+  } finally {
+    uninstallCtrlCHandler();
+  }
 };
 
 if (import.meta.main) {
