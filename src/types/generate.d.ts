@@ -1,11 +1,13 @@
 import type { TPrintOptions } from "./output";
+import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
+import type { TResolveScope } from "./scope";
 
 export type TGenerateOptions = {
   input?: string[];
   stdin?: boolean;
   interactive?: boolean;
   model?: string;
-  saveRun?: boolean;
+  runOption?: string;
 };
 
 export type TGenerateResult = {
@@ -20,6 +22,10 @@ export type TGenerateCommandDependencies = {
     skillVersionId: string,
     options: TGenerateOptions
   ) => Promise<unknown>;
+  resolveScope: TResolveScope;
+  persistRunOutput: (
+    args: TPersistRunOutputArgs
+  ) => Promise<TPersistRunOutputResult>;
   printResult: (data: unknown, ctx: TPrintOptions) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
