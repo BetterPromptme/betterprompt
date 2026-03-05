@@ -7,7 +7,7 @@ import { getApiClient } from "../core/api";
 import { getCommandContext } from "../core/context";
 import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
-import { persistRunOutput } from "../core/persistence";
+import { persistRunOutput, readPersistedRunOutput } from "../core/persistence";
 import { getRun, validateRunId } from "../core/run";
 import { resolveScope } from "../core/scope";
 import { RunStatus } from "../enums";
@@ -23,6 +23,7 @@ import type {
 import type { TRunResult } from "../types/run";
 
 const OUTPUTS_FAILED_PREFIX = "Outputs command failed:";
+const OUTPUTS_REMOTE_HINT = "Hint: retry with --remote to fetch from API.";
 const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Queued,
   RunStatus.Running,
@@ -50,11 +51,22 @@ export const buildOutputsListQuery = (
 const defaultDeps: TOutputsCommandDependencies = {
   resolveScope,
   fetchRun: async (runId, opts) => {
-    const response = await getRun(getApiClient(), runId, opts);
-    if (response.data === undefined) {
-      throw new Error(`Run not found: ${runId}`);
+    if (opts?.remote === true) {
+      const response = await getRun(getApiClient(), runId, opts);
+      if (response.data === undefined) {
+        throw new Error(`Run not found: ${runId}`);
+      }
+      return response.data;
     }
-    return response.data;
+
+    if (typeof opts?.rootDir !== "string" || opts.rootDir.length === 0) {
+      throw new Error("Missing local outputs directory.");
+    }
+
+    return readPersistedRunOutput({
+      rootDir: opts.rootDir,
+      runId,
+    });
   },
   persistRunOutput,
   listOutputs: async (filters) => {
@@ -310,23 +322,25 @@ export const createOutputsCommand = (
     .option("--json", "Render output as JSON")
     .action(
       async (runId: string, opts: TOutputsCommandOptions, command: Command) => {
+        let shouldUseRemote = false;
         try {
           const ctx = getCommandContext(command);
           validateRunId(runId);
-          const shouldUseRemote = opts.remote === true || opts.sync === true;
+          const scope = await deps.resolveScope(ctx);
+          shouldUseRemote = opts.remote === true || opts.sync === true;
 
           const run = await runTaskWithSpinner({
             message: "Fetching output run...",
             createSpinner: (message) =>
               ora({ text: message, isEnabled: process.stderr.isTTY }),
             task: () =>
-              shouldUseRemote
-                ? deps.fetchRun(runId, { remote: true })
-                : deps.fetchRun(runId),
+              deps.fetchRun(runId, {
+                remote: shouldUseRemote,
+                rootDir: scope.rootDir,
+              }),
           });
 
           if (opts.sync === true) {
-            const scope = await deps.resolveScope(ctx);
             await deps.persistRunOutput({
               scope,
               runId: run.runId,
@@ -362,8 +376,12 @@ export const createOutputsCommand = (
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
+          const errorWithHint =
+            shouldUseRemote === false
+              ? `${errorMessage}\n${OUTPUTS_REMOTE_HINT}`
+              : errorMessage;
           deps.error(
-            `${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorMessage}`
+            `${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorWithHint}`
           );
           deps.setExitCode(1);
         }
