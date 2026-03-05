@@ -1,11 +1,14 @@
 import type { TPrintOptions } from "./output";
 import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
 import type { TResolveScope } from "./scope";
+import type { TRunPayload } from "./run";
 
 export type TGenerateOptions = {
   input?: string[];
+  imageInputUrl?: string[];
+  imageInputBase64?: string[];
+  inputPayload?: string;
   stdin?: boolean;
-  interactive?: boolean;
   model?: string;
   runOption?: string;
 };
@@ -18,10 +21,8 @@ export type TGenerateResult = {
 export type TGenerateCommandOptions = TGenerateOptions;
 
 export type TGenerateCommandDependencies = {
-  generate: (
-    skillVersionId: string,
-    options: TGenerateOptions
-  ) => Promise<unknown>;
+  generate: (payload: TRunPayload) => Promise<unknown>;
+  readStdin: () => Promise<string>;
   resolveScope: TResolveScope;
   persistRunOutput: (
     args: TPersistRunOutputArgs
