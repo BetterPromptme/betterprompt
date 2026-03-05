@@ -5,7 +5,7 @@ import { getCommandContext } from "../core/context";
 import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
 import { persistRunOutput } from "../core/persistence";
-import { createRun, parseRunOptionsJson } from "../core/run";
+import { createRun, parseInputsJson, parseRunOptionsJson } from "../core/run";
 import { resolveScope } from "../core/scope";
 import { getApiClient } from "../core/api";
 import { PART_TYPE } from "../enums";
@@ -16,7 +16,7 @@ import type {
 } from "../types/generate";
 import type { TPart } from "../types/output";
 import type { TRunResult } from "../types/run";
-import type { TRunPayload } from "../types/run";
+import type { TImageInput, TRunInputs, TRunPayload } from "../types/run";
 
 const GENERATE_FAILED_PREFIX = "Generate command failed:";
 const GENERATE_INPUT_MISSING_ARGUMENT_FRAGMENT = "--input <key=value>";
@@ -24,6 +24,10 @@ const GENERATE_INPUT_MISSING_ARGUMENT_HINT =
   "Hint: pass --input as key=value (example: --input topic=ai).\n";
 const GENERATE_DESCRIPTION =
   'Generate output from an installed skill. Get <skillVersionId> via "bp skill list" or "bp skill info <skill-slug>".';
+const GENERATE_INPUT_PAYLOAD_EXCLUSIVE_MESSAGE =
+  "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin.";
+const GENERATE_STDIN_TTY_MESSAGE =
+  "No stdin input detected. Pipe a TRunInputs JSON object when using --stdin.";
 
 const collectInputPairs = (value: string, previous: string[]): string[] => [
   ...previous,
@@ -58,13 +62,88 @@ const buildTextInputs = (
   }, {});
 };
 
+const buildImageInputs = (options: TGenerateOptions): TImageInput[] => {
+  const urlInputs = (options.imageInputUrl ?? []).map((url) => ({
+    type: "url" as const,
+    url,
+  }));
+  const base64Inputs = (options.imageInputBase64 ?? []).map((base64) => ({
+    type: "base64" as const,
+    base64,
+  }));
+
+  return [...urlInputs, ...base64Inputs];
+};
+
+const mergeRunInputs = (
+  baseInputs: TRunInputs | undefined,
+  options: TGenerateOptions
+): TRunInputs => {
+  const textInputs = {
+    ...(baseInputs?.textInputs ?? {}),
+    ...buildTextInputs(options.input),
+  };
+  const imageInputsFromFlags = buildImageInputs(options);
+
+  return {
+    textInputs,
+    ...(imageInputsFromFlags.length > 0
+      ? { imageInputs: imageInputsFromFlags }
+      : baseInputs?.imageInputs !== undefined && {
+          imageInputs: baseInputs.imageInputs,
+        }),
+  };
+};
+
+const resolveSourceInputs = (
+  options: TGenerateOptions,
+  stdinInputs: TRunInputs | undefined
+): TRunInputs | undefined => {
+  if (options.inputPayload !== undefined) {
+    return parseInputsJson(options.inputPayload);
+  }
+
+  return stdinInputs;
+};
+
+const validateGenerateOptions = (options: TGenerateOptions): void => {
+  if (options.inputPayload === undefined) {
+    return;
+  }
+
+  const hasOtherInputFlags =
+    (options.input !== undefined && options.input.length > 0) ||
+    (options.imageInputUrl !== undefined && options.imageInputUrl.length > 0) ||
+    (options.imageInputBase64 !== undefined &&
+      options.imageInputBase64.length > 0) ||
+    options.stdin === true;
+
+  if (hasOtherInputFlags) {
+    throw new Error(GENERATE_INPUT_PAYLOAD_EXCLUSIVE_MESSAGE);
+  }
+};
+
+const readStdin = async (): Promise<string> => {
+  return await new Promise<string>((resolve, reject) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => {
+      resolve(data);
+    });
+    process.stdin.on("error", reject);
+  });
+};
+
 const defaultDeps: TGenerateCommandDependencies = {
-  generate: async (skillVersionId, options) => {
-    const payload = buildRunPayload(skillVersionId, options);
+  generate: async (payload) => {
     const result = await createRun(getApiClient(), payload);
 
     return result.data;
   },
+  readStdin,
   resolveScope,
   persistRunOutput,
   printResult: (data, ctx) => printResult(data, ctx),
@@ -79,22 +158,30 @@ const buildGenerateOptions = (
 ): TGenerateOptions => ({
   ...(opts.input !== undefined &&
     opts.input.length > 0 && { input: opts.input }),
+  ...(opts.imageInputUrl !== undefined &&
+    opts.imageInputUrl.length > 0 && { imageInputUrl: opts.imageInputUrl }),
+  ...(opts.imageInputBase64 !== undefined &&
+    opts.imageInputBase64.length > 0 && {
+      imageInputBase64: opts.imageInputBase64,
+    }),
+  ...(opts.inputPayload !== undefined && { inputPayload: opts.inputPayload }),
   ...(opts.stdin === true && { stdin: true }),
-  ...(opts.interactive === true && { interactive: true }),
   ...(opts.model !== undefined && { model: opts.model }),
   ...(opts.runOption !== undefined && { runOption: opts.runOption }),
 });
 
 const buildRunPayload = (
   skillVersionId: string,
-  options: TGenerateOptions
+  options: TGenerateOptions,
+  stdinInputs?: TRunInputs
 ): TRunPayload => {
   const runOptions = parseRunOptionsJson(options.runOption);
+  const sourceInputs = resolveSourceInputs(options, stdinInputs);
+  const inputs = mergeRunInputs(sourceInputs, options);
+
   return {
     promptVersionId: skillVersionId,
-    inputs: {
-      textInputs: buildTextInputs(options.input),
-    },
+    inputs,
     ...(options.model !== undefined && { runModel: options.model }),
     ...(runOptions !== undefined && { runOptions }),
   };
@@ -152,8 +239,23 @@ export const createGenerateCommand = (
       collectInputPairs,
       []
     )
+    .option(
+      "--image-input-url <url>",
+      "Pass an image input URL. Can be repeated.",
+      collectInputPairs,
+      []
+    )
+    .option(
+      "--image-input-base64 <base64>",
+      "Pass a base64 image input. Can be repeated.",
+      collectInputPairs,
+      []
+    )
+    .option(
+      "--input-payload <json>",
+      "JSON object shaped like TRunInputs (example: '{\"textInputs\":{\"topic\":\"ai\"}}')"
+    )
     .option("--stdin", "Read input payload from stdin")
-    .option("--interactive", "Prompt interactively for required inputs")
     .option("--model <model>", "Override generation model")
     .option(
       "--run-option <json>",
@@ -169,12 +271,22 @@ export const createGenerateCommand = (
         try {
           const ctx = getCommandContext(command);
           const options = buildGenerateOptions(opts);
-          const payload = buildRunPayload(skillVersionId, options);
+          validateGenerateOptions(options);
+          let stdinInputs: TRunInputs | undefined;
+          if (options.stdin === true) {
+            if (process.stdin.isTTY === true) {
+              throw new Error(GENERATE_STDIN_TTY_MESSAGE);
+            }
+            const rawStdin = await deps.readStdin();
+            stdinInputs = parseInputsJson(rawStdin);
+          }
+
+          const payload = buildRunPayload(skillVersionId, options, stdinInputs);
           const result = await runTaskWithSpinner({
             message: "Running skill generation...",
             createSpinner: (message) =>
               ora({ text: message, isEnabled: process.stderr.isTTY }),
-            task: () => deps.generate(skillVersionId, options),
+            task: () => deps.generate(payload),
           });
 
           if (isRunResult(result)) {
