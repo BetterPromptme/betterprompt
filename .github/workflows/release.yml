@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   test:
@@ -44,6 +45,12 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node (npm OIDC auth)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: bun ci
@@ -87,10 +94,7 @@ jobs:
           bun build ./src/cli.ts --compile --minify --target=bun-windows-arm64 --outfile betterprompt-$VERSION-windows-arm64
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           if [[ "$VERSION" == *-* ]]; then
             DIST_TAG="dev"
           else
