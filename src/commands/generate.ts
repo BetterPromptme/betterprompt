@@ -4,7 +4,9 @@ import ora from "ora";
 import { getCommandContext } from "../core/context";
 import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
-import { createRun } from "../core/run";
+import { persistRunOutput } from "../core/persistence";
+import { createRun, parseRunOptionsJson } from "../core/run";
+import { resolveScope } from "../core/scope";
 import { getApiClient } from "../core/api";
 import { PART_TYPE } from "../enums";
 import type {
@@ -14,6 +16,7 @@ import type {
 } from "../types/generate";
 import type { TPart } from "../types/output";
 import type { TRunResult } from "../types/run";
+import type { TRunPayload } from "../types/run";
 
 const GENERATE_FAILED_PREFIX = "Generate command failed:";
 const GENERATE_INPUT_MISSING_ARGUMENT_FRAGMENT = "--input <key=value>";
@@ -57,16 +60,13 @@ const buildTextInputs = (
 
 const defaultDeps: TGenerateCommandDependencies = {
   generate: async (skillVersionId, options) => {
-    const result = await createRun(getApiClient(), {
-      promptVersionId: skillVersionId,
-      inputs: {
-        textInputs: buildTextInputs(options.input),
-      },
-      ...(options.model !== undefined && { runModel: options.model }),
-    });
+    const payload = buildRunPayload(skillVersionId, options);
+    const result = await createRun(getApiClient(), payload);
 
     return result.data;
   },
+  resolveScope,
+  persistRunOutput,
   printResult: (data, ctx) => printResult(data, ctx),
   error: (message) => console.error(message),
   setExitCode: (code) => {
@@ -82,8 +82,23 @@ const buildGenerateOptions = (
   ...(opts.stdin === true && { stdin: true }),
   ...(opts.interactive === true && { interactive: true }),
   ...(opts.model !== undefined && { model: opts.model }),
-  ...(opts.saveRun === true && { saveRun: true }),
+  ...(opts.runOption !== undefined && { runOption: opts.runOption }),
 });
+
+const buildRunPayload = (
+  skillVersionId: string,
+  options: TGenerateOptions
+): TRunPayload => {
+  const runOptions = parseRunOptionsJson(options.runOption);
+  return {
+    promptVersionId: skillVersionId,
+    inputs: {
+      textInputs: buildTextInputs(options.input),
+    },
+    ...(options.model !== undefined && { runModel: options.model }),
+    ...(runOptions !== undefined && { runOptions }),
+  };
+};
 
 const isRunResult = (value: unknown): value is TRunResult => {
   if (value === null || typeof value !== "object") {
@@ -140,7 +155,10 @@ export const createGenerateCommand = (
     .option("--stdin", "Read input payload from stdin")
     .option("--interactive", "Prompt interactively for required inputs")
     .option("--model <model>", "Override generation model")
-    .option("--save-run", "Persist the run for later retrieval")
+    .option(
+      "--run-option <json>",
+      "JSON object of run options (example: '{\"reasoningEffort\":\"high\"}')"
+    )
     .option("--json", "Render output as JSON")
     .action(
       async (
@@ -151,12 +169,28 @@ export const createGenerateCommand = (
         try {
           const ctx = getCommandContext(command);
           const options = buildGenerateOptions(opts);
+          const payload = buildRunPayload(skillVersionId, options);
           const result = await runTaskWithSpinner({
             message: "Running skill generation...",
             createSpinner: (message) =>
               ora({ text: message, isEnabled: process.stderr.isTTY }),
             task: () => deps.generate(skillVersionId, options),
           });
+
+          if (isRunResult(result)) {
+            const scope = await deps.resolveScope(ctx);
+            await deps.persistRunOutput({
+              scope,
+              runId: result.runId,
+              skillVersionId: skillVersionId,
+              request: payload,
+              response: result,
+              metadata: {
+                runStatus: result.runStatus,
+                persistedAt: new Date().toISOString(),
+              },
+            });
+          }
 
           if (ctx.outputFormat === "json") {
             deps.printResult(result, ctx);
