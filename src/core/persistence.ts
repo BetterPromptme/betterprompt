@@ -1,4 +1,4 @@
-import { appendFile, mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { PART_TYPE } from "../enums";
 import type {
@@ -8,16 +8,62 @@ import type {
   TShouldPersistRunOutputArgs,
 } from "../types/persistence";
 
-const toTwoDigits = (value: number): string => value.toString().padStart(2, "0");
-
-const writeJsonFile = async (targetPath: string, value: unknown): Promise<void> => {
+const writeJsonFile = async (
+  targetPath: string,
+  value: unknown
+): Promise<void> => {
   await writeFile(targetPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };
 
-const createOutputDir = (rootDir: string, now: Date, runId: string): string => {
-  const year = String(now.getUTCFullYear());
-  const month = toTwoDigits(now.getUTCMonth() + 1);
-  return path.join(rootDir, "outputs", year, month, `output_${runId}`);
+const createOutputDir = (rootDir: string, runId: string): string =>
+  path.join(rootDir, "outputs", runId);
+
+const upsertHistoryEntry = async (
+  historyFilePath: string,
+  nextEntry: THistoryEntry
+): Promise<void> => {
+  let raw = "";
+  try {
+    raw = await readFile(historyFilePath, "utf8");
+  } catch (error) {
+    if ((error as { code?: string }).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  let updated = false;
+  const nextLines: string[] = [];
+
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line) as Partial<THistoryEntry>;
+      if (
+        typeof parsed.runId === "string" &&
+        parsed.runId === nextEntry.runId
+      ) {
+        if (!updated) {
+          nextLines.push(JSON.stringify(nextEntry));
+          updated = true;
+        }
+        continue;
+      }
+    } catch {
+      // Preserve malformed lines to avoid unexpected data loss.
+    }
+
+    nextLines.push(line);
+  }
+
+  if (!updated) {
+    nextLines.push(JSON.stringify(nextEntry));
+  }
+
+  await writeFile(historyFilePath, `${nextLines.join("\n")}\n`, "utf8");
 };
 
 export const shouldPersistRunOutput = ({
@@ -35,7 +81,7 @@ export const persistRunOutput = async (
   args: TPersistRunOutputArgs
 ): Promise<TPersistRunOutputResult> => {
   const now = args.now ?? new Date();
-  const outputDir = createOutputDir(args.scope.rootDir, now, args.runId);
+  const outputDir = createOutputDir(args.scope.rootDir, args.runId);
 
   await mkdir(outputDir, { recursive: true });
 
@@ -45,26 +91,25 @@ export const persistRunOutput = async (
     writeJsonFile(path.join(outputDir, "metadata.json"), args.metadata),
   ]);
 
-  if ((args.assets?.length ?? 0) > 0) {
-    const assetsDir = path.join(outputDir, "assets");
-    await mkdir(assetsDir, { recursive: true });
-    await Promise.all(
-      args.assets!.map((asset) =>
-        writeFile(path.join(assetsDir, asset.fileName), asset.content, "utf8")
-      )
-    );
-  }
-
-  const historyFilePath = path.join(args.scope.rootDir, "outputs", "history.jsonl");
+  const historyFilePath = path.join(
+    args.scope.rootDir,
+    "outputs",
+    "history.jsonl"
+  );
   const historyEntry: THistoryEntry = {
     runId: args.runId,
-    skillName: args.skillName,
+    skillVersionId: args.skillVersionId,
     runStatus: args.response.runStatus,
+    createdAt:
+      typeof args.response.createdAt === "string" &&
+      args.response.createdAt.length > 0
+        ? args.response.createdAt
+        : now.toISOString(),
     persistedAt: now.toISOString(),
     outputDir: path.relative(args.scope.rootDir, outputDir),
   };
 
-  await appendFile(historyFilePath, `${JSON.stringify(historyEntry)}\n`, "utf8");
+  await upsertHistoryEntry(historyFilePath, historyEntry);
 
   return {
     outputDir,
