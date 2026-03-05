@@ -46,7 +46,10 @@ export type TOutputListRow = TOutputListItem & {
 
 export type TOutputsCommandDependencies = {
   resolveScope: TResolveScope;
-  fetchRun: (runId: string, opts?: { remote?: boolean }) => Promise<TRunResult>;
+  fetchRun: (
+    runId: string,
+    opts?: { remote?: boolean; rootDir?: string }
+  ) => Promise<TRunResult>;
   persistRunOutput: (
     args: TPersistRunOutputArgs
   ) => Promise<TPersistRunOutputResult>;
