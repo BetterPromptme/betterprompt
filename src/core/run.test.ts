@@ -113,7 +113,13 @@ describe("createRun", () => {
 
     const mockResult = {
       status: "SUCCESS",
-      data: { runId: "run-1", outputs: [], runStatus: RunStatus.Succeeded },
+      data: {
+        runId: "run-1",
+        outputs: [],
+        runStatus: RunStatus.Succeeded,
+        createdAt: "2026-03-04T11:00:00.000Z",
+        promptVersionId: "uuid-123",
+      },
     };
 
     const apiClient = {
@@ -137,7 +143,13 @@ describe("createRun", () => {
     const apiClient = {
       post: mock(async () => ({
         status: "SUCCESS",
-        data: { runId: "run-2", outputs: [], runStatus: RunStatus.Succeeded },
+        data: {
+          runId: "run-2",
+          outputs: [],
+          runStatus: RunStatus.Succeeded,
+          createdAt: "2026-03-04T11:00:00.000Z",
+          promptVersionId: "uuid-123",
+        },
       })),
     } as Parameters<typeof createRun>[0];
 
