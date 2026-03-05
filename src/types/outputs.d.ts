@@ -1,30 +1,23 @@
-import type { TPrintOptions, TPart } from "./output";
+import type { TPrintOptions } from "./output";
 import type { TRunResult } from "./run";
 import type { RunStatus } from "../enums/run-status";
+import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
+import type { TResolveScope } from "./scope";
 
 export type TOutputsCommandOptions = {
-  out?: string;
+  sync?: boolean;
+  remote?: boolean;
 };
 
 export type TOutputsListCommandOptions = {
-  skill?: string;
+  remote?: boolean;
   status?: RunStatus;
   limit?: string;
   since?: string;
 };
 
-export type TOutputDownloadResult = {
-  outputPath: string;
-  downloadedFiles: string[];
-};
-
-export type TOutputFetchResult = TRunResult &
-  TOutputDownloadResult & {
-    outputs: TPart[];
-  };
-
 export type TOutputListFilters = {
-  skill?: string;
+  remote?: boolean;
   status?: RunStatus;
   limit?: number;
   since?: string;
@@ -32,13 +25,17 @@ export type TOutputListFilters = {
 
 export type TOutputListItem = {
   runId: string;
-  skillName: string;
+  skillVersionId: string;
   runStatus: RunStatus;
   createdAt: string;
 };
 
 export type TOutputHistoryEntry = {
   runId: string;
+  skillVersionId?: string;
+  runStatus?: string;
+  createdAt?: string;
+  persistedAt?: string;
   outputPath?: string;
   outputDir?: string;
 };
@@ -48,13 +45,13 @@ export type TOutputListRow = TOutputListItem & {
 };
 
 export type TOutputsCommandDependencies = {
-  fetchRun: (runId: string) => Promise<TRunResult>;
-  downloadAssets: (
-    run: TRunResult,
-    outputPath?: string
-  ) => Promise<TOutputDownloadResult>;
+  resolveScope: TResolveScope;
+  fetchRun: (runId: string, opts?: { remote?: boolean }) => Promise<TRunResult>;
+  persistRunOutput: (
+    args: TPersistRunOutputArgs
+  ) => Promise<TPersistRunOutputResult>;
   listOutputs: (filters: TOutputListFilters) => Promise<TOutputListItem[]>;
-  readHistoryEntries: () => Promise<TOutputHistoryEntry[]>;
+  readHistoryEntries: (rootDir: string) => Promise<TOutputHistoryEntry[]>;
   printResult: (data: unknown, ctx: TPrintOptions) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
