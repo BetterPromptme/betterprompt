@@ -141,6 +141,14 @@ const runUpdate = async (args: string[], deps: TSkillCommandDeps) => {
 };
 
 describe("skill install command", () => {
+  it("does not register deprecated --version option", () => {
+    const command = createSkillCommand();
+    const installCommand = command.commands.find((subcommand) => subcommand.name() === "install");
+
+    expect(installCommand).toBeDefined();
+    expect(installCommand?.options.some((option) => option.long === "--version")).toBe(false);
+  });
+
   it("installs a skill and prints human-readable output in default mode", async () => {
     const deps = createDeps();
 
