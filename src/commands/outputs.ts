@@ -1,24 +1,24 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { Command } from "commander";
 import logSymbols from "log-symbols";
+import fs from "node:fs/promises";
+import path from "node:path";
 import ora from "ora";
-import { PART_TYPE, RunStatus } from "../enums";
 import { getApiClient } from "../core/api";
 import { getCommandContext } from "../core/context";
 import { runTaskWithSpinner } from "../core/error-ux";
 import { printResult } from "../core/output";
+import { persistRunOutput } from "../core/persistence";
 import { getRun, validateRunId } from "../core/run";
+import { resolveScope } from "../core/scope";
+import { RunStatus } from "../enums";
+import { TApiResponse } from "../types";
 import type {
-  TOutputDownloadResult,
-  TOutputFetchResult,
   TOutputHistoryEntry,
   TOutputListFilters,
-  TOutputListItem,
   TOutputListRow,
   TOutputsCommandDependencies,
-  TOutputsListCommandOptions,
   TOutputsCommandOptions,
+  TOutputsListCommandOptions,
 } from "../types/outputs";
 import type { TRunResult } from "../types/run";
 
@@ -30,57 +30,53 @@ const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Failed,
 ];
 
-const resolveOutputPath = (runId: string, outputPath?: string): string => {
-  if (outputPath !== undefined && outputPath.trim().length > 0) {
-    return outputPath;
+export const buildOutputsListQuery = (
+  filters: TOutputListFilters
+): Record<string, string | number> => {
+  const query: Record<string, string | number> = {};
+
+  // TODO: support in v2
+  // if (filters.status !== undefined) {
+  //   query.status = filters.status;
+  // }
+
+  if (filters.limit !== undefined) {
+    query.limit = filters.limit;
   }
 
-  return path.resolve(process.cwd(), "outputs", runId);
-};
-
-const isAssetPart = (part: TRunResult["outputs"][number]): boolean =>
-  part.type === PART_TYPE.IMAGE || part.type === PART_TYPE.VIDEO;
-
-const downloadAssets = async (
-  run: TRunResult,
-  outputPath?: string
-): Promise<TOutputDownloadResult> => {
-  const resolvedOutputPath = resolveOutputPath(run.runId, outputPath);
-  await fs.mkdir(resolvedOutputPath, { recursive: true });
-
-  const downloadedFiles = run.outputs
-    .filter(isAssetPart)
-    .map((asset) => {
-      const filename = path.basename(asset.data);
-      return path.join(resolvedOutputPath, filename);
-    });
-
-  return {
-    outputPath: resolvedOutputPath,
-    downloadedFiles,
-  };
+  return query;
 };
 
 const defaultDeps: TOutputsCommandDependencies = {
-  fetchRun: async (runId) => {
-    const response = await getRun(getApiClient(), runId);
+  resolveScope,
+  fetchRun: async (runId, opts) => {
+    const response = await getRun(getApiClient(), runId, opts);
     if (response.data === undefined) {
       throw new Error(`Run not found: ${runId}`);
     }
     return response.data;
   },
-  downloadAssets,
+  persistRunOutput,
   listOutputs: async (filters) => {
-    const response = await getApiClient().get<{ data?: TOutputListItem[] }>(
-      "/outputs",
-      {
-        query: filters,
-      }
+    const query = buildOutputsListQuery(filters);
+    const response = await getApiClient().get<
+      TApiResponse<{
+        rows: TRunResult[];
+      }>
+    >("/runs", {
+      query,
+    });
+    return (
+      response.data?.rows.map((row) => ({
+        runId: row.runId,
+        skillVersionId: row.promptVersionId,
+        runStatus: row.runStatus,
+        createdAt: row.createdAt,
+      })) ?? []
     );
-    return response.data ?? [];
   },
-  readHistoryEntries: async () => {
-    const historyFilePath = path.resolve(process.cwd(), "outputs", "history.jsonl");
+  readHistoryEntries: async (rootDir) => {
+    const historyFilePath = path.resolve(rootDir, "outputs", "history.jsonl");
     const raw = await fs.readFile(historyFilePath, "utf8");
 
     return raw
@@ -103,59 +99,155 @@ const defaultDeps: TOutputsCommandDependencies = {
   },
 };
 
-const formatTextOutputs = (run: TRunResult): string[] =>
-  run.outputs
-    .filter((part) => part.type === PART_TYPE.TEXT)
-    .map((part) => part.data);
+const formatDisplayOutputs = (run: TRunResult): string[] =>
+  run.outputs.map((part) => part.data);
 
-const formatDownloadMessage = (downloadResult: TOutputDownloadResult): string =>
-  `Downloaded ${downloadResult.downloadedFiles.length} asset(s) to ${downloadResult.outputPath}`;
+const normalizeRunStatus = (
+  value: string | undefined
+): RunStatus | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
 
-const toLocalHistoryMap = (entries: TOutputHistoryEntry[]): Map<string, string> => {
-  const historyMap = new Map<string, string>();
-  entries.forEach((entry) => {
-    if (typeof entry.runId !== "string") {
-      return;
-    }
-
-    if (typeof entry.outputPath === "string" && entry.outputPath.length > 0) {
-      historyMap.set(entry.runId, entry.outputPath);
-      return;
-    }
-
-    if (typeof entry.outputDir === "string" && entry.outputDir.length > 0) {
-      const outputPath = path.isAbsolute(entry.outputDir)
-        ? entry.outputDir
-        : path.resolve(process.cwd(), entry.outputDir);
-      historyMap.set(entry.runId, outputPath);
-    }
-  });
-
-  return historyMap;
+  const normalized = value.toLowerCase();
+  return OUTPUTS_LIST_STATUS_VALUES.includes(normalized as RunStatus)
+    ? (normalized as RunStatus)
+    : undefined;
 };
 
-const mergeLocalHistory = (
-  rows: TOutputListItem[],
-  historyEntries: TOutputHistoryEntry[]
+const buildLocalOutputPath = (
+  entry: TOutputHistoryEntry,
+  rootDir: string
+): string | undefined => {
+  if (typeof entry.outputPath === "string" && entry.outputPath.length > 0) {
+    return entry.outputPath;
+  }
+
+  if (typeof entry.outputDir === "string" && entry.outputDir.length > 0) {
+    return path.isAbsolute(entry.outputDir)
+      ? entry.outputDir
+      : path.resolve(rootDir, entry.outputDir);
+  }
+
+  return undefined;
+};
+
+const localHistoryEntryToRow = (
+  entry: TOutputHistoryEntry,
+  rootDir: string
+): TOutputListRow | undefined => {
+  if (typeof entry.runId !== "string") {
+    return undefined;
+  }
+
+  const runStatus = normalizeRunStatus(entry.runStatus);
+  if (runStatus === undefined) {
+    return undefined;
+  }
+
+  return {
+    runId: entry.runId,
+    skillVersionId:
+      typeof entry.skillVersionId === "string" &&
+      entry.skillVersionId.length > 0
+        ? entry.skillVersionId
+        : "-",
+    runStatus,
+    createdAt:
+      typeof entry.createdAt === "string" && entry.createdAt.length > 0
+        ? entry.createdAt
+        : typeof entry.persistedAt === "string" && entry.persistedAt.length > 0
+          ? entry.persistedAt
+          : "-",
+    localOutputPath: buildLocalOutputPath(entry, rootDir),
+  };
+};
+
+const parseTimestamp = (value: string): number | undefined => {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+};
+
+const filterLocalRows = (
+  rows: TOutputListRow[],
+  filters: TOutputListFilters
 ): TOutputListRow[] => {
-  const historyMap = toLocalHistoryMap(historyEntries);
+  const sinceTimestamp =
+    typeof filters.since === "string"
+      ? parseTimestamp(filters.since)
+      : undefined;
+
+  const filtered = rows.filter((row) => {
+    if (filters.status !== undefined && row.runStatus !== filters.status) {
+      return false;
+    }
+
+    if (sinceTimestamp === undefined) {
+      return true;
+    }
+
+    const rowTimestamp = parseTimestamp(row.createdAt);
+    return rowTimestamp !== undefined && rowTimestamp >= sinceTimestamp;
+  });
+
+  filtered.sort((a, b) => {
+    const aTimestamp = parseTimestamp(a.createdAt) ?? 0;
+    const bTimestamp = parseTimestamp(b.createdAt) ?? 0;
+    return bTimestamp - aTimestamp;
+  });
+
+  if (filters.limit !== undefined) {
+    return filtered.slice(0, filters.limit);
+  }
+
+  return filtered;
+};
+
+const listLocalOutputs = async (
+  deps: TOutputsCommandDependencies,
+  filters: TOutputListFilters,
+  rootDir: string
+): Promise<TOutputListRow[]> => {
+  const historyEntries = await deps.readHistoryEntries(rootDir).catch(() => []);
+  const rows = historyEntries
+    .map((entry) => localHistoryEntryToRow(entry, rootDir))
+    .flatMap((row): TOutputListRow[] => (row === undefined ? [] : [row]));
+  return filterLocalRows(rows, filters);
+};
+
+const listRemoteOutputs = async (
+  deps: TOutputsCommandDependencies,
+  filters: TOutputListFilters
+): Promise<TOutputListRow[]> => {
+  const rows = await deps.listOutputs(filters);
   return rows.map((row) => ({
     ...row,
-    localOutputPath: historyMap.get(row.runId),
+    localOutputPath: undefined,
   }));
+};
+
+const getOutputListData = async (
+  deps: TOutputsCommandDependencies,
+  filters: TOutputListFilters,
+  rootDir: string
+): Promise<TOutputListRow[]> => {
+  if (filters.remote === true) {
+    return listRemoteOutputs(deps, filters);
+  }
+
+  return listLocalOutputs(deps, filters, rootDir);
 };
 
 const padCell = (value: string, width: number): string =>
   value.length >= width ? value : value.padEnd(width, " ");
 
 const formatTable = (rows: TOutputListRow[]): string => {
-  const headers = ["RUN ID", "SKILL", "STATUS", "CREATED AT", "LOCAL PATH"];
+  const headers = ["RUN ID", "SKILL VERSION ID", "STATUS", "CREATED AT"];
   const values = rows.map((row) => [
     row.runId,
-    row.skillName,
+    row.skillVersionId,
     row.runStatus,
     row.createdAt,
-    row.localOutputPath ?? "-",
   ]);
 
   const widths = headers.map((header, index) =>
@@ -177,9 +269,6 @@ const parseListFilters = (
 ): TOutputListFilters => {
   const filters: TOutputListFilters = {};
 
-  if (opts.skill !== undefined) {
-    filters.skill = opts.skill;
-  }
   if (opts.since !== undefined) {
     filters.since = opts.since;
   }
@@ -196,9 +285,14 @@ const parseListFilters = (
   if (opts.limit !== undefined) {
     const parsed = Number.parseInt(opts.limit, 10);
     if (!Number.isFinite(parsed) || parsed <= 0) {
-      throw new Error("Invalid limit value. --limit must be a positive integer.");
+      throw new Error(
+        "Invalid limit value. --limit must be a positive integer."
+      );
     }
     filters.limit = parsed;
+  }
+  if (opts.remote === true) {
+    filters.remote = true;
   }
 
   return filters;
@@ -208,46 +302,69 @@ export const createOutputsCommand = (
   deps: TOutputsCommandDependencies = defaultDeps
 ): Command => {
   const command = new Command("outputs")
-    .description("Fetch output artifacts for a run")
+    .description("Fetch outputs from a run")
     .usage("[options] <run-id>")
     .argument("<run-id>", "Run ID to fetch")
-    .option("--out <path>", "Output directory for downloaded assets")
+    .option("--sync", "Fetch remote outputs and sync local artifacts")
+    .option("--remote", "Use remote outputs scope")
     .option("--json", "Render output as JSON")
     .action(
       async (runId: string, opts: TOutputsCommandOptions, command: Command) => {
         try {
           const ctx = getCommandContext(command);
           validateRunId(runId);
+          const shouldUseRemote = opts.remote === true || opts.sync === true;
 
           const run = await runTaskWithSpinner({
             message: "Fetching output run...",
-            createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
-            task: () => deps.fetchRun(runId),
+            createSpinner: (message) =>
+              ora({ text: message, isEnabled: process.stderr.isTTY }),
+            task: () =>
+              shouldUseRemote
+                ? deps.fetchRun(runId, { remote: true })
+                : deps.fetchRun(runId),
           });
-          const downloaded = await deps.downloadAssets(run, opts.out);
-          const result: TOutputFetchResult = {
-            ...run,
-            ...downloaded,
-          };
+
+          if (opts.sync === true) {
+            const scope = await deps.resolveScope(ctx);
+            await deps.persistRunOutput({
+              scope,
+              runId: run.runId,
+              skillVersionId:
+                typeof run.promptVersionId === "string" &&
+                run.promptVersionId.length > 0
+                  ? run.promptVersionId
+                  : "-",
+              request: {
+                runId,
+                remote: shouldUseRemote,
+              },
+              response: run,
+              metadata: {
+                runStatus: run.runStatus,
+                syncedAt: new Date().toISOString(),
+              },
+            });
+          }
 
           if (ctx.outputFormat === "json") {
-            deps.printResult(result, ctx);
+            deps.printResult(run, ctx);
             return;
           }
 
-          const textOutputs = formatTextOutputs(run);
-          if (textOutputs.length > 0) {
-            textOutputs.forEach((output) => {
+          const displayOutputs = formatDisplayOutputs(run);
+          if (displayOutputs.length > 0) {
+            displayOutputs.forEach((output) => {
               deps.printResult(output, ctx);
             });
             return;
           }
-
-          deps.printResult(formatDownloadMessage(downloaded), ctx);
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          deps.error(`${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorMessage}`);
+          deps.error(
+            `${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorMessage}`
+          );
           deps.setExitCode(1);
         }
       }
@@ -256,7 +373,7 @@ export const createOutputsCommand = (
   command
     .command("list")
     .description("List output runs")
-    .option("--skill <skill-slug>", "Filter by skill name")
+    .option("--remote", "Use remote outputs scope")
     .option(
       "--status <status>",
       "Filter by status (queued|running|succeeded|failed)"
@@ -267,31 +384,37 @@ export const createOutputsCommand = (
     .action(async (opts: TOutputsListCommandOptions, listCommand: Command) => {
       try {
         const ctx = getCommandContext(listCommand);
-        const filters = parseListFilters(opts);
-        const [rows, historyEntries] = await Promise.all([
-          runTaskWithSpinner({
-            message: "Loading outputs list...",
-            createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
-            task: () => deps.listOutputs(filters),
-          }),
-          deps.readHistoryEntries().catch(() => []),
-        ]);
-        const mergedRows = mergeLocalHistory(rows, historyEntries);
+        const scope = await deps.resolveScope(ctx);
+        const filters = parseListFilters({
+          ...opts,
+          remote:
+            opts.remote === true ||
+            listCommand.parent?.opts<{ remote?: boolean }>().remote === true,
+        });
+        const rows = await runTaskWithSpinner({
+          message: "Loading outputs list...",
+          createSpinner: (message) =>
+            ora({ text: message, isEnabled: process.stderr.isTTY }),
+          task: () => getOutputListData(deps, filters, scope.rootDir),
+        });
 
         if (ctx.outputFormat === "json") {
-          deps.printResult({ rows: mergedRows }, ctx);
+          deps.printResult({ rows }, ctx);
           return;
         }
 
-        if (mergedRows.length === 0) {
+        if (rows.length === 0) {
           deps.printResult(`${logSymbols.warning} No outputs found.`, ctx);
           return;
         }
 
-        deps.printResult(formatTable(mergedRows), ctx);
+        deps.printResult(formatTable(rows), ctx);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        deps.error(`${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorMessage}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        deps.error(
+          `${logSymbols.error} ${OUTPUTS_FAILED_PREFIX} ${errorMessage}`
+        );
         deps.setExitCode(1);
       }
     });
