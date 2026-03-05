@@ -7,6 +7,7 @@ import type {
   TPersistRunOutputResult,
   TShouldPersistRunOutputArgs,
 } from "../types/persistence";
+import type { TRunResult } from "../types/run";
 
 const writeJsonFile = async (
   targetPath: string,
@@ -17,6 +18,56 @@ const writeJsonFile = async (
 
 const createOutputDir = (rootDir: string, runId: string): string =>
   path.join(rootDir, "outputs", runId);
+
+export const readPersistedRunOutput = async ({
+  rootDir,
+  runId,
+}: {
+  rootDir: string;
+  runId: string;
+}): Promise<TRunResult> => {
+  const outputDir = createOutputDir(rootDir, runId);
+  const responsePath = path.join(outputDir, "response.json");
+
+  let raw: string;
+  try {
+    raw = await readFile(responsePath, "utf8");
+  } catch (error) {
+    if ((error as { code?: string }).code === "ENOENT") {
+      throw new Error(`Run not found in local persistence: ${runId}`);
+    }
+    throw error;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<TRunResult>;
+
+    if (
+      typeof parsed.runId !== "string" ||
+      !Array.isArray(parsed.outputs) ||
+      typeof parsed.runStatus !== "string"
+    ) {
+      throw new Error("Invalid persisted run shape.");
+    }
+
+    return {
+      runId: parsed.runId,
+      outputs: parsed.outputs,
+      runStatus: parsed.runStatus as TRunResult["runStatus"],
+      createdAt:
+        typeof parsed.createdAt === "string" && parsed.createdAt.length > 0
+          ? parsed.createdAt
+          : new Date(0).toISOString(),
+      promptVersionId:
+        typeof parsed.promptVersionId === "string" &&
+        parsed.promptVersionId.length > 0
+          ? parsed.promptVersionId
+          : "-",
+    };
+  } catch {
+    throw new Error(`Invalid persisted run response: ${responsePath}`);
+  }
+};
 
 const upsertHistoryEntry = async (
   historyFilePath: string,
