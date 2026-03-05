@@ -211,13 +211,13 @@ describe("generate command", () => {
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 
-  it("parses --run-option json flag", async () => {
+  it("parses --options json flag", async () => {
     const deps = createDeps();
 
     await runGenerate(
       [
         "skill-version-123",
-        "--run-option",
+        "--options",
         '{"reasoningEffort":"high","quality":"hd"}',
       ],
       deps
