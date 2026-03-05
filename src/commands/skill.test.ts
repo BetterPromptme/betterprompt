@@ -534,6 +534,14 @@ describe("skill list command", () => {
 });
 
 describe("skill update command", () => {
+  it("does not register --version option", () => {
+    const command = createSkillCommand();
+    const updateCommand = command.commands.find((subcommand) => subcommand.name() === "update");
+
+    expect(updateCommand).toBeDefined();
+    expect(updateCommand?.options.some((option) => option.long === "--version")).toBe(false);
+  });
+
   it("fails when neither skill name nor --all is provided", async () => {
     const deps = createDeps();
 
