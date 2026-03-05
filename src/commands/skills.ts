@@ -33,7 +33,7 @@ import type { TUpdateSkillResult } from "../types/installer";
 import type { TSkillSummary } from "../types/installer";
 
 type TSkillsCommandDependencies = {
-  getSkill: (skillId: string) => Promise<unknown>;
+  getSkill: (skillName: string) => Promise<unknown>;
   installSkill: (skillName: string, options: TSkillInstallOptions) => Promise<unknown>;
   uninstallSkill: (
     skillName: string,
@@ -166,7 +166,6 @@ export const createSkillCommand = (
   const installCommand = new Command(SKILLS_COMMAND.install.name)
     .description(SKILLS_COMMAND.install.description)
     .argument("<skill-slug>", SKILLS_COMMAND.install.skillNameDescription)
-    .option("--version <version>", "Install a specific skill version")
     .option("--overwrite", SKILLS_COMMAND.install.flags.overwrite.description)
     .option("--json", "Render output as JSON")
     .action(
