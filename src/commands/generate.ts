@@ -1,3 +1,14 @@
+/**
+ * dependencies list:
+ * - specs/COMMAND-SET.md
+ * - src/commands/generate.test.ts
+ * - src/core/context.ts
+ * - src/core/error-ux.ts
+ * - src/core/output.ts
+ * - src/core/persistence.ts
+ * - src/core/run.ts
+ * - src/core/scope.ts
+ */
 import { Command } from "commander";
 import logSymbols from "log-symbols";
 import ora from "ora";
@@ -168,7 +179,7 @@ const buildGenerateOptions = (
   ...(opts.inputPayload !== undefined && { inputPayload: opts.inputPayload }),
   ...(opts.stdin === true && { stdin: true }),
   ...(opts.model !== undefined && { model: opts.model }),
-  ...(opts.runOption !== undefined && { runOption: opts.runOption }),
+  ...(opts.options !== undefined && { options: opts.options }),
 });
 
 const buildRunPayload = (
@@ -176,7 +187,7 @@ const buildRunPayload = (
   options: TGenerateOptions,
   stdinInputs?: TRunInputs
 ): TRunPayload => {
-  const runOptions = parseRunOptionsJson(options.runOption);
+  const runOptions = parseRunOptionsJson(options.options);
   const sourceInputs = resolveSourceInputs(options, stdinInputs);
   const inputs = mergeRunInputs(sourceInputs, options);
 
@@ -254,13 +265,13 @@ export const createGenerateCommand = (
     )
     .option(
       "--input-payload <json>",
-      "JSON object shaped like TRunInputs (example: '{\"textInputs\":{\"topic\":\"ai\"}}')"
+      'JSON object shaped like TRunInputs (example: \'{"textInputs":{"topic":"ai"}}\')'
     )
     .option("--stdin", "Read input payload from stdin")
     .option("--model <model>", "Override generation model")
     .option(
-      "--run-option <json>",
-      "JSON object of run options (example: '{\"reasoningEffort\":\"high\"}')"
+      "--options <json>",
+      'JSON object of run options (example: \'{"reasoningEffort":"high"}\')'
     )
     .option("--json", "Render output as JSON")
     .action(

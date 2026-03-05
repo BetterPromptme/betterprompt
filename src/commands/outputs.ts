@@ -1,3 +1,15 @@
+/**
+ * dependencies list:
+ * - specs/COMMAND-SET.md
+ * - src/commands/outputs.test.ts
+ * - src/core/api.ts
+ * - src/core/context.ts
+ * - src/core/error-ux.ts
+ * - src/core/output.ts
+ * - src/core/persistence.ts
+ * - src/core/run.ts
+ * - src/core/scope.ts
+ */
 import { Command } from "commander";
 import logSymbols from "log-symbols";
 import fs from "node:fs/promises";
