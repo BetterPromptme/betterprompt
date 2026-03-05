@@ -144,6 +144,7 @@ const defaultDeps: TGenerateCommandDependencies = {
     return result.data;
   },
   readStdin,
+  isStdinTTY: () => process.stdin.isTTY === true,
   resolveScope,
   persistRunOutput,
   printResult: (data, ctx) => printResult(data, ctx),
@@ -208,7 +209,7 @@ const formatPartForTextOutput = (part: TPart): string => {
     case PART_TYPE.VIDEO:
       return part.data;
     default:
-      return part.data;
+      return "";
   }
 };
 
@@ -274,7 +275,7 @@ export const createGenerateCommand = (
           validateGenerateOptions(options);
           let stdinInputs: TRunInputs | undefined;
           if (options.stdin === true) {
-            if (process.stdin.isTTY === true) {
+            if (deps.isStdinTTY()) {
               throw new Error(GENERATE_STDIN_TTY_MESSAGE);
             }
             const rawStdin = await deps.readStdin();
