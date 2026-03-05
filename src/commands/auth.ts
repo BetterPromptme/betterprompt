@@ -24,6 +24,12 @@ const defaultDeps: TAuthDependencies = {
   },
 };
 
+/**
+ * Creates the `auth` CLI command.
+ *
+ * @param deps - Injectable dependencies for prompts, persistence, logging, and API-key verification.
+ * @returns Configured Commander command instance.
+ */
 export const createAuthCommand = (
   deps: TAuthDependencies = defaultDeps
 ): Command => {
@@ -32,6 +38,12 @@ export const createAuthCommand = (
     .option(AUTH_COMMAND.options.apiKey.flag, AUTH_COMMAND.options.apiKey.description)
     .addHelpText("after", AUTH_MESSAGES.helpText);
 
+  /**
+   * Handles the auth command flow:
+   * - collect API key input from flag or secure prompt
+   * - verify the key against the API
+   * - persist the key to local auth config
+   */
   command.action(async (opts: { apiKey?: string }, command: Command) => {
     deps.intro(AUTH_MESSAGES.introTitle);
     let formatError = createErrorFormatter({ color: true });
