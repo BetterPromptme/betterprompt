@@ -39,34 +39,35 @@ export const readPersistedRunOutput = async ({
     throw error;
   }
 
+  let parsed: Partial<TRunResult>;
   try {
-    const parsed = JSON.parse(raw) as Partial<TRunResult>;
-
-    if (
-      typeof parsed.runId !== "string" ||
-      !Array.isArray(parsed.outputs) ||
-      typeof parsed.runStatus !== "string"
-    ) {
-      throw new Error("Invalid persisted run shape.");
-    }
-
-    return {
-      runId: parsed.runId,
-      outputs: parsed.outputs,
-      runStatus: parsed.runStatus as TRunResult["runStatus"],
-      createdAt:
-        typeof parsed.createdAt === "string" && parsed.createdAt.length > 0
-          ? parsed.createdAt
-          : new Date(0).toISOString(),
-      promptVersionId:
-        typeof parsed.promptVersionId === "string" &&
-        parsed.promptVersionId.length > 0
-          ? parsed.promptVersionId
-          : "-",
-    };
+    parsed = JSON.parse(raw) as Partial<TRunResult>;
   } catch {
     throw new Error(`Invalid persisted run response: ${responsePath}`);
   }
+
+  if (
+    typeof parsed.runId !== "string" ||
+    !Array.isArray(parsed.outputs) ||
+    typeof parsed.runStatus !== "string"
+  ) {
+    throw new Error("Invalid persisted run shape.");
+  }
+
+  return {
+    runId: parsed.runId,
+    outputs: parsed.outputs,
+    runStatus: parsed.runStatus as TRunResult["runStatus"],
+    createdAt:
+      typeof parsed.createdAt === "string" && parsed.createdAt.length > 0
+        ? parsed.createdAt
+        : new Date(0).toISOString(),
+    promptVersionId:
+      typeof parsed.promptVersionId === "string" &&
+      parsed.promptVersionId.length > 0
+        ? parsed.promptVersionId
+        : "-",
+  };
 };
 
 const upsertHistoryEntry = async (

@@ -6,7 +6,7 @@ This repository is currently a minimal Node.js CLI scaffold, but should follow t
 
 ```text
 bin/
-  betterpropmt.js # exe file
+  betterprompt.js # exe file
 src/
   cli.ts            # entrypoint
   commands/
@@ -44,13 +44,13 @@ If you add tooling (lint, formatter, test runner), expose it through `package.js
 
 - ALWAYS write unit test before coding, make sure cover edge case. If task more complex create .md file for check list before implement
 
-Use modern JavaScript (CommonJS in this repo today), 2-space indentation, and semicolons.
+Use modern JavaScript (ESM in this repo today), 2-space indentation, and semicolons.
 
 - Filenames: lowercase (`index.js`, `prompt-parser.js`).
 - Functions/variables: `camelCase`.
 - Constructors/classes (if introduced): `PascalCase`.
 
-Prefer small, single-purpose modules and explicit exports via `module.exports`.
+Prefer small, single-purpose modules and explicit ESM exports.
 
 ## Testing Guidelines
 
@@ -67,7 +67,7 @@ Recommended conventions:
 
 ## Validate
 
-ALLWAYS run `bunx tsc --noEmit` and run `bun run lint` after finish edit file for check issue and fix them if needed
+ALWAYS run `bunx tsc --noEmit` and run `bun run lint` after finish edit file for check issue and fix them if needed
 
 ## Commit & Pull Request Guidelines
 

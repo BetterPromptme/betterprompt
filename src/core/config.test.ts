@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { API_CONFIG, SYSTEM_CONFIG } from "../constants";
+import type { TSystemConfigKey } from "../types";
 import {
   getSystemConfigValue,
   getLoadedSystemConfig,
@@ -163,6 +164,18 @@ describe("system config core", () => {
     await expect(
       unsetSystemConfigValue("apiBaseUrl", { configPath })
     ).rejects.toThrow("apiBaseUrl is not set in config.json.");
+  });
+
+  it("rejects unsetting reserved keys such as version", async () => {
+    const tempDir = await createTempDir();
+    const configPath = path.join(tempDir, ".betterprompt", "config.json");
+    await loadOrInitConfig({ configPath });
+
+    await expect(
+      unsetSystemConfigValue("version" as TSystemConfigKey, {
+        configPath,
+      })
+    ).rejects.toThrow('Cannot unset "version" via system config.');
   });
 
   it("removes legacy skills_dir and skillsDir keys on load", async () => {

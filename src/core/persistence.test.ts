@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { PART_TYPE } from "../enums";
@@ -293,5 +293,29 @@ describe("readPersistedRunOutput", () => {
         runId: "run_missing",
       })
     ).rejects.toThrow("Run not found in local persistence: run_missing");
+  });
+
+  it("preserves validation error for invalid persisted run shape", async () => {
+    const rootDir = await createTempDir();
+    const responsePath = path.join(rootDir, "outputs", "run_invalid", "response.json");
+
+    await persistRunOutput({
+      ...createPersistArgs(rootDir),
+      runId: "run_invalid",
+      response: {
+        runId: "run_invalid",
+        runStatus: "SUCCEEDED",
+        outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+      },
+    });
+
+    await writeFile(responsePath, `${JSON.stringify({ runId: "run_invalid" }, null, 2)}\n`, "utf8");
+
+    await expect(
+      readPersistedRunOutput({
+        rootDir,
+        runId: "run_invalid",
+      })
+    ).rejects.toThrow("Invalid persisted run shape.");
   });
 });

@@ -226,30 +226,28 @@ export const unsetSystemConfigValue = async (
       `Cannot unset "${key}" via system config. API keys are stored in auth.json.`
     );
   }
+  if (key !== "apiBaseUrl") {
+    throw new Error(
+      `Cannot unset "${key}" via system config. Only "apiBaseUrl" can be unset.`
+    );
+  }
 
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
   const existing = await loadOrInitConfig({ ...options, configPath });
-
-  const currentValue = (() => {
-    if (key === "apiBaseUrl") {
-      return existing.apiBaseUrl;
-    }
-    return undefined;
-  })();
+  const currentValue = existing.apiBaseUrl;
 
   if (
     typeof currentValue !== "string" ||
     !currentValue.trim() ||
-    (key === "apiBaseUrl" && currentValue === API_CONFIG.baseUrl)
+    currentValue === API_CONFIG.baseUrl
   ) {
     throw new Error(`${key} is not set in config.json.`);
   }
 
   const nextConfig: TSystemConfig = {
-    ...existing,
+    version: existing.version,
   };
-  delete nextConfig[key];
 
   await writeSystemConfig(configPath, nextConfig);
   loadedSystemConfig = nextConfig;
