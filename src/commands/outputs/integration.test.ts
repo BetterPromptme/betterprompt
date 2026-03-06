@@ -93,7 +93,13 @@ describe("outputs command", () => {
 
     await runOutputs(["run-text"], deps);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(deps.printResult).toHaveBeenNthCalledWith(
+      1,
+      "Run status: succeeded",
+      expect.objectContaining({ outputFormat: "text" })
+    );
+    expect(deps.printResult).toHaveBeenNthCalledWith(
+      2,
       "A plain text artifact",
       expect.objectContaining({ outputFormat: "text" })
     );
