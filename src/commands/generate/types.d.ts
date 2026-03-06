@@ -1,4 +1,4 @@
-import type { TPrintOptions, TPart } from "../../types/output";
+import type { TPart, TPrintOptions } from "../../types/outputs";
 import type {
   TPersistRunOutputArgs,
   TPersistRunOutputResult,
