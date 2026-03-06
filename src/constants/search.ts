@@ -1,4 +1,4 @@
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 
 export const SKILL_TYPES = ["image", "video", "text"] as const;
 
