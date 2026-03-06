@@ -1,5 +1,5 @@
 import { PART_TYPE } from "../../enums";
-import type { TPart } from "../../types/output";
+import type { TPart } from "../../types/outputs";
 import type { TGenerateRunResult } from "../../commands/generate/types";
 
 export const isRunResult = (value: unknown): value is TGenerateRunResult => {
