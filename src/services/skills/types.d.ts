@@ -1,6 +1,6 @@
 import type { ApiClient } from "../api/client";
 import type { TSkillSummary, TUpdateSkillResult } from "../../types/installer";
-import type { TPrintOptions } from "../../types/output";
+import type { TPrintOptions } from "../../types/outputs";
 import type { TSearchFilters } from "../../types/search";
 import type {
   TSkillInstallOptions,

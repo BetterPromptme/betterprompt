@@ -63,7 +63,13 @@ describe("commands/outputs/command", () => {
       remote: false,
       rootDir: "/tmp/.betterprompt",
     });
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(deps.printResult).toHaveBeenNthCalledWith(
+      1,
+      "Run status: succeeded",
+      expect.objectContaining({ outputFormat: "text" })
+    );
+    expect(deps.printResult).toHaveBeenNthCalledWith(
+      2,
       "Generated text output",
       expect.objectContaining({ outputFormat: "text" })
     );
