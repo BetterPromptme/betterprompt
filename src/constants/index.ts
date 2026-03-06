@@ -3,7 +3,7 @@ export * from "./cli";
 export * from "./config";
 export * from "./credits";
 export * from "./doctor";
-export * from "./flags";
+export * from "./shared-flags";
 export * from "./generate";
 export * from "./outputs";
 export * from "./reset";
