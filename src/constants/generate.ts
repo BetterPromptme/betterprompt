@@ -1,4 +1,4 @@
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 
 export const GENERATE_COMMAND = {
   name: "generate",
