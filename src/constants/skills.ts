@@ -1,6 +1,112 @@
+import { SHARED_FLAGS } from "./shared-flags";
+import { SKILL_TYPES } from "./search";
+
+const SKILL_NAME_ARGUMENT = {
+  name: "<skill-slug>",
+  description: "Skill name to retrieve",
+} as const;
+
+const SKILL_NAME_INSTALL_ARGUMENT = {
+  name: "<skill-slug>",
+  description: "Skill name to install",
+} as const;
+
+const SKILL_NAME_UNINSTALL_ARGUMENT = {
+  name: "<skill-slug>",
+  description: "Skill name to uninstall",
+} as const;
+
+const SKILL_NAME_UPDATE_ARGUMENT = {
+  name: "[skill-slug]",
+  description: "Skill name to update",
+} as const;
+
 export const SKILLS_COMMAND = {
   name: "skill",
   description: "Manage BetterPrompt skills",
+  subcommands: {
+    info: {
+      name: "info",
+      description: "Get details of a skill by name",
+      arguments: {
+        skillSlug: SKILL_NAME_ARGUMENT,
+      },
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
+    install: {
+      name: "install",
+      description: "Install a skill by name",
+      arguments: {
+        skillSlug: SKILL_NAME_INSTALL_ARGUMENT,
+      },
+      flags: {
+        overwrite: {
+          flag: "--overwrite",
+          description: "Overwrite an existing installed skill",
+        },
+        json: SHARED_FLAGS.json,
+      },
+    },
+    uninstall: {
+      name: "uninstall",
+      description: "Uninstall an installed skill by name",
+      arguments: {
+        skillSlug: SKILL_NAME_UNINSTALL_ARGUMENT,
+      },
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
+    list: {
+      name: "list",
+      description: "List all installed skills",
+      arguments: {},
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
+    update: {
+      name: "update",
+      description: "Update an installed skill to the latest version",
+      arguments: {
+        skillSlug: SKILL_NAME_UPDATE_ARGUMENT,
+      },
+      flags: {
+        force: {
+          flag: "--force",
+          description: "Re-install even if already at latest version",
+        },
+        all: {
+          flag: "--all",
+          description: "Update all installed skills in scope",
+        },
+        json: SHARED_FLAGS.json,
+      },
+    },
+    search: {
+      name: "search",
+      description: "Search BetterPrompt skills",
+      arguments: {
+        query: {
+          name: "<query>",
+          description: "Search query (minimum 3 characters)",
+        },
+      },
+      flags: {
+        type: {
+          flag: "--type <type>",
+          description: `Filter by skill type (${SKILL_TYPES.join(", ")})`,
+        },
+        author: {
+          flag: "--author <author>",
+          description: "Filter by author",
+        },
+        json: SHARED_FLAGS.json,
+      },
+    },
+  },
   info: {
     name: "info",
     description: "Get details of a skill by name",

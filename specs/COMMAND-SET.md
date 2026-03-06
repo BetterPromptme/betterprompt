@@ -200,7 +200,7 @@ bp generate <skillVersionId> \
   [--image-input-base64 <base64> ...] \
   [--stdin] \
   [--model <model>] \
-  [--run-option <json>] \
+  [--options <json>] \
   [--json]
 ```
 
@@ -214,7 +214,7 @@ bp generate skill-version-123 \
   --input tone="clear" \
   --image-input-url "https://example.com/reference.png" \
   --image-input-base64 "<base64-image-data>" \
-  --run-option '{"reasoningEffort":"high","quality":"hd"}'
+  --options '{"reasoningEffort":"high","quality":"hd"}'
 
 cat input.json | bp generate skill-version-123 --stdin --json
 ```
@@ -223,7 +223,7 @@ Notes:
 
 - `<skillVersionId>` is required for `generate`.
 - Internally, `createRun` still sends this value using the payload key `promptVersionId`.
-- `--run-option <json>` accepts a JSON object and maps to the `runOptions` payload field.
+- `--options <json>` accepts a JSON object and maps to the `runOptions` payload field.
 - `--input-payload <json>` accepts a JSON object shaped like `TRunInputs` and maps to `inputs`.
 - `--input-payload` is mutually exclusive with `--input`, `--image-input-url`, `--image-input-base64`, and `--stdin`.
 - `--stdin` reads a JSON object shaped like `TRunInputs` from standard input.

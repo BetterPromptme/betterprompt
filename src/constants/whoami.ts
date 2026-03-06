@@ -1,6 +1,11 @@
+import { SHARED_FLAGS } from "./shared-flags";
+
 export const WHOAMI_COMMAND = {
   name: "whoami",
   description: "Show the authenticated BetterPrompt identity",
+  flags: {
+    json: SHARED_FLAGS.json,
+  },
 } as const;
 
 export const WHOAMI_MESSAGES = {
