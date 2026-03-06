@@ -127,6 +127,9 @@ export const createDefaultOutputsCommandDependencies =
 const formatDisplayOutputs = (run: TRunResult): string[] =>
   run.outputs.map((part) => part.data);
 
+const formatRunStatusHeader = (runStatus: RunStatus): string =>
+  `${OUTPUTS_MESSAGES.runStatusPrefix} ${runStatus}`;
+
 const normalizeRunStatus = (
   value: string | undefined
 ): RunStatus | undefined => {
@@ -371,6 +374,8 @@ export const executeOutputsGet = async (
       deps.printResult(run, ctx);
       return;
     }
+
+    deps.printResult(formatRunStatusHeader(run.runStatus), ctx);
 
     const displayOutputs = formatDisplayOutputs(run);
     if (displayOutputs.length > 0) {
