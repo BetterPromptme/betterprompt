@@ -1,5 +1,6 @@
 import { CLI_META } from "./cli";
 import { AUTH_API_KEY_URL } from "./auth";
+import { SHARED_FLAGS } from "./flags";
 
 export const API_CONFIG = {
   baseUrl: "https://api.betterprompt.me/v1",
@@ -32,16 +33,53 @@ export const SYSTEM_MESSAGES = {
 export const CONFIG_COMMAND = {
   name: "config",
   description: "Read and update BetterPrompt config values",
-  get: {
-    description: "Get a value from config.json",
-    keyDescription:
-      "Config key (apiKey | apiBaseUrl)",
+  flags: {
+    json: SHARED_FLAGS.json,
   },
-  set: {
-    description: "Set a value in config.json",
-    keyDescription:
-      "Config key (apiKey | apiBaseUrl)",
-    valueDescription: "Value to store",
+  subcommands: {
+    get: {
+      name: "get",
+      description: "Get a value from config.json",
+      arguments: {
+        key: {
+          name: "[key]",
+          description: "Config key (apiKey | apiBaseUrl)",
+        },
+      },
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
+    set: {
+      name: "set",
+      description: "Set a value in config.json",
+      arguments: {
+        key: {
+          name: "<key>",
+          description: "Config key (apiKey | apiBaseUrl)",
+        },
+        value: {
+          name: "<value>",
+          description: "Value to store",
+        },
+      },
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
+    unset: {
+      name: "unset",
+      description: "Unset a value from config.json",
+      arguments: {
+        key: {
+          name: "<key>",
+          description: "Config key (apiKey | apiBaseUrl)",
+        },
+      },
+      flags: {
+        json: SHARED_FLAGS.json,
+      },
+    },
   },
 } as const;
 
