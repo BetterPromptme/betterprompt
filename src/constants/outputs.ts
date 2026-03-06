@@ -57,4 +57,5 @@ export const OUTPUTS_MESSAGES = {
   failedPrefix: "Outputs command failed:",
   remoteHint: "Hint: retry with --remote to fetch from API.",
   emptyMessagePrefix: "No outputs found for run",
+  runStatusPrefix: "Run status:",
 } as const;
