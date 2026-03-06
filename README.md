@@ -5,6 +5,20 @@ BetterPrompt CLI helps you discover skills, install them, generate outputs, and 
 - Binary names: `betterprompt` and `bp`
 - Package: `betterprompt`
 
+## Architecture
+
+The CLI is organized as:
+
+- `src/commands/<command>/command.ts`: command wiring only
+- `src/commands/<command>/types.d.ts`: command-local type declarations
+- `src/services/*`: reusable business logic used by commands
+- `src/cli.ts` + `src/cli/help.ts`: program bootstrap and CLI help formatting
+
+Legacy compatibility layers were removed:
+
+- no flat command adapters under `src/commands/*.ts`
+- no legacy re-export shim modules remain in the codebase
+
 ## Installation
 
 ### From npm
@@ -200,24 +214,39 @@ bp uninstall --yes
 
 ## Directory Layout
 
+See [`specs/DIRECTORY-LAYOUT.md`](specs/DIRECTORY-LAYOUT.md) for the full specification.
+
 ### Global state (`~/.betterprompt/`)
 
 ```text
 ~/.betterprompt/
 ├── config.json
 ├── auth.json
-├── skills/
 ├── outputs/
+│   ├── history.jsonl
+│   └── <runId>/
+│       ├── request.json
+│       ├── response.json
+│       ├── metadata.json
+│       └── assets/
+├── skills/
+│   └── <skill-slug>/
+│       ├── SKILL.md
+│       ├── manifest.json
+│       └── schema.json
 ├── logs/
+│   ├── cli.log
+│   ├── auth.log
+│   └── errors.log
 └── tmp/
 ```
 
-- `config.json`: global CLI config (registry and other defaults)
-- `auth.json`: auth state for CLI API access
-- `skills/`: globally installed skills
-- `outputs/`: run outputs and local history artifacts
-- `logs/`: CLI logs (`cli.log`, `auth.log`, `errors.log`)
-- `tmp/`: temporary files
+- `config.json`: global CLI defaults (registry, output format, cache TTL, telemetry)
+- `auth.json`: session metadata and account state; actual secrets/tokens are stored in the OS keychain
+- `outputs/`: run history index (`history.jsonl`) and per-run snapshots with request, response, metadata, and downloaded assets
+- `skills/`: one folder per installed skill containing `SKILL.md`, `manifest.json`, and `schema.json`
+- `logs/`: CLI operational logs (`cli.log`, `auth.log`, `errors.log`); separate from outputs
+- `tmp/`: transient files, safe to clear on startup or via `bp cleanup`
 
 ### Project-local state
 
@@ -226,16 +255,17 @@ Using `--project` initializes project-local files and folders:
 ```text
 <project-root>/
 ├── betterprompt.json
-├── betterprompt.lock
 └── .betterprompt/
     ├── skills/
     ├── outputs/
-    └── cache/
+    ├── logs/
+    └── tmp/
 ```
 
-- `betterprompt.json`: project metadata/config
-- `betterprompt.lock`: pinned versions and lock data
-- `.betterprompt/`: project-scoped skill/output/cache state
+- `betterprompt.json`: project metadata/config (created on first `--project` use)
+- `.betterprompt/`: project-scoped skills, outputs, logs, and temp files
+
+Project-local state overrides global state when both exist.
 
 ## Notes
 
