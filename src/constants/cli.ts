@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import packageJson from "../../package.json";
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 
 export const CLI_META = {
   name: "betterprompt",
