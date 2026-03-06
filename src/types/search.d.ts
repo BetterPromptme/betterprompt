@@ -1,4 +1,4 @@
-import type { TPrintOptions } from "./output";
+import type { TPrintOptions } from "./outputs";
 
 export type TSkillType = "image" | "video" | "text";
 
