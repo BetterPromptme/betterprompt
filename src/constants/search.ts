@@ -1,9 +1,27 @@
+import { SHARED_FLAGS } from "./flags";
+
 export const SKILL_TYPES = ["image", "video", "text"] as const;
 
 export const SEARCH_COMMAND = {
   name: "search",
   description: "Search BetterPrompt skills",
-  queryDescription: "Search query (minimum 3 characters)",
+  arguments: {
+    query: {
+      name: "<query>",
+      description: "Search query (minimum 3 characters)",
+    },
+  },
+  flags: {
+    type: {
+      flag: "--type <type>",
+      description: `Filter by skill type (${SKILL_TYPES.join(", ")})`,
+    },
+    author: {
+      flag: "--author <author>",
+      description: "Filter by author",
+    },
+    json: SHARED_FLAGS.json,
+  },
 } as const;
 
 export const SEARCH_CONFIG = {
