@@ -1,4 +1,4 @@
-import type { TPrintOptions } from "../../types/output";
+import type { TPrintOptions } from "../../types/outputs";
 
 const serializeJson = (data: unknown): string => {
   const serialized = JSON.stringify(data);
