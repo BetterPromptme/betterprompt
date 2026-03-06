@@ -1,4 +1,4 @@
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 
 export const CREDITS_COMMAND = {
   name: "credits",

@@ -1,4 +1,4 @@
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 import { SKILL_TYPES } from "./search";
 
 const SKILL_NAME_ARGUMENT = {
