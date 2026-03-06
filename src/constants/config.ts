@@ -1,6 +1,6 @@
 import { CLI_META } from "./cli";
 import { AUTH_API_KEY_URL } from "./auth";
-import { SHARED_FLAGS } from "./flags";
+import { SHARED_FLAGS } from "./shared-flags";
 
 export const API_CONFIG = {
   baseUrl: "https://api.betterprompt.me/v1",
