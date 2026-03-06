@@ -9,7 +9,6 @@ export * from "./error-ux";
 export * from "./generate";
 export * from "./installer";
 export * from "./logger";
-export * from "./output";
 export * from "./outputs";
 export * from "./persistence";
 export * from "./reset";
