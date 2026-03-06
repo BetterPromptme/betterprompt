@@ -1,13 +1,15 @@
 export const AUTH_API_KEY_URL = "https://betterprompt.me/api-keys";
 
+const AUTH_API_KEY_FLAG = {
+  flag: "--api-key <key>",
+  description: "API key for non-interactive auth",
+} as const;
+
 export const AUTH_COMMAND = {
   name: "auth",
   description: "Authenticate BetterPrompt CLI with your API key",
-  options: {
-    apiKey: {
-      flag: "--api-key <key>",
-      description: "API key for non-interactive auth",
-    },
+  flags: {
+    apiKey: AUTH_API_KEY_FLAG,
   },
 } as const;
 
