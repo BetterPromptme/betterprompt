@@ -86,7 +86,7 @@ export const createResourcesCommand = (
       let data: TResourcesData;
 
       if (opts.remote) {
-        data = await deps.fetchResources();
+        data = await deps.fetchResources({ skipModelsHash: true });
       } else if (opts.sync) {
         data = await deps.fetchResources({ skipModelsHash: true });
         await deps.saveLocalResources(data);
