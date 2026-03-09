@@ -13,6 +13,7 @@ A clean v1 layout for `~/.betterprompt` that supports:
 ~/.betterprompt/
 ├── config.json
 ├── auth.json
+├── resources.json
 ├── outputs/
 │   ├── history.jsonl
 │   ├── 01HXYZ.../
@@ -66,6 +67,34 @@ Prefer:
 - this file stores session metadata, selected account, device-login state
 
 That way you avoid plaintext tokens in dotfiles.
+
+### `resources.json`
+
+Cached available models and run options fetched from the API.
+
+- Written automatically on first `bp resources` call (or any command that needs it)
+- Refreshed explicitly via `bp resources --sync`
+- Re-synced silently in the background whenever any API response includes `action-require: update-resources`
+- The `hash` field is sent as `cli-agent: resources_hash=<hash>` on every request so the server can detect stale caches
+
+Example:
+
+```json
+{
+  "hash": "abc123",
+  "resources": {
+    "models": [
+      {
+        "model": "claude-opus-4",
+        "modality": "text",
+        "availableRunOptions": [
+          { "key": "streaming", "options": ["true", "false"] }
+        ]
+      }
+    ]
+  }
+}
+```
 
 ### `skills/<skill-slug>/`
 
@@ -151,10 +180,11 @@ Durable:
 - output history
 - auth state
 
-Ephemeral:
+Ephemeral/cache:
 
 - temp files
 - cached responses
+- `resources.json` (safe to delete; re-fetched automatically on next use)
 
 ### 2. Keep protected prompts protected
 
