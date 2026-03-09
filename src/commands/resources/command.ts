@@ -95,7 +95,7 @@ export const createResourcesCommand = (
         if (local !== null) {
           data = local;
         } else {
-          data = await deps.fetchResources();
+          data = await deps.fetchResources({ skipModelsHash: true });
           await deps.saveLocalResources(data);
         }
       }
