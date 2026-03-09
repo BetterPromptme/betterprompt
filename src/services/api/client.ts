@@ -1,4 +1,15 @@
-import { API_CONFIG, AUTH_MESSAGES } from "../../constants";
+import { readFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import ora from "ora";
+import {
+  API_CONFIG,
+  AUTH_MESSAGES,
+  RESOURCES_ACTION_HEADER,
+  RESOURCES_MESSAGES,
+  RESOURCES_STORAGE,
+  SYSTEM_STORAGE,
+} from "../../constants";
 import type {
   TApiClientConfig,
   TApiRequestOptions,
@@ -7,6 +18,7 @@ import type {
 } from "../../types/api";
 import { readApiKeyFromAuthConfig } from "../auth/service";
 import { getLoadedSystemConfig } from "../config/service";
+import { fetchResources, saveLocalResources } from "../resources/service";
 
 export type {
   TApiClientConfig,
@@ -126,6 +138,41 @@ const formatAuthorizationValue = (token: string, scheme: string): string => {
 const resolveRuntimeBaseUrl = (): string =>
   getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl;
 
+let modelsHashPromise: Promise<string | null> | undefined;
+
+const getModelsHash = (): Promise<string | null> => {
+  modelsHashPromise ??= readFile(
+    path.join(
+      os.homedir(),
+      SYSTEM_STORAGE.configDirName,
+      RESOURCES_STORAGE.fileName
+    ),
+    "utf8"
+  )
+    .then((raw) => (JSON.parse(raw) as { hash?: string }).hash ?? null)
+    .catch(() => null);
+  return modelsHashPromise;
+};
+
+const handleUpdateResourcesAction = async (
+  apiClient: ApiClient
+): Promise<void> => {
+  const spinner = ora({
+    text: RESOURCES_MESSAGES.autoSyncing,
+    isEnabled: process.stderr.isTTY,
+  }).start();
+  try {
+    const data = await fetchResources({
+      get: (p) => apiClient.get(p, { _skipModelsHash: true }),
+    });
+    await saveLocalResources(data);
+    modelsHashPromise = Promise.resolve(data.hash ?? null);
+    spinner.stop();
+  } catch {
+    spinner.stop();
+  }
+};
+
 export class ApiClient {
   private config: TResolvedConfig;
 
@@ -145,6 +192,13 @@ export class ApiClient {
     const requestUrl = this.buildUrl(path, options.query);
     const timeoutMs = options.timeoutMs ?? this.config.timeoutMs;
     const headers = mergeHeaders(this.config.headers, options.headers);
+
+    if (!options._skipModelsHash) {
+      const modelsHash = await getModelsHash();
+      if (modelsHash) {
+        headers.set("cli-agent", `resources_hash=${modelsHash}`);
+      }
+    }
 
     if (!headers.has(this.config.authHeader)) {
       const apiKey = await this.config.getApiKey?.();
@@ -204,6 +258,13 @@ export class ApiClient {
           method,
           requestUrl,
         });
+      }
+
+      if (
+        response.headers.get(RESOURCES_ACTION_HEADER.key) ===
+        RESOURCES_ACTION_HEADER.updateResources
+      ) {
+        void handleUpdateResourcesAction(this);
       }
 
       if (options.parseAs === "response") {
@@ -376,4 +437,5 @@ export const getApiClient = (config: TApiClientConfig = {}): ApiClient => {
 
 export const resetApiClientForTests = (): void => {
   apiClientInstance = undefined;
+  modelsHashPromise = undefined;
 };
