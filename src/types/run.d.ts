@@ -1,6 +1,6 @@
 import type { RunStatus } from "../enums/run-status";
 import type { TApiResponse } from "./api";
-import type { TPart } from "./output";
+import type { TPart } from "./outputs";
 
 export type TImageInputUrl = {
   type: "url";

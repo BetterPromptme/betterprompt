@@ -1,4 +1,4 @@
-import type { TPart } from "./output";
+import type { TPart } from "./outputs";
 import type { TResolvedScope } from "./scope";
 
 export type THistoryEntry = {

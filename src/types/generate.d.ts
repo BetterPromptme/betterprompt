@@ -1,4 +1,4 @@
-import type { TPrintOptions } from "./output";
+import type { TPrintOptions } from "./outputs";
 import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
 import type { TResolveScope } from "./scope";
 import type { TRunPayload } from "./run";

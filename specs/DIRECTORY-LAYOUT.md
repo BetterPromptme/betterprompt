@@ -127,11 +127,11 @@ Global dir alone is not enough. Pair it with a project-local layout too:
 
 ```text
 your-project/
-├── betterprompt.json
 └── .betterprompt/
     ├── skills/
     ├── outputs/
-    └── cache/
+    └── logs/
+    └── tmp/
 ```
 
 Rule of thumb:
