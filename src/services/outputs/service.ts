@@ -33,15 +33,33 @@ const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Failed,
 ];
 
+export const parseSinceToUnixMs = (value: string): number => {
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(
+      "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds."
+    );
+  }
+
+  return parsed;
+};
+
 export const buildOutputsListQuery = (
   filters: TOutputListFilters
 ): Record<string, string | number> => {
   const query: Record<string, string | number> = {};
 
-  // TODO: support in v2
-  // if (filters.status !== undefined) {
-  //   query.status = filters.status;
-  // }
+  if (filters.since !== undefined) {
+    query.since = parseSinceToUnixMs(filters.since);
+  }
+
+  if (filters.status !== undefined) {
+    query.status = filters.status;
+  }
 
   if (filters.limit !== undefined) {
     query.limit = filters.limit;
