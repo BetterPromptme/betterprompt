@@ -10,6 +10,7 @@ export type TResourceModel = {
 };
 
 export type TResourcesData = {
+  hash: string;
   resources: {
     models: TResourceModel[];
   };
@@ -23,7 +24,7 @@ export type TResourcesOpts = {
 };
 
 export type TResourcesDependencies = {
-  fetchResources: () => Promise<TResourcesData>;
+  fetchResources: (opts?: { skipModelsHash?: boolean }) => Promise<TResourcesData>;
   loadLocalResources: () => Promise<TResourcesData | null>;
   saveLocalResources: (data: TResourcesData) => Promise<void>;
   printResult: (data: unknown, ctx: TPrintOptions) => void;
