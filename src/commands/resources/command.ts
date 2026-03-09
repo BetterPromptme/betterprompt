@@ -36,7 +36,12 @@ const formatModelsText = (models: TResourceModel[]): string =>
   models.map(formatModelLine).join("\n\n");
 
 const defaultDeps: TResourcesDependencies = {
-  fetchResources: () => fetchResources(getApiClient()),
+  fetchResources: (opts) =>
+    fetchResources(
+      opts?.skipModelsHash
+        ? { get: (p) => getApiClient().get(p, { _skipModelsHash: true }) }
+        : getApiClient()
+    ),
   loadLocalResources: () => loadLocalResources(),
   saveLocalResources: (data) => saveLocalResources(data),
   printResult: (data, ctx) => printResult(data, ctx),
@@ -83,7 +88,7 @@ export const createResourcesCommand = (
       if (opts.remote) {
         data = await deps.fetchResources();
       } else if (opts.sync) {
-        data = await deps.fetchResources();
+        data = await deps.fetchResources({ skipModelsHash: true });
         await deps.saveLocalResources(data);
       } else {
         const local = await deps.loadLocalResources();
