@@ -160,8 +160,9 @@ const handleUpdateResourcesAction = async (
     });
     await saveLocalResources(data);
     modelsHashPromise = Promise.resolve(data.hash ?? null);
-    spinner.stop();
   } catch {
+    // silently swallow errors
+  } finally {
     spinner.stop();
   }
 };
