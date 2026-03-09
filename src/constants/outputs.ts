@@ -45,7 +45,8 @@ export const OUTPUTS_COMMAND = {
         },
         since: {
           flag: "--since <date>",
-          description: "Only include rows created at or after this date",
+          description:
+            "Only include rows created at or after this date (ISO 8601 or unix ms)",
         },
         json: SHARED_FLAGS.json,
       },
