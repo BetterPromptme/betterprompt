@@ -12,6 +12,7 @@ export * from "./logger";
 export * from "./outputs";
 export * from "./persistence";
 export * from "./reset";
+export * from "./resources";
 export * from "./run";
 export * from "./scope";
 export * from "./search";
