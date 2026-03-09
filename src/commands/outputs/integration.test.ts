@@ -555,7 +555,7 @@ describe("outputs list command", () => {
 });
 
 describe("buildOutputsListQuery", () => {
-  it("omits non-api filters and unsupported fields", () => {
+  it("forwards limit, since (as unix ms), and status to the remote API", () => {
     expect(
       buildOutputsListQuery({
         remote: true,
@@ -565,6 +565,8 @@ describe("buildOutputsListQuery", () => {
       })
     ).toEqual({
       limit: 10,
+      since: new Date("2026-03-01").getTime(),
+      status: "succeeded",
     });
   });
 });
