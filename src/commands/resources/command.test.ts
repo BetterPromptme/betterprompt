@@ -6,10 +6,11 @@ import type { TResourcesData } from "./types";
 type TResourcesDeps = NonNullable<Parameters<typeof createResourcesCommand>[0]>;
 
 const sampleData: TResourcesData = {
+  hash: "abc123",
   resources: {
     models: [
-      { model: "model-1", modality: "text", availableRunOptions: { key: "mode", options: ["fast", "accurate"] } },
-      { model: "model-2", modality: "image", availableRunOptions: { key: "mode", options: ["standard"] } },
+      { model: "model-1", modality: "text", availableRunOptions: [{ key: "mode", options: ["fast", "accurate"] }] },
+      { model: "model-2", modality: "image", availableRunOptions: [{ key: "mode", options: ["standard"] }] },
     ],
   },
 };
