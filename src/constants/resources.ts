@@ -18,10 +18,16 @@ export const RESOURCES_STORAGE = {
   fileName: "resources.json",
 } as const;
 
+export const RESOURCES_ACTION_HEADER = {
+  key: "action-require",
+  updateResources: "update-resources",
+} as const;
+
 export const RESOURCES_MESSAGES = {
   failedPrefix: "Resources command failed:",
   unknownError: "Unknown error",
   fetchingRemote: "Fetching resources from remote...",
   readingLocal: "Reading local resources cache...",
   noLocalCache: "No local cache found, fetching from remote...",
+  autoSyncing: "Syncing resources...",
 } as const;
