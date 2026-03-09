@@ -1,14 +1,10 @@
 import { readFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import ora from "ora";
 import {
   API_CONFIG,
   AUTH_MESSAGES,
   RESOURCES_ACTION_HEADER,
   RESOURCES_MESSAGES,
-  RESOURCES_STORAGE,
-  SYSTEM_STORAGE,
 } from "../../constants";
 import type {
   TApiClientConfig,
@@ -18,7 +14,11 @@ import type {
 } from "../../types/api";
 import { readApiKeyFromAuthConfig } from "../auth/service";
 import { getLoadedSystemConfig } from "../config/service";
-import { fetchResources, saveLocalResources } from "../resources/service";
+import {
+  fetchResources,
+  resolveResourcesFilePath,
+  saveLocalResources,
+} from "../resources/service";
 
 export type {
   TApiClientConfig,
@@ -141,14 +141,7 @@ const resolveRuntimeBaseUrl = (): string =>
 let modelsHashPromise: Promise<string | null> | undefined;
 
 const getModelsHash = (): Promise<string | null> => {
-  modelsHashPromise ??= readFile(
-    path.join(
-      os.homedir(),
-      SYSTEM_STORAGE.configDirName,
-      RESOURCES_STORAGE.fileName
-    ),
-    "utf8"
-  )
+  modelsHashPromise ??= readFile(resolveResourcesFilePath(), "utf8")
     .then((raw) => (JSON.parse(raw) as { hash?: string }).hash ?? null)
     .catch(() => null);
   return modelsHashPromise;
@@ -231,8 +224,12 @@ export class ApiClient {
     const body = this.serializeBody(options.body, headers, method);
 
     try {
+      const fetchOptions = { ...options } as Record<string, unknown>;
+      if ("_skipModelsHash" in fetchOptions) {
+        delete fetchOptions["_skipModelsHash"];
+      }
       const response = await this.config.fetch(requestUrl, {
-        ...options,
+        ...(fetchOptions as RequestInit),
         method,
         headers,
         body,
@@ -261,8 +258,9 @@ export class ApiClient {
       }
 
       if (
+        !options._skipModelsHash &&
         response.headers.get(RESOURCES_ACTION_HEADER.key) ===
-        RESOURCES_ACTION_HEADER.updateResources
+          RESOURCES_ACTION_HEADER.updateResources
       ) {
         void handleUpdateResourcesAction(this);
       }
