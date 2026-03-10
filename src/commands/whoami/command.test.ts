@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { AUTH_MESSAGES } from "../../constants";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createWhoamiCommand } from "./command";
 import type { TWhoamiDependencies } from "./types";
@@ -10,19 +11,6 @@ const createDeps = (overrides: Partial<TWhoamiDependencies> = {}): TWhoamiDepend
     displayName: "Jane Doe",
     userFlags: 0,
   })),
-  ...overrides,
-});
-
-const createFactoryDeps = (
-  overrides: Partial<TCommandFactoryDeps> = {}
-): Partial<TCommandFactoryDeps> => ({
-  createSpinner: mock(() => {
-    const s = { start: mock(() => s), succeed: mock(() => s), fail: mock(() => s) };
-    return s;
-  }),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 

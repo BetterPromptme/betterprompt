@@ -1,11 +1,11 @@
 import { Command } from "commander";
 import { afterEach, describe, expect, it, mock } from "bun:test";
-import {
-  createCommandFromSpec,
-  createParentCommandFromSpec,
-} from "./service";
+import { createCommandFromSpec, createParentCommandFromSpec } from "./service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import type { TCommandSpec, TParentCommandSpec } from "../../types/command-spec";
+import type {
+  TCommandSpec,
+  TParentCommandSpec,
+} from "../../types/command-spec";
 import type { TSpinnerLike } from "../../types/error-ux";
 
 const createSpinnerLike = (): TSpinnerLike => ({
@@ -20,7 +20,9 @@ const createSpinnerLike = (): TSpinnerLike => ({
   }),
 });
 
-const createDeps = (overrides: Partial<TCommandFactoryDeps> = {}): TCommandFactoryDeps => {
+const createDeps = (
+  overrides: Partial<TCommandFactoryDeps> = {}
+): TCommandFactoryDeps => {
   const spinner = createSpinnerLike();
   return {
     createSpinner: mock(() => spinner),
@@ -59,7 +61,16 @@ describe("createCommandFromSpec", () => {
   });
 
   it("applies boolean flags from spec", async () => {
-    const handler = mock(async ({ opts: _opts }: { opts: { verbose?: boolean }; args: Record<string, unknown>; ctx: unknown; command: Command }) => undefined);
+    const handler = mock(
+      async ({
+        opts: _opts,
+      }: {
+        opts: { verbose?: boolean };
+        args: Record<string, unknown>;
+        ctx: unknown;
+        command: Command;
+      }) => undefined
+    );
     const spec: TCommandSpec<{ verbose?: boolean }> = {
       name: "mycommand",
       description: "A command",
@@ -71,12 +82,23 @@ describe("createCommandFromSpec", () => {
     const deps = createDeps();
     await runCommand(spec as TCommandSpec, deps, ["--verbose"]);
     expect(handler).toHaveBeenCalledTimes(1);
-    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [{ opts: { verbose?: boolean } }];
+    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [
+      { opts: { verbose?: boolean } },
+    ];
     expect(callArgs[0].opts.verbose).toBe(true);
   });
 
   it("applies value flags with defaults from spec", async () => {
-    const handler = mock(async ({ opts: _opts }: { opts: { format: string }; args: Record<string, unknown>; ctx: unknown; command: Command }) => undefined);
+    const handler = mock(
+      async ({
+        opts: _opts,
+      }: {
+        opts: { format: string };
+        args: Record<string, unknown>;
+        ctx: unknown;
+        command: Command;
+      }) => undefined
+    );
     const spec: TCommandSpec<{ format: string }> = {
       name: "mycommand",
       description: "A command",
@@ -92,12 +114,23 @@ describe("createCommandFromSpec", () => {
     const deps = createDeps();
     await runCommand(spec as TCommandSpec, deps, []);
     expect(handler).toHaveBeenCalledTimes(1);
-    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [{ opts: { format: string } }];
+    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [
+      { opts: { format: string } },
+    ];
     expect(callArgs[0].opts.format).toBe("table");
   });
 
   it("applies collect flags from spec", async () => {
-    const handler = mock(async ({ opts: _opts }: { opts: { tag: string[] }; args: Record<string, unknown>; ctx: unknown; command: Command }) => undefined);
+    const handler = mock(
+      async ({
+        opts: _opts,
+      }: {
+        opts: { tag: string[] };
+        args: Record<string, unknown>;
+        ctx: unknown;
+        command: Command;
+      }) => undefined
+    );
     const spec: TCommandSpec<{ tag: string[] }> = {
       name: "mycommand",
       description: "A command",
@@ -114,14 +147,25 @@ describe("createCommandFromSpec", () => {
     const deps = createDeps();
     await runCommand(spec as TCommandSpec, deps, ["--tag", "a", "--tag", "b"]);
     expect(handler).toHaveBeenCalledTimes(1);
-    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [{ opts: { tag: string[] } }];
+    const callArgs = (handler as ReturnType<typeof mock>).mock.calls[0] as [
+      { opts: { tag: string[] } },
+    ];
     expect(callArgs[0].opts.tag).toEqual(["a", "b"]);
   });
 
   it("applies arguments from spec and maps to named args record", async () => {
-    const handler = mock(async ({ args }: { opts: unknown; args: Record<string, unknown>; ctx: unknown; command: Command }) => {
-      expect(args["name"]).toBe("world");
-    });
+    const handler = mock(
+      async ({
+        args,
+      }: {
+        opts: unknown;
+        args: Record<string, unknown>;
+        ctx: unknown;
+        command: Command;
+      }) => {
+        expect(args["name"]).toBe("world");
+      }
+    );
     const spec: TCommandSpec = {
       name: "greet",
       description: "Greet someone",
@@ -134,9 +178,18 @@ describe("createCommandFromSpec", () => {
   });
 
   it("applies parse function to arguments", async () => {
-    const handler = mock(async ({ args }: { opts: unknown; args: Record<string, unknown>; ctx: unknown; command: Command }) => {
-      expect(args["count"]).toBe(42);
-    });
+    const handler = mock(
+      async ({
+        args,
+      }: {
+        opts: unknown;
+        args: Record<string, unknown>;
+        ctx: unknown;
+        command: Command;
+      }) => {
+        expect(args["count"]).toBe(42);
+      }
+    );
     const spec: TCommandSpec = {
       name: "counter",
       description: "Count",
@@ -265,7 +318,8 @@ describe("createCommandFromSpec", () => {
     await runCommand(spec, deps, []);
 
     expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual(result);
     expect(ctx).toBeDefined();
     expect(ctx.outputFormat).toBe("text");
@@ -286,8 +340,12 @@ describe("createCommandFromSpec", () => {
     await runCommand(spec, deps, []);
 
     expect(formatText).toHaveBeenCalledTimes(1);
-    expect(formatText).toHaveBeenCalledWith(raw, expect.objectContaining({ outputFormat: "text" }));
-    const [data] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown];
+    expect(formatText).toHaveBeenCalledWith(
+      raw,
+      expect.objectContaining({ outputFormat: "text" })
+    );
+    const [data] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown];
     expect(data).toBe(formatted);
   });
 
@@ -304,12 +362,15 @@ describe("createCommandFromSpec", () => {
     const deps = createDeps();
     // Use --json flag at program level to trigger json mode
     const cmd = createCommandFromSpec(spec, deps);
-    const program = new Command("test").option("--json", "JSON output").addCommand(cmd);
+    const program = new Command("test")
+      .option("--json", "JSON output")
+      .addCommand(cmd);
     // from: "user" means no args are skipped, so first arg is parsed directly
     await program.parseAsync(["--json", "jsonmode"], { from: "user" });
 
     expect(formatText).not.toHaveBeenCalled();
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual(raw);
     expect(ctx.outputFormat).toBe("json");
   });
@@ -382,7 +443,9 @@ describe("createCommandFromSpec", () => {
   });
 
   it("customAction escape hatch skips standard action and calls customAction", () => {
-    const customAction = mock((_cmd: Command, _deps: TCommandFactoryDeps) => {});
+    const customAction = mock(
+      (_cmd: Command, _deps: TCommandFactoryDeps) => {}
+    );
     const spec: TCommandSpec = {
       name: "custom",
       description: "Custom action cmd",
@@ -392,7 +455,12 @@ describe("createCommandFromSpec", () => {
     const cmd = createCommandFromSpec(spec, deps);
 
     expect(customAction).toHaveBeenCalledTimes(1);
-    expect(customAction).toHaveBeenCalledWith(cmd, deps);
+    // Use objectContaining so the assertion holds even if createDefaultCommandFactoryDeps
+    // adds new keys — the merged deps will always be a superset of what was passed in.
+    expect(customAction).toHaveBeenCalledWith(
+      cmd,
+      expect.objectContaining(deps)
+    );
     // Verify no standard action was wired by checking _actionHandler is not set via Commander's action
     // (the command was returned without calling .action())
     expect(cmd.name()).toBe("custom");
@@ -400,6 +468,10 @@ describe("createCommandFromSpec", () => {
 });
 
 describe("createParentCommandFromSpec", () => {
+  afterEach(() => {
+    mock.restore();
+  });
+
   it("creates command with correct name and description", () => {
     const spec: TParentCommandSpec = {
       name: "parent",
