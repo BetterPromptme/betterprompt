@@ -58,6 +58,7 @@ describe("resources command", () => {
 
       expect(deps.loadLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
+      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
       expect(deps.saveLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.saveLocalResources).toHaveBeenCalledWith(sampleData);
       expect(deps.printResult).toHaveBeenCalledTimes(1);
@@ -125,8 +126,10 @@ describe("resources command", () => {
       const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
         .calls[0] as [unknown, { outputFormat: string }];
       expect(ctx.outputFormat).toBe("text");
-      // In text mode, data should be a string containing only model info (not full JSON)
-      expect(typeof data).toBe("string");
+      expect(data as string).toContain("model-1");
+      expect(data as string).toContain("model-2");
+      // formatResourcesText includes a section header; formatModelsText does not
+      expect(data as string).not.toMatch(/^models\n/);
     });
 
     it("outputs only models array in json mode", async () => {
