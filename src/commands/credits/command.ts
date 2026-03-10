@@ -1,12 +1,9 @@
-import { Command } from "commander";
 import logSymbols from "log-symbols";
-import ora from "ora";
 import { CREDITS_COMMAND, CREDITS_MESSAGES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { getCredits } from "../../services/auth/service";
-import { getCommandContext } from "../../services/context/service";
-import { runTaskWithSpinner } from "../../services/error-ux/service";
-import { printResult } from "../../services/output/service";
+import { createCommandFromSpec } from "../../services/command-factory/service";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TCreditBalance, TCreditsDependencies } from "./types";
 import formatCredits from "../../utils/format-credits";
 
@@ -15,49 +12,20 @@ const formatCreditsText = (credits: TCreditBalance): string =>
 
 const defaultDeps: TCreditsDependencies = {
   getCredits: () => getCredits(getApiClient()),
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => console.error(message),
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 };
 
 export const createCreditsCommand = (
-  deps: TCreditsDependencies = defaultDeps
-): Command => {
-  const command = new Command(CREDITS_COMMAND.name).description(
-    CREDITS_COMMAND.description
-  );
-  command.option(
-    CREDITS_COMMAND.flags.json.flag,
-    CREDITS_COMMAND.flags.json.description
-  );
-
-  command.action(async (_opts: Record<string, unknown>, command: Command) => {
-    try {
-      const ctx = getCommandContext(command);
-      const credits = await runTaskWithSpinner({
-        message: "Fetching credits balance...",
-        createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
-        task: () => deps.getCredits(),
-      });
-      deps.printResult(
-        ctx.outputFormat === "json" ? credits : formatCreditsText(credits),
-        ctx
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : String(error ?? CREDITS_MESSAGES.unknownError);
-      deps.error(
-        `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix} ${message}`
-      );
-      deps.setExitCode(1);
-    }
-  });
-
-  return command;
-};
+  deps: TCreditsDependencies = defaultDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createCommandFromSpec<Record<string, unknown>>({
+    name: CREDITS_COMMAND.name,
+    description: CREDITS_COMMAND.description,
+    flags: CREDITS_COMMAND.flags,
+    spinnerMessage: "Fetching credits balance...",
+    errorPrefix: `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix}`,
+    handler: () => deps.getCredits(),
+    formatText: (result) => formatCreditsText(result as TCreditBalance),
+  }, factoryDeps);
 
 export const creditsCommand = createCreditsCommand();
