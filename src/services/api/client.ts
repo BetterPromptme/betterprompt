@@ -139,6 +139,7 @@ const resolveRuntimeBaseUrl = (): string =>
   getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl;
 
 let modelsHashPromise: Promise<string | null> | undefined;
+let syncInFlight: Promise<void> | undefined;
 
 const getModelsHash = (): Promise<string | null> => {
   modelsHashPromise ??= readFile(resolveResourcesFilePath(), "utf8")
@@ -147,24 +148,26 @@ const getModelsHash = (): Promise<string | null> => {
   return modelsHashPromise;
 };
 
-const handleUpdateResourcesAction = async (
-  apiClient: ApiClient
-): Promise<void> => {
-  const spinner = ora({
-    text: RESOURCES_MESSAGES.autoSyncing,
-    isEnabled: process.stderr.isTTY,
-  }).start();
-  try {
-    const data = await fetchResources({
-      get: (p) => apiClient.get(p, { _skipModelsHash: true }),
-    });
-    await saveLocalResources(data);
-    modelsHashPromise = Promise.resolve(data.hash ?? null);
-  } catch {
-    // silently swallow errors
-  } finally {
-    spinner.stop();
-  }
+const handleUpdateResourcesAction = (apiClient: ApiClient): void => {
+  if (syncInFlight) return;
+  syncInFlight = (async () => {
+    const spinner = ora({
+      text: RESOURCES_MESSAGES.autoSyncing,
+      isEnabled: process.stderr.isTTY,
+    }).start();
+    try {
+      const data = await fetchResources({
+        get: (p) => apiClient.get(p, { _skipModelsHash: true }),
+      });
+      await saveLocalResources(data);
+      modelsHashPromise = Promise.resolve(data.hash ?? null);
+    } catch {
+      // silently swallow errors
+    } finally {
+      spinner.stop();
+      syncInFlight = undefined;
+    }
+  })();
 };
 
 export class ApiClient {
@@ -437,4 +440,5 @@ export const getApiClient = (config: TApiClientConfig = {}): ApiClient => {
 export const resetApiClientForTests = (): void => {
   apiClientInstance = undefined;
   modelsHashPromise = undefined;
+  syncInFlight = undefined;
 };
