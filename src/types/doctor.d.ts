@@ -1,5 +1,3 @@
-import type { TPrintOptions } from "./outputs";
-
 export type TDoctorCheckName =
   | "auth"
   | "registry"
@@ -44,7 +42,4 @@ export type TDoctorCommandOptions = {
 
 export type TDoctorCommandDependencies = {
   runDoctorChecks: (options: TRunDoctorChecksOptions) => Promise<TDoctorResult>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };
