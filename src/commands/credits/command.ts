@@ -4,8 +4,8 @@ import { getApiClient } from "../../services/api/client";
 import { getCredits } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import type { TCreditBalance, TCreditsDependencies } from "./types";
 import formatCredits from "../../utils/format-credits";
+import type { TCreditBalance, TCreditsDependencies } from "./types";
 
 const formatCreditsText = (credits: TCreditBalance): string =>
   `${logSymbols.info} Credits: ${formatCredits(credits.credits)}`;
@@ -18,14 +18,17 @@ export const createCreditsCommand = (
   deps: TCreditsDependencies = defaultDeps,
   factoryDeps?: Partial<TCommandFactoryDeps>
 ) =>
-  createCommandFromSpec<Record<string, unknown>>({
-    name: CREDITS_COMMAND.name,
-    description: CREDITS_COMMAND.description,
-    flags: CREDITS_COMMAND.flags,
-    spinnerMessage: "Fetching credits balance...",
-    errorPrefix: `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix}`,
-    handler: () => deps.getCredits(),
-    formatText: (result) => formatCreditsText(result as TCreditBalance),
-  }, factoryDeps);
+  createCommandFromSpec(
+    {
+      name: CREDITS_COMMAND.name,
+      description: CREDITS_COMMAND.description,
+      flags: CREDITS_COMMAND.flags,
+      spinnerMessage: "Fetching credits balance...",
+      errorPrefix: `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix}`,
+      handler: () => deps.getCredits(),
+      formatText: (result) => formatCreditsText(result as TCreditBalance),
+    },
+    factoryDeps
+  );
 
 export const creditsCommand = createCreditsCommand();
