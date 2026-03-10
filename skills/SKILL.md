@@ -125,7 +125,7 @@ List past outputs:
 betterprompt outputs list                            # list recent outputs
 betterprompt outputs list --limit <n>               # cap results (default: 20)
 betterprompt outputs list --since <ISO-date>        # filter by date (e.g. 2025-01-01)
-betterprompt outputs list --status <status>         # filter by status (pending|running|complete|error)
+betterprompt outputs list --status <status>         # filter by status (queued|running|succeeded|failed)
 betterprompt outputs list --skill <slug>            # filter by skill slug
 ```
 
