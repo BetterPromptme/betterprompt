@@ -375,7 +375,7 @@ Notes:
 
 - On first run (no local cache), resources are fetched from remote and saved automatically.
 - When any API response includes `action-require: update-resources`, the CLI silently re-syncs resources in the background.
-- `--sync` skips attaching the `cli-agent` header so the sync call itself never triggers a re-sync loop.
+- Both `--remote` and `--sync` skip attaching the `cli-agent` header (which carries the resources hash), so neither call triggers a re-sync loop.
 
 ---
 

@@ -26,9 +26,6 @@ export const RESOURCES_ACTION_HEADER = {
 export const RESOURCES_MESSAGES = {
   failedPrefix: "Resources command failed:",
   unknownError: "Unknown error",
-  fetchingRemote: "Fetching resources from remote...",
-  readingLocal: "Reading local resources cache...",
-  noLocalCache: "No local cache found, fetching from remote...",
   autoSyncing: "Syncing resources...",
   remoteSyncMutuallyExclusive: "--remote and --sync are mutually exclusive.",
 } as const;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { RunStatus } from "../../enums";
+import { OUTPUTS_MESSAGES } from "../../constants";
 import {
   buildOutputsListQuery,
   createDefaultOutputsCommandDependencies,
@@ -25,7 +26,7 @@ describe("parseSinceToUnixMs", () => {
 
   it("throws for invalid date string", () => {
     expect(() => parseSinceToUnixMs("not-a-date")).toThrow(
-      "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds."
+      OUTPUTS_MESSAGES.invalidSince
     );
   });
 });
@@ -80,7 +81,7 @@ describe("buildOutputsListQuery", () => {
 
   it("throws for invalid --since value", () => {
     expect(() => buildOutputsListQuery({ since: "not-a-date" })).toThrow(
-      "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds."
+      OUTPUTS_MESSAGES.invalidSince
     );
   });
 });
