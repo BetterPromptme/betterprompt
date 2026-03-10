@@ -45,7 +45,7 @@ type TCommandSpecWithHandler<TOpts> = TCommandSpecBase<TOpts> & {
 };
 
 type TCommandSpecWithCustomAction<TOpts> = TCommandSpecBase<TOpts> & {
-  handler?: TCommandHandler<TOpts>;
+  handler?: never;
   customAction: (command: Command, deps: TCommandFactoryDeps) => void;
 };
 
