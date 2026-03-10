@@ -1,4 +1,6 @@
 export * from "./api";
+export * from "./command-factory";
+export * from "./command-spec";
 export * from "./auth";
 export * from "./bootstrap";
 export * from "./config";
