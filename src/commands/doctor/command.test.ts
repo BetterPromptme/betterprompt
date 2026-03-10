@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createDoctorCommand } from "./command";
@@ -63,6 +63,10 @@ const runDoctor = async (
 };
 
 describe("doctor command", () => {
+  afterEach(() => {
+    mock.restore();
+  });
+
   it("runs doctor checks and prints a human-readable result", async () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
@@ -105,6 +109,7 @@ describe("doctor command", () => {
       expect.stringContaining("fixed"),
       expect.objectContaining({ outputFormat: "text" })
     );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("prints structured results in --json mode", async () => {
