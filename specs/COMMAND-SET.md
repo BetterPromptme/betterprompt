@@ -340,6 +340,45 @@ bp outputs output_abc123 --remote
 
 ---
 
+## Resources
+
+Displays available models and run options. Results are cached locally at `~/.betterprompt/resources.json` and automatically kept in sync when the server signals an update via the `action-require: update-resources` response header.
+
+### Show available resources
+
+```bash
+bp resources \
+  [--remote] \
+  [--sync] \
+  [--models-only] \
+  [--json]
+```
+
+| Flag            | Type    | Default | Behavior                                                                      |
+| --------------- | ------- | ------- | ----------------------------------------------------------------------------- |
+| `--remote`      | boolean | `false` | Fetch from remote without updating the local cache.                           |
+| `--sync`        | boolean | `false` | Fetch from remote and save to local cache.                                    |
+| `--models-only` | boolean | `false` | Output only the models list (omit other resource sections).                   |
+| `--json`        | boolean | `false` | Print machine-readable JSON instead of human-friendly output.                 |
+
+Examples:
+
+```bash
+bp resources                  # read from local cache (fetches and caches on first run)
+bp resources --models-only    # list available models only
+bp resources --sync           # fetch from remote and update local cache
+bp resources --remote         # fetch from remote, do not update local cache
+bp resources --json           # output as JSON
+```
+
+Notes:
+
+- On first run (no local cache), resources are fetched from remote and saved automatically.
+- When any API response includes `action-require: update-resources`, the CLI silently re-syncs resources in the background.
+- Both `--remote` and `--sync` skip attaching the `cli-agent` header (which carries the resources hash), so neither call triggers a re-sync loop.
+
+---
+
 ## CLI management
 
 ### Update the CLI
@@ -542,6 +581,7 @@ bp skill info
 bp generate
 bp outputs
 bp outputs list
+bp resources            # list available models and run options
 bp config               # set / get / unset
 bp doctor
 ```

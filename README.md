@@ -170,6 +170,22 @@ bp outputs output_abc123 --out ./downloads
 bp outputs list --skill seo-blog-writer --since 2026-02-01 --limit 10
 ```
 
+### Resources
+
+```bash
+bp resources [--remote] [--sync] [--models-only] [--json]
+```
+
+Examples:
+
+```bash
+bp resources                  # show cached resources (fetches and caches on first run)
+bp resources --models-only    # list available models only
+bp resources --sync           # fetch from remote and update local cache
+bp resources --remote         # fetch from remote without updating local cache
+bp resources --json           # output as JSON
+```
+
 ### Config and Diagnostics
 
 ```bash
@@ -222,6 +238,7 @@ See [`specs/DIRECTORY-LAYOUT.md`](specs/DIRECTORY-LAYOUT.md) for the full specif
 ~/.betterprompt/
 ├── config.json
 ├── auth.json
+├── resources.json
 ├── outputs/
 │   ├── history.jsonl
 │   └── <runId>/
@@ -243,6 +260,7 @@ See [`specs/DIRECTORY-LAYOUT.md`](specs/DIRECTORY-LAYOUT.md) for the full specif
 
 - `config.json`: global CLI defaults (registry, output format, cache TTL, telemetry)
 - `auth.json`: session metadata and account state; actual secrets/tokens are stored in the OS keychain
+- `resources.json`: cached available models and run options; updated automatically on first run or via `bp resources --sync`
 - `outputs/`: run history index (`history.jsonl`) and per-run snapshots with request, response, metadata, and downloaded assets
 - `skills/`: one folder per installed skill containing `SKILL.md`, `manifest.json`, and `schema.json`
 - `logs/`: CLI operational logs (`cli.log`, `auth.log`, `errors.log`); separate from outputs

@@ -45,7 +45,8 @@ export const OUTPUTS_COMMAND = {
         },
         since: {
           flag: "--since <date>",
-          description: "Only include rows created at or after this date",
+          description:
+            'Filter by date — accepts ISO 8601 (e.g. "2024-01-01") or unix timestamp in ms',
         },
         json: SHARED_FLAGS.json,
       },
@@ -58,4 +59,6 @@ export const OUTPUTS_MESSAGES = {
   remoteHint: "Hint: retry with --remote to fetch from API.",
   emptyMessagePrefix: "No outputs found for run",
   runStatusPrefix: "Run status:",
+  invalidSince:
+    "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds.",
 } as const;

@@ -1,16 +1,3 @@
-/**
- * dependencies list:
- * - specs/COMMAND-SET.md
- * - src/services/outputs/service.test.ts
- * - src/commands/outputs/command.test.ts
- * - src/services/api/client.ts
- * - src/services/context/service.ts
- * - src/services/error-ux/service.ts
- * - src/services/output/service.ts
- * - src/services/persistence/service.ts
- * - src/services/run/service.ts
- * - src/services/scope/service.ts
- */
 import logSymbols from "log-symbols";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -19,7 +6,10 @@ import { getApiClient } from "../api/client";
 import { getCommandContext } from "../context/service";
 import { runTaskWithSpinner } from "../error-ux/service";
 import { printResult } from "../output/service";
-import { persistRunOutput, readPersistedRunOutput } from "../persistence/service";
+import {
+  persistRunOutput,
+  readPersistedRunOutput,
+} from "../persistence/service";
 import { getRun, validateRunId } from "../run/service";
 import { resolveScope } from "../scope/service";
 import { RunStatus } from "../../enums";
@@ -43,15 +33,31 @@ const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Failed,
 ];
 
+export const parseSinceToUnixMs = (value: string): number => {
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(OUTPUTS_MESSAGES.invalidSince);
+  }
+
+  return parsed;
+};
+
 export const buildOutputsListQuery = (
   filters: TOutputListFilters
 ): Record<string, string | number> => {
   const query: Record<string, string | number> = {};
 
-  // TODO: support in v2
-  // if (filters.status !== undefined) {
-  //   query.status = filters.status;
-  // }
+  if (filters.since !== undefined) {
+    query.since = parseSinceToUnixMs(filters.since);
+  }
+
+  if (filters.status !== undefined) {
+    query.status = filters.status;
+  }
 
   if (filters.limit !== undefined) {
     query.limit = filters.limit;
@@ -355,7 +361,8 @@ export const executeOutputsGet = async (
         scope,
         runId: run.runId,
         skillVersionId:
-          typeof run.promptVersionId === "string" && run.promptVersionId.length > 0
+          typeof run.promptVersionId === "string" &&
+          run.promptVersionId.length > 0
             ? run.promptVersionId
             : "-",
         request: {
@@ -431,7 +438,9 @@ export const executeOutputsList = async (
     deps.printResult(formatTable(rows), ctx);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    deps.error(`${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix} ${errorMessage}`);
+    deps.error(
+      `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix} ${errorMessage}`
+    );
     deps.setExitCode(1);
   }
 };

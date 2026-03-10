@@ -1,4 +1,6 @@
 export * from "./api";
+export * from "./command-factory";
+export * from "./command-spec";
 export * from "./auth";
 export * from "./bootstrap";
 export * from "./config";
@@ -12,6 +14,7 @@ export * from "./logger";
 export * from "./outputs";
 export * from "./persistence";
 export * from "./reset";
+export * from "./resources";
 export * from "./run";
 export * from "./scope";
 export * from "./search";

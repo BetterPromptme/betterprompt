@@ -10,5 +10,4 @@ export const WHOAMI_COMMAND = {
 
 export const WHOAMI_MESSAGES = {
   failedPrefix: "Whoami command failed:",
-  unknownError: "Unknown error",
 } as const;

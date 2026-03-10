@@ -1,4 +1,11 @@
-import { API_CONFIG, AUTH_MESSAGES } from "../../constants";
+import { readFile } from "node:fs/promises";
+import ora from "ora";
+import {
+  API_CONFIG,
+  AUTH_MESSAGES,
+  RESOURCES_ACTION_HEADER,
+  RESOURCES_MESSAGES,
+} from "../../constants";
 import type {
   TApiClientConfig,
   TApiRequestOptions,
@@ -7,6 +14,11 @@ import type {
 } from "../../types/api";
 import { readApiKeyFromAuthConfig } from "../auth/service";
 import { getLoadedSystemConfig } from "../config/service";
+import {
+  fetchResources,
+  resolveResourcesFilePath,
+  saveLocalResources,
+} from "../resources/service";
 
 export type {
   TApiClientConfig,
@@ -126,6 +138,38 @@ const formatAuthorizationValue = (token: string, scheme: string): string => {
 const resolveRuntimeBaseUrl = (): string =>
   getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl;
 
+let modelsHashPromise: Promise<string | null> | undefined;
+let syncInFlight: Promise<void> | undefined;
+
+const getModelsHash = (): Promise<string | null> => {
+  modelsHashPromise ??= readFile(resolveResourcesFilePath(), "utf8")
+    .then((raw) => (JSON.parse(raw) as { hash?: string }).hash ?? null)
+    .catch(() => null);
+  return modelsHashPromise;
+};
+
+const handleUpdateResourcesAction = (apiClient: ApiClient): void => {
+  if (syncInFlight) return;
+  syncInFlight = (async () => {
+    const spinner = ora({
+      text: RESOURCES_MESSAGES.autoSyncing,
+      isEnabled: process.stderr.isTTY,
+    }).start();
+    try {
+      const data = await fetchResources({
+        get: (p) => apiClient.get(p, { _skipModelsHash: true }),
+      });
+      await saveLocalResources(data);
+      modelsHashPromise = Promise.resolve(data.hash ?? null);
+    } catch {
+      // silently swallow errors
+    } finally {
+      spinner.stop();
+      syncInFlight = undefined;
+    }
+  })();
+};
+
 export class ApiClient {
   private config: TResolvedConfig;
 
@@ -145,6 +189,13 @@ export class ApiClient {
     const requestUrl = this.buildUrl(path, options.query);
     const timeoutMs = options.timeoutMs ?? this.config.timeoutMs;
     const headers = mergeHeaders(this.config.headers, options.headers);
+
+    if (!options._skipModelsHash) {
+      const modelsHash = await getModelsHash();
+      if (modelsHash) {
+        headers.set("cli-agent", `resources_hash=${modelsHash}`);
+      }
+    }
 
     if (!headers.has(this.config.authHeader)) {
       const apiKey = await this.config.getApiKey?.();
@@ -177,8 +228,12 @@ export class ApiClient {
     const body = this.serializeBody(options.body, headers, method);
 
     try {
+      const fetchOptions = { ...options } as Record<string, unknown>;
+      if ("_skipModelsHash" in fetchOptions) {
+        delete fetchOptions["_skipModelsHash"];
+      }
       const response = await this.config.fetch(requestUrl, {
-        ...options,
+        ...(fetchOptions as RequestInit),
         method,
         headers,
         body,
@@ -204,6 +259,14 @@ export class ApiClient {
           method,
           requestUrl,
         });
+      }
+
+      if (
+        !options._skipModelsHash &&
+        response.headers.get(RESOURCES_ACTION_HEADER.key) ===
+          RESOURCES_ACTION_HEADER.updateResources
+      ) {
+        void handleUpdateResourcesAction(this);
       }
 
       if (options.parseAs === "response") {
@@ -376,4 +439,6 @@ export const getApiClient = (config: TApiClientConfig = {}): ApiClient => {
 
 export const resetApiClientForTests = (): void => {
   apiClientInstance = undefined;
+  modelsHashPromise = undefined;
+  syncInFlight = undefined;
 };

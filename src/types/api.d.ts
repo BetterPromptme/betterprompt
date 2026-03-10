@@ -28,6 +28,8 @@ export type TApiRequestOptions = Omit<
   query?: Record<string, string | number | boolean | null | undefined>;
   signal?: AbortSignal;
   timeoutMs?: number;
+  /** Internal: skip attaching the cli-agent models_hash header */
+  _skipModelsHash?: boolean;
 };
 
 export type TApiResponse<TData = unknown> = {
