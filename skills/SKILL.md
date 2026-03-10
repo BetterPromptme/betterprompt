@@ -213,30 +213,6 @@ betterprompt resources --json                            # machine-readable JSON
 
 Note: `--remote` and `--sync` are mutually exclusive.
 
-## Run (Low-Level)
-
-Execute a prompt version directly or retrieve a run by ID:
-
-```sh
-# Execute a prompt version
-betterprompt run exec --promptVersionId <uuid> --inputs '<json>' [--model <model>] [--runOptions '<json>']
-
-# Get a run by ID
-betterprompt run get --runId <uuid>
-```
-
-`--inputs` accepts structured JSON:
-
-```json
-{"textInputs": {"key": "value"}, "imageInputs": []}
-```
-
-`--runOptions` accepts provider-specific options:
-
-```json
-{"reasoningEffort": "high", "quality": "hd"}
-```
-
 ## CLI Maintenance
 
 ```sh
