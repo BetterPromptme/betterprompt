@@ -37,7 +37,10 @@ export const loadLocalResources = async (
     const raw = await readFile(filePath, "utf8");
     return JSON.parse(raw) as TResourcesData;
   } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") {
+    if (
+      (error as { code?: string }).code === "ENOENT" ||
+      error instanceof SyntaxError
+    ) {
       return null;
     }
     throw error;
