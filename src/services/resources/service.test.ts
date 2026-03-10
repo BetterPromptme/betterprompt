@@ -95,6 +95,18 @@ describe("loadLocalResources", () => {
 
     expect(result).toBeNull();
   });
+
+  it("returns null when file contains corrupted JSON", async () => {
+    const tempDir = await createTempDir();
+    const filePath = path.join(tempDir, "resources.json");
+
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(filePath, "not valid json{{{");
+
+    const result = await loadLocalResources(filePath);
+
+    expect(result).toBeNull();
+  });
 });
 
 describe("saveLocalResources", () => {
