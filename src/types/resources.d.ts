@@ -17,13 +17,6 @@ export type TResourcesData = {
   };
 };
 
-export type TResourcesOpts = {
-  remote?: boolean;
-  sync?: boolean;
-  modelsOnly?: boolean;
-  json?: boolean;
-};
-
 export type TResourcesDependencies = {
   fetchResources: (opts?: { skipModelsHash?: boolean }) => Promise<TResourcesData>;
   loadLocalResources: () => Promise<TResourcesData | null>;
