@@ -29,11 +29,25 @@ const formatModelLine = (model: TResourceModel): string => {
   return `${header}\n    ${runOptions}`;
 };
 
-const formatResourcesText = (data: TResourcesData): string =>
-  data.resources.models.map(formatModelLine).join("\n\n");
-
 const formatModelsText = (models: TResourceModel[]): string =>
   models.map(formatModelLine).join("\n\n");
+
+type TSectionFormatter = (items: unknown) => string;
+
+const sectionFormatters: Record<string, TSectionFormatter> = {
+  models: (items) => formatModelsText(items as TResourceModel[]),
+};
+
+const formatResourcesText = (data: TResourcesData): string =>
+  Object.entries(data.resources)
+    .map(([section, items]) => {
+      const formatter = sectionFormatters[section];
+      const body = formatter
+        ? formatter(items)
+        : JSON.stringify(items, null, 2);
+      return `${section}\n${body}`;
+    })
+    .join("\n\n");
 
 const defaultDeps: TResourcesDependencies = {
   fetchResources: (opts) =>
@@ -83,6 +97,14 @@ export const createResourcesCommand = (
         modelsOnly?: boolean;
       }>();
 
+      if (opts.remote && opts.sync) {
+        deps.error(
+          `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${RESOURCES_MESSAGES.remoteSyncMutuallyExclusive}`
+        );
+        deps.setExitCode(1);
+        return;
+      }
+
       let data: TResourcesData;
 
       if (opts.remote) {
@@ -95,7 +117,7 @@ export const createResourcesCommand = (
         if (local !== null) {
           data = local;
         } else {
-          data = await deps.fetchResources();
+          data = await deps.fetchResources({ skipModelsHash: true });
           await deps.saveLocalResources(data);
         }
       }

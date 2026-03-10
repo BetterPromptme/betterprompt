@@ -30,4 +30,5 @@ export const RESOURCES_MESSAGES = {
   readingLocal: "Reading local resources cache...",
   noLocalCache: "No local cache found, fetching from remote...",
   autoSyncing: "Syncing resources...",
+  remoteSyncMutuallyExclusive: "--remote and --sync are mutually exclusive.",
 } as const;
