@@ -10,5 +10,4 @@ export const CREDITS_COMMAND = {
 
 export const CREDITS_MESSAGES = {
   failedPrefix: "Credits command failed:",
-  unknownError: "Unknown error",
 } as const;
