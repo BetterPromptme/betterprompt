@@ -13,6 +13,7 @@ export type TResourcesData = {
   hash: string;
   resources: {
     models: TResourceModel[];
+    [key: string]: unknown;
   };
 };
 
