@@ -23,13 +23,18 @@ export type TCommandHandler<TOpts> = (params: {
   setExitCode: (code: number) => void;
 }) => Promise<unknown>;
 
-type TCommandSpecBase<TOpts> = {
+type TCommandSpecCore = {
   name: string;
   description: string;
   flags?: Record<string, TFlagSpec>;
   arguments?: TArgumentSpec[];
-  errorPrefix?: string;
   helpText?: string;
+};
+
+type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
+  handler: TCommandHandler<TOpts>;
+  customAction?: never;
+  errorPrefix?: string;
   spinnerMessage?: string;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
   validate?: (params: {
@@ -39,19 +44,14 @@ type TCommandSpecBase<TOpts> = {
   }) => string | undefined;
 };
 
-type TCommandSpecWithHandler<TOpts> = TCommandSpecBase<TOpts> & {
-  handler: TCommandHandler<TOpts>;
-  customAction?: never;
-};
-
-type TCommandSpecWithCustomAction<TOpts> = TCommandSpecBase<TOpts> & {
+type TCommandSpecWithCustomAction = TCommandSpecCore & {
   handler?: never;
   customAction: (command: Command, deps: TCommandFactoryDeps) => void;
 };
 
 export type TCommandSpec<TOpts = Record<string, unknown>> =
   | TCommandSpecWithHandler<TOpts>
-  | TCommandSpecWithCustomAction<TOpts>;
+  | TCommandSpecWithCustomAction;
 
 export type TParentCommandSpec = {
   name: string;
