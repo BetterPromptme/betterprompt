@@ -97,6 +97,14 @@ export const createResourcesCommand = (
         modelsOnly?: boolean;
       }>();
 
+      if (opts.remote && opts.sync) {
+        deps.error(
+          `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${RESOURCES_MESSAGES.remoteSyncMutuallyExclusive}`
+        );
+        deps.setExitCode(1);
+        return;
+      }
+
       let data: TResourcesData;
 
       if (opts.remote) {
