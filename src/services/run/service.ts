@@ -1,4 +1,4 @@
-import { RUN_MESSAGES } from "../../constants";
+import { GENERATE_MESSAGES } from "../../constants";
 import type { ApiClient } from "../api/client";
 import type {
   TRunInputs,
@@ -9,11 +9,11 @@ import type {
 
 export const validateRunPayload = (payload: TRunPayload): void => {
   if (!payload.promptVersionId.trim()) {
-    throw new Error(RUN_MESSAGES.invalidPromptVersionId);
+    throw new Error(GENERATE_MESSAGES.invalidPromptVersionId);
   }
 
   if (payload.inputs === undefined) {
-    throw new Error(RUN_MESSAGES.inputsRequired);
+    throw new Error(GENERATE_MESSAGES.inputsRequired);
   }
 };
 
@@ -22,11 +22,11 @@ export const parseInputsJson = (raw: string): TRunInputs => {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(RUN_MESSAGES.invalidInputsJson);
+    throw new Error(GENERATE_MESSAGES.invalidInputsJson);
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(RUN_MESSAGES.invalidInputsJson);
+    throw new Error(GENERATE_MESSAGES.invalidInputsJson);
   }
 
   const obj = parsed as Record<string, unknown>;
@@ -54,11 +54,11 @@ export const parseRunOptionsJson = (
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error(RUN_MESSAGES.invalidRunOptionsJson);
+    throw new Error(GENERATE_MESSAGES.invalidRunOptionsJson);
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(RUN_MESSAGES.invalidRunOptionsJson);
+    throw new Error(GENERATE_MESSAGES.invalidRunOptionsJson);
   }
 
   return parsed as TRunOptions;
@@ -77,7 +77,7 @@ type TGetRunApiClient = Pick<ApiClient, "get">;
 
 export const validateRunId = (runId: string): void => {
   if (!runId.trim()) {
-    throw new Error(RUN_MESSAGES.invalidRunId);
+    throw new Error(GENERATE_MESSAGES.invalidRunId);
   }
 };
 

@@ -8,7 +8,6 @@ export * from "./generate";
 export * from "./outputs";
 export * from "./reset";
 export * from "./resources";
-export * from "./run";
 export * from "./search";
 export * from "./skills";
 export * from "./update";

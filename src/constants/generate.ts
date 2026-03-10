@@ -49,4 +49,9 @@ export const GENERATE_MESSAGES = {
   inputMissingArgumentFragment: "--input <key=value>",
   inputMissingArgumentHint:
     "Hint: pass --input as key=value (example: --input topic=ai).\n",
+  invalidPromptVersionId: "promptVersionId must not be empty.",
+  inputsRequired: "You must provide --inputs.",
+  invalidInputsJson: "inputs must be a valid JSON object.",
+  invalidRunOptionsJson: "runOptions must be a valid JSON object.",
+  invalidRunId: "runId must not be empty.",
 } as const;
