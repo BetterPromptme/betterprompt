@@ -72,6 +72,7 @@ describe("resources command", () => {
       await runResources(["--remote"], deps);
 
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
+      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
       expect(deps.loadLocalResources).not.toHaveBeenCalled();
       expect(deps.saveLocalResources).not.toHaveBeenCalled();
       expect(deps.printResult).toHaveBeenCalledTimes(1);
@@ -86,11 +87,29 @@ describe("resources command", () => {
       await runResources(["--sync"], deps);
 
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
+      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
       expect(deps.loadLocalResources).not.toHaveBeenCalled();
       expect(deps.saveLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.saveLocalResources).toHaveBeenCalledWith(sampleData);
       expect(deps.printResult).toHaveBeenCalledTimes(1);
       expect(deps.error).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("--remote --sync flags together", () => {
+    it("errors with mutually exclusive message and sets exit code 1", async () => {
+      const deps = createDeps();
+
+      await runResources(["--remote", "--sync"], deps);
+
+      expect(deps.fetchResources).not.toHaveBeenCalled();
+      expect(deps.saveLocalResources).not.toHaveBeenCalled();
+      expect(deps.printResult).not.toHaveBeenCalled();
+      expect(deps.error).toHaveBeenCalledTimes(1);
+      expect(deps.error).toHaveBeenCalledWith(
+        expect.stringContaining("--remote and --sync are mutually exclusive.")
+      );
+      expect(deps.setExitCode).toHaveBeenCalledWith(1);
     });
   });
 
