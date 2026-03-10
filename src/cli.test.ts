@@ -17,6 +17,7 @@ const expectedTopLevelCommands = [
   "skill",
   "update",
   "reset",
+  "resources",
 ];
 
 describe("CLI run deprecation contract", () => {

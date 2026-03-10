@@ -6,6 +6,7 @@ import { doctorCommand } from "./commands/doctor/command";
 import { generateCommand } from "./commands/generate/command";
 import { outputsCommand } from "./commands/outputs/command";
 import { resetCommand } from "./commands/reset/command";
+import { resourcesCommand } from "./commands/resources/command";
 import { searchCommand } from "./commands/search/command";
 import { skillCommand } from "./commands/skill/command";
 import { updateCommand } from "./commands/update/command";
@@ -49,6 +50,7 @@ export const createProgram = (): Command => {
   program.addCommand(skillCommand);
   program.addCommand(updateCommand);
   program.addCommand(resetCommand);
+  program.addCommand(resourcesCommand);
 
   return program;
 };

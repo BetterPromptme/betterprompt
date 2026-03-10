@@ -7,6 +7,7 @@ export * from "./shared-flags";
 export * from "./generate";
 export * from "./outputs";
 export * from "./reset";
+export * from "./resources";
 export * from "./run";
 export * from "./search";
 export * from "./skills";
