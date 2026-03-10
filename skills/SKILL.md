@@ -42,7 +42,9 @@ Manage settings:
 
 ```sh
 betterprompt config get           # show all config
+betterprompt config get <key>     # get a specific key (apiKey | apiBaseUrl)
 betterprompt config set <key> <value>
+betterprompt config unset <key>   # remove a config value
 ```
 
 Diagnostics and identity:
@@ -117,6 +119,7 @@ Retrieve outputs for a specific run:
 betterprompt outputs <run-id>             # fetch outputs (returns immediately if ready)
 betterprompt outputs <run-id> --sync      # wait for completion, then return
 betterprompt outputs <run-id> --remote    # force fetch from remote (bypass local cache)
+betterprompt outputs get <run-id>         # same as above (explicit subcommand form)
 ```
 
 List past outputs:
@@ -124,19 +127,19 @@ List past outputs:
 ```sh
 betterprompt outputs list                            # list recent outputs
 betterprompt outputs list --limit <n>               # cap results (default: 20)
-betterprompt outputs list --since <ISO-date>        # filter by date (e.g. 2025-01-01)
+betterprompt outputs list --since <ISO-date>        # filter by date (ISO 8601 or unix timestamp in ms)
 betterprompt outputs list --status <status>         # filter by status (queued|running|succeeded|failed)
-betterprompt outputs list --skill <slug>            # filter by skill slug
+betterprompt outputs list --remote                  # fetch list from remote API
 ```
 
 Output types:
 
-| Type  | Value |
-| ----- | ----- |
-| TEXT  | 0     |
-| IMAGE | 1     |
-| ERROR | 2     |
-| VIDEO | 3     |
+| Type  | Value   |
+| ----- | ------- |
+| TEXT  | "text"  |
+| IMAGE | "image" |
+| ERROR | "error" |
+| VIDEO | "video" |
 
 ## Skill Management
 
@@ -145,6 +148,7 @@ Install a skill:
 ```sh
 betterprompt skill install <skill-slug>                  # install globally (default)
 betterprompt skill install <skill-slug> --project        # install in current project
+betterprompt skill install <skill-slug> --overwrite      # overwrite an existing installed skill
 ```
 
 List installed skills:
@@ -158,6 +162,7 @@ Update skills:
 
 ```sh
 betterprompt skill update <skill-slug>                   # update one skill
+betterprompt skill update <skill-slug> --force           # re-install even if already at latest version
 betterprompt skill update --all                          # update all installed skills
 ```
 
@@ -174,10 +179,69 @@ These flags work on most commands:
 ```sh
 --project       scope to the current project (vs global)
 --global        scope to global install
+--dir <path>    use an explicit working directory
+--registry <url> override API registry endpoint
 --json          structured JSON output (machine-readable)
---quiet         suppress informational output
---verbose       show full debug/trace output
---yes           auto-confirm prompts
+--quiet         reduce non-essential output
+--verbose       enable verbose output
+--no-color      disable ANSI colors
+--yes           answer yes to all confirmations
+```
+
+## Top-Level Search
+
+A convenience alias for `betterprompt skill search`:
+
+```sh
+betterprompt search "<query>"                            # full-text search
+betterprompt search "<query>" --type text                # filter by output type: text | image | video
+betterprompt search "<query>" --author <name>            # filter by author
+betterprompt search "<query>" --json                     # machine-readable JSON output
+```
+
+## Resources
+
+Show available models and resources:
+
+```sh
+betterprompt resources                                   # show available models and resources
+betterprompt resources --models-only                     # output only the models list
+betterprompt resources --remote                          # fetch from remote API
+betterprompt resources --sync                            # sync resources locally
+betterprompt resources --json                            # machine-readable JSON output
+```
+
+Note: `--remote` and `--sync` are mutually exclusive.
+
+## Run (Low-Level)
+
+Execute a prompt version directly or retrieve a run by ID:
+
+```sh
+# Execute a prompt version
+betterprompt run exec --promptVersionId <uuid> --inputs '<json>' [--model <model>] [--runOptions '<json>']
+
+# Get a run by ID
+betterprompt run get --runId <uuid>
+```
+
+`--inputs` accepts structured JSON:
+
+```json
+{"textInputs": {"key": "value"}, "imageInputs": []}
+```
+
+`--runOptions` accepts provider-specific options:
+
+```json
+{"reasoningEffort": "high", "quality": "hd"}
+```
+
+## CLI Maintenance
+
+```sh
+betterprompt update                                      # check for CLI updates and install
+betterprompt reset                                       # reset ~/.betterprompt directory (prompts for confirmation)
 ```
 
 ## OpenClaw Agent Integration
@@ -306,7 +370,7 @@ betterprompt outputs <run-id> --sync --json
 
 ```sh
 betterprompt outputs <run-id> --json                  # fetch by run id
-betterprompt outputs list --skill <slug> --json       # list past outputs for a skill
+betterprompt outputs list --json                      # list past outputs
 ```
 
 ### Rules
