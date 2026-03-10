@@ -40,9 +40,7 @@ export const parseSinceToUnixMs = (value: string): number => {
 
   const parsed = Date.parse(value);
   if (!Number.isFinite(parsed)) {
-    throw new Error(
-      "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds."
-    );
+    throw new Error(OUTPUTS_MESSAGES.invalidSince);
   }
 
   return parsed;
