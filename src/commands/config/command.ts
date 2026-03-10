@@ -1,7 +1,11 @@
 import { Command, InvalidArgumentError } from "commander";
 import logSymbols from "log-symbols";
 import ora from "ora";
-import { AUTH_MESSAGES, CONFIG_COMMAND, CONFIG_MESSAGES } from "../../constants";
+import {
+  AUTH_MESSAGES,
+  CONFIG_COMMAND,
+  CONFIG_MESSAGES,
+} from "../../constants";
 import { ApiClient } from "../../services/api/client";
 import { getCommandContext } from "../../services/context/service";
 import {
@@ -30,9 +34,7 @@ const defaultDeps: TConfigCommandDependencies = {
     if (typeof apiKey === "string" && apiKey.trim()) {
       values.apiKey = apiKey;
     }
-    const keyList: TSystemConfigKey[] = [
-      "apiBaseUrl",
-    ];
+    const keyList: TSystemConfigKey[] = ["apiBaseUrl"];
 
     for (const key of keyList) {
       const currentValue = await getSystemConfigValue(key);
@@ -50,7 +52,9 @@ const defaultDeps: TConfigCommandDependencies = {
   },
   unsetValue: async (key) => {
     if (key === "apiKey") {
-      throw new Error('Cannot unset "apiKey" via config. Re-run `betterprompt auth`.');
+      throw new Error(
+        'Cannot unset "apiKey" via config. Re-run `betterprompt auth`.'
+      );
     }
     return unsetSystemConfigValue(key);
   },
@@ -78,11 +82,13 @@ const defaultDeps: TConfigCommandDependencies = {
   },
 };
 
+const maskApiKey = (value: string): string => {
+  if (value.length <= 4) return "****";
+  return `${"*".repeat(value.length - 4)}${value.slice(-4)}`;
+};
+
 const parseConfigKey = (value: string): TSystemConfigKey => {
-  if (
-    value === "apiKey" ||
-    value === "apiBaseUrl"
-  ) {
+  if (value === "apiKey" || value === "apiBaseUrl") {
     return value;
   }
 
@@ -98,7 +104,10 @@ export const createConfigCommand = (
 
   const command = new Command(CONFIG_COMMAND.name)
     .description(CONFIG_COMMAND.description)
-    .option(CONFIG_COMMAND.flags.json.flag, CONFIG_COMMAND.flags.json.description)
+    .option(
+      CONFIG_COMMAND.flags.json.flag,
+      CONFIG_COMMAND.flags.json.description
+    )
     .addHelpText("after", CONFIG_MESSAGES.helpText);
 
   command
@@ -106,56 +115,84 @@ export const createConfigCommand = (
     .description(configGet.description)
     .usage("[options] [<key>]")
     .option(configGet.flags.json.flag, configGet.flags.json.description)
-    .argument(configGet.arguments.key.name, configGet.arguments.key.description, parseConfigKey)
-    .action(async (key: TSystemConfigKey | undefined, _opts: Record<string, unknown>, command: Command) => {
-      try {
-        const ctx = getCommandContext(command);
-        if (!key) {
-          const values = await deps.getAllValues();
-          const entries = Object.entries(values).filter(
-            ([, value]) => typeof value === "string" && value.trim()
-          );
+    .argument(
+      configGet.arguments.key.name,
+      configGet.arguments.key.description,
+      parseConfigKey
+    )
+    .action(
+      async (
+        key: TSystemConfigKey | undefined,
+        _opts: Record<string, unknown>,
+        command: Command
+      ) => {
+        try {
+          const ctx = getCommandContext(command);
+          if (!key) {
+            const values = await deps.getAllValues();
+            const entries = Object.entries(values).filter(
+              ([, value]) => typeof value === "string" && value.trim()
+            );
 
+            if (ctx.outputFormat === "json") {
+              const masked = { ...values };
+              if (typeof masked.apiKey === "string") {
+                masked.apiKey = maskApiKey(masked.apiKey);
+              }
+              deps.log(JSON.stringify(masked));
+              return;
+            }
+
+            if (!entries.length) {
+              deps.log("No config values set.");
+              return;
+            }
+
+            for (const [entryKey, value] of entries) {
+              const display =
+                entryKey === "apiKey" ? maskApiKey(value as string) : value;
+              deps.log(`${entryKey}=${display}`);
+            }
+            return;
+          }
+
+          const value = await deps.getValue(key);
+          if (typeof value !== "string" || !value.trim()) {
+            throw new Error(CONFIG_MESSAGES.missingValueError(key));
+          }
+          const displayValue = key === "apiKey" ? maskApiKey(value) : value;
           if (ctx.outputFormat === "json") {
-            deps.log(JSON.stringify(values));
-            return;
+            deps.log(JSON.stringify({ key, value: displayValue }));
+          } else {
+            deps.log(`${logSymbols.info} ${displayValue}`);
           }
-
-          if (!entries.length) {
-            deps.log("No config values set.");
-            return;
-          }
-
-          for (const [entryKey, value] of entries) {
-            deps.log(`${entryKey}=${value}`);
-          }
-          return;
+        } catch (error) {
+          const fallbackPath = deps.resolveConfigPath(key);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          deps.error(
+            `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
+          );
+          deps.error(
+            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
+          );
+          deps.setExitCode(1);
         }
-
-        const value = await deps.getValue(key);
-        if (typeof value !== "string" || !value.trim()) {
-          throw new Error(CONFIG_MESSAGES.missingValueError(key));
-        }
-        if (ctx.outputFormat === "json") {
-          deps.log(JSON.stringify({ key, value }));
-        } else {
-          deps.log(`${logSymbols.info} ${value}`);
-        }
-      } catch (error) {
-        const fallbackPath = deps.resolveConfigPath(key);
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        deps.error(`${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`);
-        deps.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
-        deps.setExitCode(1);
       }
-    });
+    );
 
   command
     .command(configSet.name)
     .description(configSet.description)
-    .argument(configSet.arguments.key.name, configSet.arguments.key.description, parseConfigKey)
-    .argument(configSet.arguments.value.name, configSet.arguments.value.description)
+    .argument(
+      configSet.arguments.key.name,
+      configSet.arguments.key.description,
+      parseConfigKey
+    )
+    .argument(
+      configSet.arguments.value.name,
+      configSet.arguments.value.description
+    )
     .action(
       async (
         key: TSystemConfigKey,
@@ -163,40 +200,48 @@ export const createConfigCommand = (
         _opts: Record<string, unknown>,
         command: Command
       ) => {
-      try {
-        const ctx = getCommandContext(command);
-        if (key === "apiKey") {
-          const spinner = ora(CONFIG_MESSAGES.verifyingApiKey).start();
-          try {
-            await deps.verifyApiKey(value);
-            spinner.succeed(CONFIG_MESSAGES.verifiedApiKey);
-          } catch (error) {
-            spinner.fail(CONFIG_MESSAGES.failedVerifyApiKey);
-            throw error;
+        try {
+          const ctx = getCommandContext(command);
+          if (key === "apiKey") {
+            const spinner = ora(CONFIG_MESSAGES.verifyingApiKey).start();
+            try {
+              await deps.verifyApiKey(value);
+              spinner.succeed(CONFIG_MESSAGES.verifiedApiKey);
+            } catch (error) {
+              spinner.fail(CONFIG_MESSAGES.failedVerifyApiKey);
+              throw error;
+            }
           }
-        }
 
-        await deps.setValue(key, value);
-        if (ctx.outputFormat === "json") {
-          deps.log(JSON.stringify({ success: true, key }));
-        } else {
-          deps.log(`${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`);
+          await deps.setValue(key, value);
+          if (ctx.outputFormat === "json") {
+            deps.log(JSON.stringify({ success: true, key }));
+          } else {
+            deps.log(`${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`);
+          }
+        } catch (error) {
+          const fallbackPath = deps.resolveConfigPath(key);
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          deps.error(
+            `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
+          );
+          deps.error(
+            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
+          );
+          deps.setExitCode(1);
         }
-      } catch (error) {
-        const fallbackPath = deps.resolveConfigPath(key);
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        deps.error(`${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`);
-        deps.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
-        deps.setExitCode(1);
       }
-    }
     );
 
   command
     .command(configUnset.name)
     .description(configUnset.description)
-    .argument(configUnset.arguments.key.name, configUnset.arguments.key.description, parseConfigKey)
+    .argument(
+      configUnset.arguments.key.name,
+      configUnset.arguments.key.description,
+      parseConfigKey
+    )
     .action(
       async (
         key: TSystemConfigKey,
@@ -215,8 +260,12 @@ export const createConfigCommand = (
           const fallbackPath = deps.resolveConfigPath(key);
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          deps.error(`${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`);
-          deps.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
+          deps.error(
+            `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
+          );
+          deps.error(
+            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
+          );
           deps.setExitCode(1);
         }
       }

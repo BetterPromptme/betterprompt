@@ -41,7 +41,7 @@ describe("config command", () => {
     mock.restore();
   });
 
-  it("gets apiKey value", async () => {
+  it("gets apiKey value masked", async () => {
     const deps = createDeps({
       getValue: mock(async () => "bp_live_123"),
     });
@@ -49,7 +49,8 @@ describe("config command", () => {
     await runConfig(["get", "apiKey"], deps);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiKey");
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("bp_live_123"));
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("*******_123"));
+    expect(deps.log).not.toHaveBeenCalledWith(expect.stringContaining("bp_live_123"));
   });
 
   it("gets apiBaseUrl value", async () => {
@@ -63,7 +64,7 @@ describe("config command", () => {
     expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("https://betterprompt.me/api"));
   });
 
-  it("outputs JSON for get when --json is provided", async () => {
+  it("outputs JSON for get when --json is provided with masked apiKey", async () => {
     const deps = createDeps({
       getValue: mock(async () => "bp_live_123"),
     });
@@ -72,7 +73,7 @@ describe("config command", () => {
 
     expect(deps.getValue).toHaveBeenCalledWith("apiKey");
     expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify({ key: "apiKey", value: "bp_live_123" })
+      JSON.stringify({ key: "apiKey", value: "*******_123" })
     );
   });
 
@@ -87,7 +88,7 @@ describe("config command", () => {
     await runConfig(["get"], deps);
 
     expect(deps.getAllValues).toHaveBeenCalledTimes(1);
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("apiKey=bp_live_123"));
+    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("apiKey=*******_123"));
     expect(deps.log).toHaveBeenCalledWith(
       expect.stringContaining("apiBaseUrl=https://betterprompt.me/api")
     );
@@ -96,6 +97,7 @@ describe("config command", () => {
   it("outputs full config object in JSON mode when no key is provided", async () => {
     const deps = createDeps({
       getAllValues: mock(async () => ({
+        apiKey: "bp_live_123",
         apiBaseUrl: "https://betterprompt.me/api",
       })),
     });
@@ -104,7 +106,7 @@ describe("config command", () => {
 
     expect(deps.getAllValues).toHaveBeenCalledTimes(1);
     expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify({ apiBaseUrl: "https://betterprompt.me/api" })
+      JSON.stringify({ apiKey: "*******_123", apiBaseUrl: "https://betterprompt.me/api" })
     );
   });
 
