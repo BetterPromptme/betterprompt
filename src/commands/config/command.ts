@@ -78,6 +78,11 @@ const defaultDeps: TConfigCommandDependencies = {
   },
 };
 
+const maskApiKey = (value: string): string => {
+  if (value.length <= 4) return "****";
+  return `${"*".repeat(value.length - 4)}${value.slice(-4)}`;
+};
+
 const parseConfigKey = (value: string): TSystemConfigKey => {
   if (
     value === "apiKey" ||
@@ -117,7 +122,11 @@ export const createConfigCommand = (
           );
 
           if (ctx.outputFormat === "json") {
-            deps.log(JSON.stringify(values));
+            const masked = { ...values };
+            if (typeof masked.apiKey === "string") {
+              masked.apiKey = maskApiKey(masked.apiKey);
+            }
+            deps.log(JSON.stringify(masked));
             return;
           }
 
@@ -127,7 +136,8 @@ export const createConfigCommand = (
           }
 
           for (const [entryKey, value] of entries) {
-            deps.log(`${entryKey}=${value}`);
+            const display = entryKey === "apiKey" ? maskApiKey(value as string) : value;
+            deps.log(`${entryKey}=${display}`);
           }
           return;
         }
@@ -136,10 +146,11 @@ export const createConfigCommand = (
         if (typeof value !== "string" || !value.trim()) {
           throw new Error(CONFIG_MESSAGES.missingValueError(key));
         }
+        const displayValue = key === "apiKey" ? maskApiKey(value) : value;
         if (ctx.outputFormat === "json") {
-          deps.log(JSON.stringify({ key, value }));
+          deps.log(JSON.stringify({ key, value: displayValue }));
         } else {
-          deps.log(`${logSymbols.info} ${value}`);
+          deps.log(`${logSymbols.info} ${displayValue}`);
         }
       } catch (error) {
         const fallbackPath = deps.resolveConfigPath(key);
