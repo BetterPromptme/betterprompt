@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createDoctorCommand } from "./command";
 import type { TDoctorCommandDependencies } from "./types";
@@ -22,19 +23,6 @@ const createDeps = (
   overrides: Partial<TDoctorCommandDependencies> = {}
 ): TDoctorCommandDependencies => ({
   runDoctorChecks: mock(async () => createResult()),
-  ...overrides,
-});
-
-const createFactoryDeps = (
-  overrides: Partial<TCommandFactoryDeps> = {}
-): Partial<TCommandFactoryDeps> => ({
-  createSpinner: mock(() => {
-    const s = { start: mock(() => s), succeed: mock(() => s), fail: mock(() => s) };
-    return s;
-  }),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
