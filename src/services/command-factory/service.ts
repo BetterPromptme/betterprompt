@@ -3,9 +3,37 @@ import { getCommandContext } from "../context/service";
 import { runTaskWithSpinner } from "../error-ux/service";
 import { createDefaultCommandFactoryDeps } from "./deps";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import type { TCommandSpec, TParentCommandSpec } from "../../types/command-spec";
+import type {
+  TCommandSpec,
+  TParentCommandSpec,
+  TFlagSpec,
+} from "../../types/command-spec";
 
 const DEFAULT_ERROR_PREFIX = "Command failed:";
+
+const applyFlags = (cmd: Command, flags: Record<string, TFlagSpec>): void => {
+  for (const flagSpec of Object.values(flags)) {
+    if (flagSpec.collect) {
+      const collectDefault = Array.isArray(flagSpec.default)
+        ? (flagSpec.default as string[])
+        : [];
+      cmd.option(
+        flagSpec.flag,
+        flagSpec.description,
+        flagSpec.collect,
+        collectDefault
+      );
+    } else if (flagSpec.default !== undefined) {
+      cmd.option(
+        flagSpec.flag,
+        flagSpec.description,
+        flagSpec.default as string | boolean | string[]
+      );
+    } else {
+      cmd.option(flagSpec.flag, flagSpec.description);
+    }
+  }
+};
 
 export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
   spec: TCommandSpec<TOpts>,
@@ -15,34 +43,16 @@ export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
   const cmd = new Command(spec.name).description(spec.description);
 
   if (spec.flags) {
-    for (const flagSpec of Object.values(spec.flags)) {
-      if (flagSpec.collect) {
-        const collectDefault = Array.isArray(flagSpec.default)
-          ? (flagSpec.default as string[])
-          : [];
-        cmd.option(
-          flagSpec.flag,
-          flagSpec.description,
-          flagSpec.collect,
-          collectDefault
-        );
-      } else if (flagSpec.default !== undefined) {
-        cmd.option(
-          flagSpec.flag,
-          flagSpec.description,
-          flagSpec.default as string | boolean | string[]
-        );
-      } else {
-        cmd.option(flagSpec.flag, flagSpec.description);
-      }
-    }
+    applyFlags(cmd, spec.flags);
   }
 
   if (spec.arguments) {
     for (const argSpec of spec.arguments) {
       if (argSpec.parse) {
         cmd.addArgument(
-          new Argument(argSpec.name, argSpec.description).argParser(argSpec.parse)
+          new Argument(argSpec.name, argSpec.description).argParser(
+            argSpec.parse
+          )
         );
       } else {
         cmd.argument(argSpec.name, argSpec.description);
@@ -88,10 +98,23 @@ export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
         result = await runTaskWithSpinner({
           message: spec.spinnerMessage,
           createSpinner: deps.createSpinner,
-          task: () => spec.handler({ opts, args, ctx, command, setExitCode: deps.setExitCode }),
+          task: () =>
+            spec.handler({
+              opts,
+              args,
+              ctx,
+              command,
+              setExitCode: deps.setExitCode,
+            }),
         });
       } else {
-        result = await spec.handler({ opts, args, ctx, command, setExitCode: deps.setExitCode });
+        result = await spec.handler({
+          opts,
+          args,
+          ctx,
+          command,
+          setExitCode: deps.setExitCode,
+        });
       }
 
       if (result !== undefined) {
@@ -118,27 +141,7 @@ export const createParentCommandFromSpec = (
   const cmd = new Command(spec.name).description(spec.description);
 
   if (spec.flags) {
-    for (const flagSpec of Object.values(spec.flags)) {
-      if (flagSpec.collect) {
-        const collectDefault = Array.isArray(flagSpec.default)
-          ? (flagSpec.default as string[])
-          : [];
-        cmd.option(
-          flagSpec.flag,
-          flagSpec.description,
-          flagSpec.collect,
-          collectDefault
-        );
-      } else if (flagSpec.default !== undefined) {
-        cmd.option(
-          flagSpec.flag,
-          flagSpec.description,
-          flagSpec.default as string | boolean | string[]
-        );
-      } else {
-        cmd.option(flagSpec.flag, flagSpec.description);
-      }
-    }
+    applyFlags(cmd, spec.flags);
   }
 
   if (spec.helpText) {
