@@ -28,6 +28,10 @@ const createDeps = (
 const createFactoryDeps = (
   overrides: Partial<TCommandFactoryDeps> = {}
 ): Partial<TCommandFactoryDeps> => ({
+  createSpinner: mock(() => {
+    const s = { start: mock(() => s), succeed: mock(() => s), fail: mock(() => s) };
+    return s;
+  }),
   printResult: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
