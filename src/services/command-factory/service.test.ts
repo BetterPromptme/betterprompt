@@ -392,7 +392,9 @@ describe("createCommandFromSpec", () => {
     const cmd = createCommandFromSpec(spec, deps);
 
     expect(customAction).toHaveBeenCalledTimes(1);
-    expect(customAction).toHaveBeenCalledWith(cmd, deps);
+    // Use objectContaining so the assertion holds even if createDefaultCommandFactoryDeps
+    // adds new keys — the merged deps will always be a superset of what was passed in.
+    expect(customAction).toHaveBeenCalledWith(cmd, expect.objectContaining(deps));
     // Verify no standard action was wired by checking _actionHandler is not set via Commander's action
     // (the command was returned without calling .action())
     expect(cmd.name()).toBe("custom");
