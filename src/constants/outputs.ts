@@ -59,4 +59,6 @@ export const OUTPUTS_MESSAGES = {
   remoteHint: "Hint: retry with --remote to fetch from API.",
   emptyMessagePrefix: "No outputs found for run",
   runStatusPrefix: "Run status:",
+  invalidSince:
+    "Invalid --since value. Provide an ISO 8601 date or unix timestamp in milliseconds.",
 } as const;
