@@ -3,9 +3,7 @@ import { Command } from "commander";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createDoctorCommand } from "./command";
-import type { TDoctorCommandDependencies } from "./types";
-
-type TDoctorResult = Awaited<ReturnType<TDoctorCommandDependencies["runDoctorChecks"]>>;
+import type { TDoctorCommandDependencies, TDoctorResult } from "./types";
 
 const createResult = (overrides: Partial<TDoctorResult> = {}): TDoctorResult =>
   ({
