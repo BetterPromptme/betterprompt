@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import type { Command, OutputConfiguration } from "commander";
 import type { TCliContext } from "./context";
 import type { TCommandFactoryDeps } from "./command-factory";
 
@@ -21,6 +21,7 @@ export type TCommandHandler<TOpts> = (params: {
   ctx: TCliContext;
   command: Command;
   setExitCode: (code: number) => void;
+  deps: TCommandFactoryDeps;
 }) => Promise<unknown>;
 
 type TCommandSpecCore = {
@@ -29,6 +30,9 @@ type TCommandSpecCore = {
   flags?: Record<string, TFlagSpec>;
   arguments?: TArgumentSpec[];
   helpText?: string;
+  configureOutput?: OutputConfiguration;
+  showHelpAfterError?: boolean;
+  showSuggestionAfterError?: boolean;
 };
 
 type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
@@ -53,10 +57,20 @@ export type TCommandSpec<TOpts = Record<string, unknown>> =
   | TCommandSpecWithHandler<TOpts>
   | TCommandSpecWithCustomAction;
 
-export type TParentCommandSpec = {
+export type TParentCommandSpec<TOpts = Record<string, unknown>> = {
   name: string;
   description: string;
   flags?: Record<string, TFlagSpec>;
   helpText?: string;
   subcommands: Command[];
+  arguments?: TArgumentSpec[];
+  handler?: TCommandHandler<TOpts>;
+  formatText?: (result: unknown, ctx: TCliContext) => unknown;
+  spinnerMessage?: string;
+  errorPrefix?: string;
+  validate?: (params: {
+    opts: TOpts;
+    args: Record<string, unknown>;
+    ctx: TCliContext;
+  }) => string | undefined;
 };
