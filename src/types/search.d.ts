@@ -1,5 +1,3 @@
-import type { TPrintOptions } from "./outputs";
-
 export type TSkillType = "image" | "video" | "text";
 
 export type TSearchFilters = {
@@ -15,7 +13,4 @@ export type TSearchCommandOptions = {
 export type TSearchCommandDependencies = {
   validateQuery: (query: string) => string;
   search: (query: string, filters: TSearchFilters) => Promise<unknown>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };
