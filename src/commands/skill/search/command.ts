@@ -1,6 +1,5 @@
-import { SKILL_TYPES, SKILLS_COMMAND } from "../../../constants";
+import { SKILL_TYPES, SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { SKILL_COMMAND_FAILED_PREFIX } from "../constants";
 import type { TSearchFilters } from "../../../types/search";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
@@ -48,7 +47,7 @@ export const createSkillSearchSubcommand = (
         json: SKILLS_COMMAND.subcommands.search.flags.json,
       },
       spinnerMessage: "Searching skills...",
-      errorPrefix: SKILL_COMMAND_FAILED_PREFIX,
+      errorPrefix: SKILLS_MESSAGES.failedPrefix,
       handler: async ({ args, opts }) => {
         const query = args[
           SKILLS_COMMAND.subcommands.search.arguments.query.name
