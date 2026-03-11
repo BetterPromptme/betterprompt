@@ -1,7 +1,10 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 import { createProgram } from "../../cli";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createSkillCommand } from "./command";
+import { createSkillInfoSubcommand } from "./info/command";
 
 type TSkillsDeps = NonNullable<Parameters<typeof createSkillCommand>[0]>;
 
@@ -33,18 +36,19 @@ const createDeps = (overrides: Partial<TSkillsDeps> = {}): TSkillsDeps => ({
   search: mock(async () => ({
     rows: [],
   })),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const runInfo = async (args: string[], deps: TSkillsDeps) => {
-  const command = createSkillCommand(deps);
+const runInfo = async (
+  args: string[],
+  deps: TSkillsDeps,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
+  const command = createSkillInfoSubcommand(deps, factoryDeps);
   const root = new Command("betterprompt");
   root.option("--json");
   root.addCommand(command);
-  await root.parseAsync(["skill", "info", ...args], { from: "user" });
+  await root.parseAsync(["info", ...args], { from: "user" });
 };
 
 describe("skills command", () => {
@@ -58,12 +62,13 @@ describe("skills command", () => {
 
   it("resolves skill by name and prints human-readable output by default", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInfo(["react-hooks"], deps);
+    await runInfo(["react-hooks"], deps, factory);
 
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       skillId: "abc123",
       title: "React Hooks",
@@ -76,12 +81,13 @@ describe("skills command", () => {
 
   it("supports --json output for skill info", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInfo(["react-hooks", "--json"], deps);
+    await runInfo(["react-hooks", "--json"], deps, factory);
 
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       skillId: "abc123",
       title: "React Hooks",
@@ -94,8 +100,9 @@ describe("skills command", () => {
 
   it("calls getSkill with only the skill name (no extra options)", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInfo(["react-hooks"], deps);
+    await runInfo(["react-hooks"], deps, factory);
 
     expect(deps.getSkill).toHaveBeenCalledTimes(1);
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
@@ -132,14 +139,15 @@ describe("skills command", () => {
         throw new Error("Skill not found");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInfo(["unknown-skill"], deps);
+    await runInfo(["unknown-skill"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Skill not found")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("logs error and sets exit code when skill name is empty string", async () => {
@@ -148,13 +156,14 @@ describe("skills command", () => {
         throw new Error("Skill name must not be empty.");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInfo([""], deps);
+    await runInfo([""], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Skill name must not be empty.")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("handles non-Error throwables from info handler", async () => {
@@ -163,13 +172,14 @@ describe("skills command", () => {
         throw "service unavailable";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInfo(["react-hooks"], deps);
+    await runInfo(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: service unavailable")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
