@@ -1,30 +1,43 @@
 import { Command } from "commander";
 import { OUTPUTS_COMMAND } from "../../../constants";
 import { executeOutputsGet } from "../../../services/outputs/service";
+import { createCommandFromSpec } from "../../../services/command-factory/service";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TOutputsCommandDependencies, TOutputsCommandOptions } from "../../../types/outputs";
 
 export const createOutputsGetSubcommand = (
-  deps: TOutputsCommandDependencies
-): Command => {
+  deps: TOutputsCommandDependencies,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) => {
   const outputsGet = OUTPUTS_COMMAND.subcommands.get;
 
-  return new Command(outputsGet.name)
-    .description(outputsGet.description)
-    .argument(outputsGet.arguments.runId.name, outputsGet.arguments.runId.description)
-    .option(outputsGet.flags.sync.flag, outputsGet.flags.sync.description)
-    .option(outputsGet.flags.remote.flag, outputsGet.flags.remote.description)
-    .option(outputsGet.flags.json.flag, outputsGet.flags.json.description)
-    .action(async (runId: string, opts: TOutputsCommandOptions, command: Command) => {
-      const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
-
-      await executeOutputsGet(
-        deps,
-        runId,
+  return createCommandFromSpec<TOutputsCommandOptions>(
+    {
+      name: outputsGet.name,
+      description: outputsGet.description,
+      arguments: [
         {
-          ...opts,
-          remote: opts.remote === true || rootRemote,
+          name: outputsGet.arguments.runId.name,
+          description: outputsGet.arguments.runId.description,
         },
-        command
-      );
-    });
+      ],
+      flags: outputsGet.flags,
+      customAction: (cmd, _factoryDeps) => {
+        cmd.action(async (runId: string, opts: TOutputsCommandOptions, command: Command) => {
+          const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
+
+          await executeOutputsGet(
+            deps,
+            runId,
+            {
+              ...opts,
+              remote: opts.remote === true || rootRemote,
+            },
+            command
+          );
+        });
+      },
+    },
+    factoryDeps
+  );
 };
