@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import { createCommandFromSpec, createParentCommandFromSpec } from "./service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
@@ -442,6 +442,27 @@ describe("createCommandFromSpec", () => {
     expect(deps.error).not.toHaveBeenCalled();
   });
 
+  it("handler receives deps with createSpinner, printResult, error, setExitCode", async () => {
+    let receivedDeps: unknown = null;
+    const handler = mock(async (params: unknown) => {
+      receivedDeps = (params as Record<string, unknown>).deps;
+    });
+    const spec: TCommandSpec = {
+      name: "depcheck",
+      description: "Deps check",
+      handler,
+    };
+    const deps = createDeps();
+    await runCommand(spec, deps, []);
+
+    expect(receivedDeps).toBeDefined();
+    const d = receivedDeps as TCommandFactoryDeps;
+    expect(typeof d.createSpinner).toBe("function");
+    expect(typeof d.printResult).toBe("function");
+    expect(typeof d.error).toBe("function");
+    expect(typeof d.setExitCode).toBe("function");
+  });
+
   it("customAction escape hatch skips standard action and calls customAction", () => {
     const customAction = mock(
       (_cmd: Command, _deps: TCommandFactoryDeps) => {}
@@ -464,6 +485,84 @@ describe("createCommandFromSpec", () => {
     // Verify no standard action was wired by checking _actionHandler is not set via Commander's action
     // (the command was returned without calling .action())
     expect(cmd.name()).toBe("custom");
+  });
+
+  it("applies configureOutput when present in spec", () => {
+    const writeOut = mock((_str: string) => {});
+    const configureOutputSpec = { writeOut };
+    const configureSpy = spyOn(Command.prototype, "configureOutput");
+
+    const spec: TCommandSpec = {
+      name: "configured",
+      description: "Configured cmd",
+      configureOutput: configureOutputSpec,
+      handler: mock(async () => undefined),
+    };
+    const deps = createDeps();
+    createCommandFromSpec(spec, deps);
+
+    expect(configureSpy).toHaveBeenCalledWith(configureOutputSpec);
+    configureSpy.mockRestore();
+  });
+
+  it("applies showHelpAfterError when true", () => {
+    const showHelpSpy = spyOn(Command.prototype, "showHelpAfterError");
+
+    const spec: TCommandSpec = {
+      name: "helperr",
+      description: "Help after error cmd",
+      showHelpAfterError: true,
+      handler: mock(async () => undefined),
+    };
+    const deps = createDeps();
+    createCommandFromSpec(spec, deps);
+
+    expect(showHelpSpy).toHaveBeenCalledTimes(1);
+    showHelpSpy.mockRestore();
+  });
+
+  it("applies showSuggestionAfterError when true", () => {
+    const showSuggestionSpy = spyOn(
+      Command.prototype,
+      "showSuggestionAfterError"
+    );
+
+    const spec: TCommandSpec = {
+      name: "suggerr",
+      description: "Suggestion after error cmd",
+      showSuggestionAfterError: true,
+      handler: mock(async () => undefined),
+    };
+    const deps = createDeps();
+    createCommandFromSpec(spec, deps);
+
+    expect(showSuggestionSpy).toHaveBeenCalledTimes(1);
+    showSuggestionSpy.mockRestore();
+  });
+
+  it("does not apply configureOutput, showHelpAfterError, or showSuggestionAfterError when not set", () => {
+    const configureSpy = spyOn(Command.prototype, "configureOutput");
+    const showHelpSpy = spyOn(Command.prototype, "showHelpAfterError");
+    const showSuggestionSpy = spyOn(
+      Command.prototype,
+      "showSuggestionAfterError"
+    );
+
+    const spec: TCommandSpec = {
+      name: "default",
+      description: "Default cmd",
+      handler: mock(async () => undefined),
+    };
+    const deps = createDeps();
+    createCommandFromSpec(spec, deps);
+
+    expect(configureSpy).not.toHaveBeenCalled();
+    expect(showHelpSpy).not.toHaveBeenCalled();
+    expect(showSuggestionSpy).not.toHaveBeenCalled();
+
+    configureSpy.mockRestore();
+    showHelpSpy.mockRestore();
+    showSuggestionSpy.mockRestore();
   });
 });
 
@@ -497,7 +596,7 @@ describe("createParentCommandFromSpec", () => {
     expect(names).toContain("sub2");
   });
 
-  it("does not wire an action on the parent command", () => {
+  it("does not wire an action on the parent command when no handler", () => {
     const spec: TParentCommandSpec = {
       name: "parent",
       description: "Parent",
@@ -534,5 +633,105 @@ describe("createParentCommandFromSpec", () => {
     const cmd = createParentCommandFromSpec(spec);
     // helpText is stored internally; we verify it was called without error
     expect(cmd).toBeInstanceOf(Command);
+  });
+
+  it("parent with default action handler receives correct args and opts", async () => {
+    let receivedParams: unknown = null;
+    const handler = mock(async (params: unknown) => {
+      receivedParams = params;
+    });
+    const spec: TParentCommandSpec<{ verbose?: boolean }> = {
+      name: "outputs",
+      description: "Outputs command",
+      flags: {
+        verbose: { flag: "--verbose", description: "Verbose" },
+      },
+      arguments: [{ name: "run-id", description: "Run ID" }],
+      handler,
+      subcommands: [],
+    };
+    const deps = createDeps();
+    const cmd = createParentCommandFromSpec(spec as TParentCommandSpec, deps);
+    await cmd.parseAsync(["--verbose", "abc123"], { from: "user" });
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    const params = receivedParams as {
+      opts: { verbose?: boolean };
+      args: Record<string, unknown>;
+      ctx: { outputFormat: string };
+      command: Command;
+      deps: TCommandFactoryDeps;
+    };
+    expect(params.opts.verbose).toBe(true);
+    expect(params.args["run-id"]).toBe("abc123");
+    expect(params.ctx).toBeDefined();
+    expect(params.command).toBeInstanceOf(Command);
+    expect(typeof params.deps.createSpinner).toBe("function");
+  });
+
+  it("parent with default action + subcommands both work", async () => {
+    const parentHandler = mock(async () => ({ parent: true }));
+    const subHandler = mock(async () => undefined);
+    const subCmd = new Command("list").description("List");
+    subCmd.action(subHandler);
+
+    const spec: TParentCommandSpec = {
+      name: "outputs",
+      description: "Outputs command",
+      handler: parentHandler,
+      subcommands: [subCmd],
+    };
+    const deps = createDeps();
+    const cmd = createParentCommandFromSpec(spec, deps);
+
+    // Run the parent default action
+    await cmd.parseAsync([], { from: "user" });
+    expect(parentHandler).toHaveBeenCalledTimes(1);
+    expect(deps.printResult).toHaveBeenCalledTimes(1);
+
+    // Reset mocks, run the subcommand
+    (parentHandler as ReturnType<typeof mock>).mockClear();
+    (deps.printResult as ReturnType<typeof mock>).mockClear();
+
+    const cmd2 = createParentCommandFromSpec(spec, deps);
+    await cmd2.parseAsync(["list"], { from: "user" });
+    expect(subHandler).toHaveBeenCalledTimes(1);
+    expect(parentHandler).not.toHaveBeenCalled();
+  });
+
+  it("parent without handler still works (existing behavior)", () => {
+    const sub = new Command("sub").description("Sub");
+    const spec: TParentCommandSpec = {
+      name: "parent",
+      description: "Parent",
+      subcommands: [sub],
+    };
+    const cmd = createParentCommandFromSpec(spec);
+    expect(cmd.name()).toBe("parent");
+    expect(cmd.commands.map((c) => c.name())).toContain("sub");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((cmd as any)._actionHandler).toBeNull();
+  });
+
+  it("parent with validate hook that rejects returns error and sets exit code", async () => {
+    const handler = mock(async () => undefined);
+    const validate = mock(() => "invalid run-id");
+    const spec: TParentCommandSpec = {
+      name: "outputs",
+      description: "Outputs command",
+      arguments: [{ name: "run-id", description: "Run ID" }],
+      validate,
+      handler,
+      subcommands: [],
+    };
+    const deps = createDeps();
+    const cmd = createParentCommandFromSpec(spec, deps);
+    await cmd.parseAsync(["bad-id"], { from: "user" });
+
+    expect(validate).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledWith("invalid run-id");
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.printResult).not.toHaveBeenCalled();
   });
 });
