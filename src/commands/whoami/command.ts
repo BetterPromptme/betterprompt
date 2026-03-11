@@ -22,14 +22,17 @@ export const createWhoamiCommand = (
   deps: TWhoamiDependencies = defaultDeps,
   factoryDeps?: Partial<TCommandFactoryDeps>
 ) =>
-  createCommandFromSpec<Record<string, unknown>>({
-    name: WHOAMI_COMMAND.name,
-    description: WHOAMI_COMMAND.description,
-    flags: WHOAMI_COMMAND.flags,
-    spinnerMessage: "Fetching account identity...",
-    errorPrefix: `${logSymbols.error} ${WHOAMI_MESSAGES.failedPrefix}`,
-    handler: () => deps.getCurrentUser(),
-    formatText: (result) => formatIdentityText(result as TUserIdentity),
-  }, factoryDeps);
+  createCommandFromSpec<Record<string, unknown>>(
+    {
+      name: WHOAMI_COMMAND.name,
+      description: WHOAMI_COMMAND.description,
+      flags: WHOAMI_COMMAND.flags,
+      spinnerMessage: "Fetching account identity...",
+      errorPrefix: `${logSymbols.error} ${WHOAMI_MESSAGES.failedPrefix}`,
+      handler: () => deps.getCurrentUser(),
+      formatText: (result) => formatIdentityText(result as TUserIdentity),
+    },
+    factoryDeps
+  );
 
 export const whoamiCommand = createWhoamiCommand();
