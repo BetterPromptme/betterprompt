@@ -1,5 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createUpdateCommand } from "./command";
 
 type TUpdateCommandDeps = NonNullable<
@@ -35,13 +37,13 @@ const createDeps = (
 ): TUpdateCommandDeps => ({
   checkForUpdate: mock(async () => createCheckResult()),
   performUpdate: mock(async () => createUpdateResult()),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const createRoot = (deps: TUpdateCommandDeps): Command => {
+const createRoot = (
+  deps: TUpdateCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps>
+): Command => {
   const root = new Command("betterprompt");
   root
     .option("--project")
@@ -52,13 +54,17 @@ const createRoot = (deps: TUpdateCommandDeps): Command => {
     .option("--verbose")
     .option("--no-color")
     .option("--yes")
-    .addCommand(createUpdateCommand(deps));
+    .addCommand(createUpdateCommand(deps, factoryDeps));
 
   return root;
 };
 
-const runUpdate = async (args: string[], deps: TUpdateCommandDeps) => {
-  const root = createRoot(deps);
+const runUpdate = async (
+  args: string[],
+  deps: TUpdateCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
+  const root = createRoot(deps, factoryDeps);
   await root.parseAsync(["update", ...args], { from: "user" });
 };
 
@@ -76,16 +82,14 @@ describe("update command", () => {
         updated: true,
       })
     );
-    const deps = createDeps({
-      checkForUpdate,
-      performUpdate,
-    });
+    const deps = createDeps({ checkForUpdate, performUpdate });
+    const factory = createFactoryDeps();
 
-    await runUpdate([], deps);
+    await runUpdate([], deps, factory);
 
     expect(checkForUpdate).toHaveBeenCalledTimes(1);
     expect(performUpdate).toHaveBeenCalledTimes(1);
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("Updated to 0.1.0"),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -100,20 +104,16 @@ describe("update command", () => {
       })
     );
     const performUpdate = mock(async () =>
-      createUpdateResult({
-        updated: true,
-      })
+      createUpdateResult({ updated: true })
     );
-    const deps = createDeps({
-      checkForUpdate,
-      performUpdate,
-    });
+    const deps = createDeps({ checkForUpdate, performUpdate });
+    const factory = createFactoryDeps();
 
-    await runUpdate([], deps);
+    await runUpdate([], deps, factory);
 
     expect(checkForUpdate).toHaveBeenCalledTimes(1);
     expect(performUpdate).not.toHaveBeenCalled();
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("Already up to date"),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -129,15 +129,14 @@ describe("update command", () => {
         })
       ),
       performUpdate: mock(async () =>
-        createUpdateResult({
-          updated: true,
-        })
+        createUpdateResult({ updated: true })
       ),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate(["--json"], deps);
+    await runUpdate(["--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.objectContaining({
         currentVersion: "1.0.0",
         latestVersion: "1.1.0",
@@ -154,14 +153,15 @@ describe("update command", () => {
         throw new Error("Network unavailable");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate([], deps);
+    await runUpdate([], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Update command failed: Network unavailable")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error failures gracefully", async () => {
@@ -170,13 +170,14 @@ describe("update command", () => {
         throw "connection reset";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate([], deps);
+    await runUpdate([], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Update command failed: connection reset")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
