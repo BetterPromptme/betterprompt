@@ -31,20 +31,23 @@ export const createDoctorCommand = (
   deps: TDoctorCommandDependencies = defaultDeps,
   factoryDeps?: Partial<TCommandFactoryDeps>
 ) =>
-  createCommandFromSpec<TDoctorCommandOptions>({
-    name: DOCTOR_COMMAND.name,
-    description: DOCTOR_COMMAND.description,
-    flags: DOCTOR_COMMAND.flags,
-    spinnerMessage: "Running doctor checks...",
-    errorPrefix: `${logSymbols.error} ${DOCTOR_MESSAGES.failedPrefix}`,
-    handler: async ({ opts, setExitCode }) => {
-      const result = await deps.runDoctorChecks({ fix: opts.fix === true });
-      if (!result.healthy) {
-        setExitCode(1);
-      }
-      return result;
+  createCommandFromSpec<TDoctorCommandOptions>(
+    {
+      name: DOCTOR_COMMAND.name,
+      description: DOCTOR_COMMAND.description,
+      flags: DOCTOR_COMMAND.flags,
+      spinnerMessage: "Running doctor checks...",
+      errorPrefix: `${logSymbols.error} ${DOCTOR_MESSAGES.failedPrefix}`,
+      handler: async ({ opts, setExitCode }) => {
+        const result = await deps.runDoctorChecks({ fix: opts.fix === true });
+        if (!result.healthy) {
+          setExitCode(1);
+        }
+        return result;
+      },
+      formatText: (result) => formatTextResult(result as TDoctorResult),
     },
-    formatText: (result) => formatTextResult(result as TDoctorResult),
-  }, factoryDeps);
+    factoryDeps
+  );
 
 export const doctorCommand = createDoctorCommand();
