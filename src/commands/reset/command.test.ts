@@ -1,10 +1,9 @@
-import { describe, expect, it, mock } from "bun:test";
+import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createResetCommand } from "./command";
-
-type TResetCommandDeps = NonNullable<Parameters<typeof createResetCommand>[0]>;
-
-type TRunResetResult = Awaited<ReturnType<TResetCommandDeps["runReset"]>>;
+import type { TResetCommandDependencies, TRunResetResult } from "./types";
 
 const createRunResult = (
   overrides: Partial<TRunResetResult> = {}
@@ -16,17 +15,17 @@ const createRunResult = (
   }) as TRunResetResult;
 
 const createDeps = (
-  overrides: Partial<TResetCommandDeps> = {}
-): TResetCommandDeps => ({
+  overrides: Partial<TResetCommandDependencies> = {}
+): TResetCommandDependencies => ({
   confirmReset: mock(async () => true),
   runReset: mock(async () => createRunResult()),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const createRoot = (deps: TResetCommandDeps): Command => {
+const createRoot = (
+  deps: TResetCommandDependencies,
+  factoryDeps: Partial<TCommandFactoryDeps>
+): Command => {
   const root = new Command("betterprompt");
   root
     .option("--project")
@@ -37,24 +36,31 @@ const createRoot = (deps: TResetCommandDeps): Command => {
     .option("--verbose")
     .option("--no-color")
     .option("--yes")
-    .addCommand(createResetCommand(deps));
+    .addCommand(createResetCommand(deps, factoryDeps));
 
   return root;
 };
 
-const runReset = async (args: string[], deps: TResetCommandDeps) => {
-  const root = createRoot(deps);
+const runReset = async (
+  args: string[],
+  deps: TResetCommandDependencies,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
+  const root = createRoot(deps, factoryDeps);
   await root.parseAsync(["reset", ...args], { from: "user" });
 };
 
 describe("reset command", () => {
+  afterEach(() => {
+    mock.restore();
+  });
+
   it("prompts for confirmation by default", async () => {
     const confirmReset = mock(async () => true);
-    const deps = createDeps({
-      confirmReset,
-    });
+    const deps = createDeps({ confirmReset });
+    const factory = createFactoryDeps();
 
-    await runReset([], deps);
+    await runReset([], deps, factory);
 
     expect(confirmReset).toHaveBeenCalledTimes(1);
     expect(deps.runReset).toHaveBeenCalledTimes(1);
@@ -62,11 +68,10 @@ describe("reset command", () => {
 
   it("skips confirmation when --yes is provided", async () => {
     const confirmReset = mock(async () => true);
-    const deps = createDeps({
-      confirmReset,
-    });
+    const deps = createDeps({ confirmReset });
+    const factory = createFactoryDeps();
 
-    await runReset(["--yes"], deps);
+    await runReset(["--yes"], deps, factory);
 
     expect(confirmReset).not.toHaveBeenCalled();
     expect(deps.runReset).toHaveBeenCalledTimes(1);
@@ -76,16 +81,17 @@ describe("reset command", () => {
     const deps = createDeps({
       confirmReset: mock(async () => false),
     });
+    const factory = createFactoryDeps();
 
-    await runReset([], deps);
+    await runReset([], deps, factory);
 
     expect(deps.runReset).not.toHaveBeenCalled();
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("Reset cancelled"),
       expect.objectContaining({ outputFormat: "text" })
     );
-    expect(deps.error).not.toHaveBeenCalled();
-    expect(deps.setExitCode).not.toHaveBeenCalled();
+    expect(factory.error).not.toHaveBeenCalled();
+    expect(factory.setExitCode).not.toHaveBeenCalled();
   });
 
   it("removes ~/.betterprompt/ directory when reset proceeds", async () => {
@@ -97,15 +103,16 @@ describe("reset command", () => {
         })
       ),
     });
+    const factory = createFactoryDeps();
 
-    await runReset(["--yes"], deps);
+    await runReset(["--yes"], deps, factory);
 
     expect(deps.runReset).toHaveBeenCalledWith(
       expect.objectContaining({
         force: true,
       })
     );
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("Reset complete"),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -120,10 +127,11 @@ describe("reset command", () => {
         })
       ),
     });
+    const factory = createFactoryDeps();
 
-    await runReset(["--yes", "--json"], deps);
+    await runReset(["--yes", "--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.objectContaining({
         removedPath: "~/.betterprompt/",
         confirmed: true,
@@ -138,14 +146,15 @@ describe("reset command", () => {
         throw new Error("permission denied");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runReset(["--yes"], deps);
+    await runReset(["--yes"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Reset command failed: permission denied")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error failures gracefully", async () => {
@@ -154,13 +163,14 @@ describe("reset command", () => {
         throw "disk busy";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runReset(["--yes"], deps);
+    await runReset(["--yes"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Reset command failed: disk busy")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
