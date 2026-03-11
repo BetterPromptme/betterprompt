@@ -1,6 +1,5 @@
 import type { ApiClient } from "../api/client";
 import type { TSkillSummary, TUpdateSkillResult } from "../../types/installer";
-import type { TPrintOptions } from "../../types/outputs";
 import type { TSearchFilters } from "../../types/search";
 import type {
   TSkillInstallOptions,
@@ -48,7 +47,4 @@ export type TSkillCommandDependencies = {
   ) => Promise<TUpdateSkillResult[]>;
   validateQuery: (query: string) => string;
   search: (query: string, filters: TSearchFilters) => Promise<unknown>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };
