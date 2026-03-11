@@ -4,9 +4,7 @@ import { createCommandFromSpec } from "../../../services/command-factory/service
 import { getCommandContext } from "../../../services/context/service";
 import { maskApiKey, parseConfigKey } from "../utils";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
-import type { TConfigCommandDependencies, TSystemConfigKey } from "../types";
-
-type TConfigGetOpts = { json?: boolean };
+import type { TConfigCommandDependencies, TConfigSubcommandOpts, TSystemConfigKey } from "../types";
 
 export const createConfigGetSubcommand = (
   deps: TConfigCommandDependencies,
@@ -14,7 +12,7 @@ export const createConfigGetSubcommand = (
 ) => {
   const configGet = CONFIG_COMMAND.subcommands.get;
 
-  return createCommandFromSpec<TConfigGetOpts>(
+  return createCommandFromSpec<TConfigSubcommandOpts>(
     {
       name: configGet.name,
       description: configGet.description,
@@ -31,7 +29,7 @@ export const createConfigGetSubcommand = (
         cmd.action(
           async (
             key: TSystemConfigKey | undefined,
-            _opts: TConfigGetOpts,
+            _opts: TConfigSubcommandOpts,
             command
           ) => {
             try {
