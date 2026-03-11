@@ -1,11 +1,18 @@
 import { cancel, intro, isCancel, outro, password } from "@clack/prompts";
-import { Command } from "commander";
 import ora from "ora";
 import { AUTH_COMMAND, AUTH_MESSAGES } from "../../constants";
 import { getCommandContext } from "../../services/context/service";
-import { createErrorFormatter, runTaskWithSpinner } from "../../services/error-ux/service";
-import { resolveAuthConfigPath, saveAuthConfig, verifyApiKey } from "../../services/auth/service";
+import { createCommandFromSpec } from "../../services/command-factory/service";
+import {
+  executeAuth,
+  resolveAuthConfigPath,
+  saveAuthConfig,
+  verifyApiKey,
+} from "../../services/auth/service";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TAuthDependencies } from "./types";
+
+type TAuthOpts = { apiKey?: string };
 
 const defaultDeps: TAuthDependencies = {
   intro,
@@ -24,81 +31,24 @@ const defaultDeps: TAuthDependencies = {
   },
 };
 
-/**
- * Creates the `auth` CLI command.
- *
- * @param deps - Injectable dependencies for prompts, persistence, logging, and API-key verification.
- * @returns Configured Commander command instance.
- */
 export const createAuthCommand = (
-  deps: TAuthDependencies = defaultDeps
-): Command => {
-  const command = new Command(AUTH_COMMAND.name)
-    .description(AUTH_COMMAND.description)
-    .option(AUTH_COMMAND.flags.apiKey.flag, AUTH_COMMAND.flags.apiKey.description)
-    .addHelpText("after", AUTH_MESSAGES.helpText);
-
-  /**
-   * Handles the auth command flow:
-   * - collect API key input from flag or secure prompt
-   * - verify the key against the API
-   * - persist the key to local auth config
-   */
-  command.action(async (opts: { apiKey?: string }, command: Command) => {
-    deps.intro(AUTH_MESSAGES.introTitle);
-    let formatError = createErrorFormatter({ color: true });
-
-    try {
-      const ctx = getCommandContext(command);
-      formatError = createErrorFormatter({ color: ctx.color });
-
-      const keyInput =
-        opts.apiKey ??
-        (await deps.password({
-          message: AUTH_MESSAGES.passwordPrompt,
-          placeholder: AUTH_MESSAGES.passwordPlaceholder,
-          validate: (value: string | undefined) => {
-            if (typeof value !== "string" || value.trim().length === 0) {
-              return AUTH_MESSAGES.emptyKeyError;
-            }
-
-            return undefined;
-          },
-        }));
-
-      if (deps.isCancel(keyInput)) {
-        deps.cancel(AUTH_MESSAGES.cancelMessage);
-        deps.setExitCode(1);
-        return;
-      }
-
-      const apiKey = typeof keyInput === "string" ? keyInput.trim() : "";
-      if (!apiKey) {
-        throw new Error(AUTH_MESSAGES.emptyKeyError);
-      }
-
-      await runTaskWithSpinner({
-        message: AUTH_MESSAGES.verifyKeyText,
-        createSpinner: deps.createSpinner,
-        task: async () => {
-          await deps.verifyApiKey(apiKey);
-        },
-      });
-
-      const configPath = await deps.saveAuthConfig(apiKey);
-      const successMessage = `${AUTH_MESSAGES.successPrefix} ${configPath}`;
-      deps.outro(successMessage);
-    } catch (error) {
-      const fallbackPath = deps.resolveAuthConfigPath();
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      deps.error(formatError(AUTH_MESSAGES.failedPrefix, errorMessage));
-      deps.error(`${AUTH_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
-      deps.setExitCode(1);
-    }
-  });
-
-  return command;
-};
+  deps: TAuthDependencies = defaultDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createCommandFromSpec<TAuthOpts>(
+    {
+      name: AUTH_COMMAND.name,
+      description: AUTH_COMMAND.description,
+      flags: AUTH_COMMAND.flags,
+      helpText: AUTH_MESSAGES.helpText,
+      customAction: (cmd, _factoryDeps) => {
+        cmd.action(async (opts: TAuthOpts, command) => {
+          const ctx = getCommandContext(command);
+          await executeAuth(opts.apiKey, ctx, deps);
+        });
+      },
+    },
+    factoryDeps
+  );
 
 export const authCommand = createAuthCommand();
