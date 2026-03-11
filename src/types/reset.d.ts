@@ -1,5 +1,3 @@
-import type { TPrintOptions } from "./outputs";
-
 export type TRunResetOptions = {
   force: boolean;
 };
@@ -21,7 +19,4 @@ export type TRunResetCoreOptions = {
 export type TResetCommandDependencies = {
   confirmReset: () => Promise<boolean>;
   runReset: (options: TRunResetOptions) => Promise<TRunResetResult>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };

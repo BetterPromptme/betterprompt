@@ -5,6 +5,10 @@ export const RESET_COMMAND = {
   description: "Reset BetterPrompt CLI local data",
   flags: {
     json: SHARED_FLAGS.json,
+    yes: {
+      flag: "--yes",
+      description: "Skip confirmation prompt",
+    },
   },
 } as const;
 
