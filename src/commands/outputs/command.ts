@@ -1,36 +1,42 @@
-import { Command } from "commander";
 import { OUTPUTS_COMMAND } from "../../constants";
 import {
   buildOutputsListQuery,
   createDefaultOutputsCommandDependencies,
   executeOutputsGet,
 } from "../../services/outputs/service";
+import { createParentCommandFromSpec } from "../../services/command-factory/service";
 import { createOutputsGetSubcommand } from "./get/command";
 import { createOutputsListSubcommand } from "./list/command";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TOutputsCommandDependencies, TOutputsCommandOptions } from "../../types/outputs";
 
 export const createOutputsCommand = (
-  deps: TOutputsCommandDependencies = createDefaultOutputsCommandDependencies()
-): Command => {
-  const command = new Command(OUTPUTS_COMMAND.name)
-    .description(OUTPUTS_COMMAND.description)
-    .usage("[options] <run-id>")
-    .argument(
-      OUTPUTS_COMMAND.arguments.runId.name,
-      OUTPUTS_COMMAND.arguments.runId.description
-    )
-    .option(OUTPUTS_COMMAND.flags.sync.flag, OUTPUTS_COMMAND.flags.sync.description)
-    .option(OUTPUTS_COMMAND.flags.remote.flag, OUTPUTS_COMMAND.flags.remote.description)
-    .option(OUTPUTS_COMMAND.flags.json.flag, OUTPUTS_COMMAND.flags.json.description)
-    .action((runId: string, opts: TOutputsCommandOptions, rootCommand: Command) =>
-      executeOutputsGet(deps, runId, opts, rootCommand)
-    );
-
-  command.addCommand(createOutputsGetSubcommand(deps));
-  command.addCommand(createOutputsListSubcommand(deps));
-
-  return command;
-};
+  deps: TOutputsCommandDependencies = createDefaultOutputsCommandDependencies(),
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createParentCommandFromSpec<TOutputsCommandOptions>(
+    {
+      name: OUTPUTS_COMMAND.name,
+      description: OUTPUTS_COMMAND.description,
+      flags: OUTPUTS_COMMAND.flags,
+      arguments: [
+        {
+          name: OUTPUTS_COMMAND.arguments.runId.name,
+          description: OUTPUTS_COMMAND.arguments.runId.description,
+        },
+      ],
+      handler: async ({ args, opts, command }) => {
+        const runId = args[OUTPUTS_COMMAND.arguments.runId.name] as string;
+        await executeOutputsGet(deps, runId, opts, command);
+        return undefined;
+      },
+      subcommands: [
+        createOutputsGetSubcommand(deps),
+        createOutputsListSubcommand(deps),
+      ],
+    },
+    factoryDeps
+  );
 
 export { buildOutputsListQuery };
 
