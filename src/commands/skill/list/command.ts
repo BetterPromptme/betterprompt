@@ -1,7 +1,6 @@
 import logSymbols from "log-symbols";
-import { SKILLS_COMMAND } from "../../../constants";
+import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { SKILL_COMMAND_FAILED_PREFIX, SKILL_EMPTY_LIST_MESSAGE } from "../constants";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
 
@@ -17,11 +16,11 @@ export const createSkillListSubcommand = (
         json: SKILLS_COMMAND.subcommands.list.flags.json,
       },
       spinnerMessage: "Listing installed skills...",
-      errorPrefix: SKILL_COMMAND_FAILED_PREFIX,
+      errorPrefix: SKILLS_MESSAGES.failedPrefix,
       formatText: (result) => {
         const skills = result as Array<unknown>;
         if (skills.length === 0) {
-          return `${logSymbols.warning} ${SKILL_EMPTY_LIST_MESSAGE}`;
+          return `${logSymbols.warning} ${SKILLS_MESSAGES.emptyListMessage}`;
         }
         return result;
       },
