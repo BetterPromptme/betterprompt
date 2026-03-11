@@ -488,37 +488,42 @@ describe("createCommandFromSpec", () => {
   });
 
   it("applies configureOutput when present in spec", () => {
-    const writeOut = mock((_str: string) => {});
-    const configureOutputSpec = { writeOut };
     const configureSpy = spyOn(Command.prototype, "configureOutput");
+    try {
+      const writeOut = mock((_str: string) => {});
+      const configureOutputSpec = { writeOut };
 
-    const spec: TCommandSpec = {
-      name: "configured",
-      description: "Configured cmd",
-      configureOutput: configureOutputSpec,
-      handler: mock(async () => undefined),
-    };
-    const deps = createDeps();
-    createCommandFromSpec(spec, deps);
+      const spec: TCommandSpec = {
+        name: "configured",
+        description: "Configured cmd",
+        configureOutput: configureOutputSpec,
+        handler: mock(async () => undefined),
+      };
+      const deps = createDeps();
+      createCommandFromSpec(spec, deps);
 
-    expect(configureSpy).toHaveBeenCalledWith(configureOutputSpec);
-    configureSpy.mockRestore();
+      expect(configureSpy).toHaveBeenCalledWith(configureOutputSpec);
+    } finally {
+      configureSpy.mockRestore();
+    }
   });
 
   it("applies showHelpAfterError when true", () => {
     const showHelpSpy = spyOn(Command.prototype, "showHelpAfterError");
+    try {
+      const spec: TCommandSpec = {
+        name: "helperr",
+        description: "Help after error cmd",
+        showHelpAfterError: true,
+        handler: mock(async () => undefined),
+      };
+      const deps = createDeps();
+      createCommandFromSpec(spec, deps);
 
-    const spec: TCommandSpec = {
-      name: "helperr",
-      description: "Help after error cmd",
-      showHelpAfterError: true,
-      handler: mock(async () => undefined),
-    };
-    const deps = createDeps();
-    createCommandFromSpec(spec, deps);
-
-    expect(showHelpSpy).toHaveBeenCalledTimes(1);
-    showHelpSpy.mockRestore();
+      expect(showHelpSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      showHelpSpy.mockRestore();
+    }
   });
 
   it("applies showSuggestionAfterError when true", () => {
@@ -526,18 +531,20 @@ describe("createCommandFromSpec", () => {
       Command.prototype,
       "showSuggestionAfterError"
     );
+    try {
+      const spec: TCommandSpec = {
+        name: "suggerr",
+        description: "Suggestion after error cmd",
+        showSuggestionAfterError: true,
+        handler: mock(async () => undefined),
+      };
+      const deps = createDeps();
+      createCommandFromSpec(spec, deps);
 
-    const spec: TCommandSpec = {
-      name: "suggerr",
-      description: "Suggestion after error cmd",
-      showSuggestionAfterError: true,
-      handler: mock(async () => undefined),
-    };
-    const deps = createDeps();
-    createCommandFromSpec(spec, deps);
-
-    expect(showSuggestionSpy).toHaveBeenCalledTimes(1);
-    showSuggestionSpy.mockRestore();
+      expect(showSuggestionSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      showSuggestionSpy.mockRestore();
+    }
   });
 
   it("does not apply configureOutput, showHelpAfterError, or showSuggestionAfterError when not set", () => {
@@ -547,22 +554,23 @@ describe("createCommandFromSpec", () => {
       Command.prototype,
       "showSuggestionAfterError"
     );
+    try {
+      const spec: TCommandSpec = {
+        name: "default",
+        description: "Default cmd",
+        handler: mock(async () => undefined),
+      };
+      const deps = createDeps();
+      createCommandFromSpec(spec, deps);
 
-    const spec: TCommandSpec = {
-      name: "default",
-      description: "Default cmd",
-      handler: mock(async () => undefined),
-    };
-    const deps = createDeps();
-    createCommandFromSpec(spec, deps);
-
-    expect(configureSpy).not.toHaveBeenCalled();
-    expect(showHelpSpy).not.toHaveBeenCalled();
-    expect(showSuggestionSpy).not.toHaveBeenCalled();
-
-    configureSpy.mockRestore();
-    showHelpSpy.mockRestore();
-    showSuggestionSpy.mockRestore();
+      expect(configureSpy).not.toHaveBeenCalled();
+      expect(showHelpSpy).not.toHaveBeenCalled();
+      expect(showSuggestionSpy).not.toHaveBeenCalled();
+    } finally {
+      configureSpy.mockRestore();
+      showHelpSpy.mockRestore();
+      showSuggestionSpy.mockRestore();
+    }
   });
 });
 
