@@ -9,6 +9,7 @@ import type {
   TFlagSpec,
   TArgumentSpec,
   TCommandHandler,
+  TValidateFn,
 } from "../../types/command-spec";
 import type { TCliContext } from "../../types/context";
 
@@ -55,11 +56,7 @@ type TActionSpec<TOpts> = {
   handler: TCommandHandler<TOpts>;
   spinnerMessage?: string;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
-  validate?: (params: {
-    opts: TOpts;
-    args: Record<string, unknown>;
-    ctx: TCliContext;
-  }) => string | undefined;
+  validate?: TValidateFn<TOpts>;
   errorPrefix?: string;
 };
 
