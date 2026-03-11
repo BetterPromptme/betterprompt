@@ -3,7 +3,6 @@ import type { TApiResponse } from "../../types/api";
 import type { TSearchFilters } from "../../types/search";
 import type { TSkillInfoOptions } from "../../types/skills";
 import { getApiClient } from "../api/client";
-import { printResult } from "../output/service";
 import {
   installSkill as installSkillService,
   listSkills as listSkillsService,
@@ -117,11 +116,4 @@ export const createDefaultSkillCommandDependencies = (): TSkillCommandDependenci
   updateAllSkills: updateAllSkillsService,
   validateQuery: validateSearchQuery,
   search: (query, filters) => searchSkills(getApiClient(), query, filters),
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => {
-    console.error(message);
-  },
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 });
