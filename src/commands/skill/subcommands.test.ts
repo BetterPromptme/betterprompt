@@ -1,6 +1,13 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createSkillCommand } from "./command";
+import { createSkillInstallSubcommand } from "./install/command";
+import { createSkillListSubcommand } from "./list/command";
+import { createSkillSearchSubcommand } from "./search/command";
+import { createSkillUninstallSubcommand } from "./uninstall/command";
+import { createSkillUpdateSubcommand } from "./update/command";
 
 type TSkillInstallOptions = {
   scope: {
@@ -86,58 +93,87 @@ const createDeps = (overrides: Partial<TSkillCommandDeps> = {}): TSkillCommandDe
       updated: true,
     },
   ]),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const runInstall = async (args: string[], deps: TSkillCommandDeps) => {
+const runInstall = async (
+  args: string[],
+  deps: TSkillCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
     .option("--global")
     .option("--dir <path>")
-    .option("--json")
-    .addCommand(createSkillCommand(deps));
-
-  await root.parseAsync(["skill", "install", ...args], { from: "user" });
+    .option("--json");
+  const command = createSkillInstallSubcommand(deps, factoryDeps);
+  root.addCommand(command);
+  await root.parseAsync(["install", ...args], { from: "user" });
 };
 
-const runUninstall = async (args: string[], deps: TSkillCommandDeps) => {
+const runUninstall = async (
+  args: string[],
+  deps: TSkillCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
     .option("--global")
     .option("--dir <path>")
-    .option("--json")
-    .addCommand(createSkillCommand(deps));
-
-  await root.parseAsync(["skill", "uninstall", ...args], { from: "user" });
+    .option("--json");
+  const command = createSkillUninstallSubcommand(deps, factoryDeps);
+  root.addCommand(command);
+  await root.parseAsync(["uninstall", ...args], { from: "user" });
 };
 
-const runList = async (args: string[], deps: TSkillCommandDeps) => {
+const runList = async (
+  args: string[],
+  deps: TSkillCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps> = {}
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
     .option("--global")
     .option("--dir <path>")
-    .option("--json")
-    .addCommand(createSkillCommand(deps));
-
-  await root.parseAsync(["skill", "list", ...args], { from: "user" });
+    .option("--json");
+  const command = createSkillListSubcommand(deps, factoryDeps);
+  root.addCommand(command);
+  await root.parseAsync(["list", ...args], { from: "user" });
 };
 
-const runUpdate = async (args: string[], deps: TSkillCommandDeps) => {
+const runUpdate = async (
+  args: string[],
+  deps: TSkillCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps> = {}
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
     .option("--global")
     .option("--dir <path>")
-    .option("--json")
-    .addCommand(createSkillCommand(deps));
+    .option("--json");
+  const command = createSkillUpdateSubcommand(deps, factoryDeps);
+  root.addCommand(command);
+  await root.parseAsync(["update", ...args], { from: "user" });
+};
 
-  await root.parseAsync(["skill", "update", ...args], { from: "user" });
+const runSearch = async (
+  args: string[],
+  deps: TSkillCommandDeps,
+  factoryDeps: Partial<TCommandFactoryDeps> = {}
+) => {
+  const root = new Command("betterprompt");
+  root
+    .option("--project")
+    .option("--global")
+    .option("--dir <path>")
+    .option("--json");
+  const command = createSkillSearchSubcommand(deps, factoryDeps);
+  root.addCommand(command);
+  await root.parseAsync(["search", ...args], { from: "user" });
 };
 
 describe("skill install command", () => {
@@ -151,14 +187,15 @@ describe("skill install command", () => {
 
   it("installs a skill and prints human-readable output in default mode", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps);
+    await runInstall(["react-hooks"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [installData, installCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [installData, installCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(installData).toEqual({
       skillName: "react-hooks",
       installPath: "/tmp/project/.betterprompt/skills/react-hooks",
@@ -168,8 +205,9 @@ describe("skill install command", () => {
 
   it("does not forward optional flags when they are not provided", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps);
+    await runInstall(["react-hooks"], deps, factory);
 
     const [, options] = (deps.installSkill as ReturnType<typeof mock>).mock.calls[0] as [
       string,
@@ -180,14 +218,15 @@ describe("skill install command", () => {
 
   it("supports --json output for install results", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--json"], deps);
+    await runInstall(["react-hooks", "--json"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [installJsonData, installJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [installJsonData, installJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(installJsonData).toEqual({
       skillName: "react-hooks",
       installPath: "/tmp/project/.betterprompt/skills/react-hooks",
@@ -197,8 +236,9 @@ describe("skill install command", () => {
 
   it("forwards project scope when --project is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--project"], deps);
+    await runInstall(["react-hooks", "--project"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
@@ -207,8 +247,9 @@ describe("skill install command", () => {
 
   it("forwards global scope when --global is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--global"], deps);
+    await runInstall(["react-hooks", "--global"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
@@ -217,8 +258,9 @@ describe("skill install command", () => {
 
   it("forwards explicit dir scope when --dir is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--dir", "/work/demo"], deps);
+    await runInstall(["react-hooks", "--dir", "/work/demo"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
@@ -227,8 +269,9 @@ describe("skill install command", () => {
 
   it("forwards --overwrite flag", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--overwrite"], deps);
+    await runInstall(["react-hooks", "--overwrite"], deps, factory);
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
@@ -242,14 +285,15 @@ describe("skill install command", () => {
         throw new Error("Skill name must not be empty.");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInstall(["   "], deps);
+    await runInstall(["   "], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Skill name must not be empty.")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles API errors gracefully", async () => {
@@ -258,14 +302,15 @@ describe("skill install command", () => {
         throw new Error("Registry unavailable");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps);
+    await runInstall(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Registry unavailable")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error throwables gracefully", async () => {
@@ -274,26 +319,28 @@ describe("skill install command", () => {
         throw "timeout";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps);
+    await runInstall(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
 
 describe("skill uninstall command", () => {
   it("uninstalls a skill and prints human-readable output in default mode", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps);
+    await runUninstall(["react-hooks"], deps, factory);
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [uninstallData, uninstallCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [uninstallData, uninstallCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(uninstallData).toEqual({
       skillName: "react-hooks",
       removedPath: "/tmp/project/.betterprompt/skills/react-hooks",
@@ -303,13 +350,15 @@ describe("skill uninstall command", () => {
 
   it("respects --project and --global scopes", async () => {
     const projectDeps = createDeps();
-    await runUninstall(["react-hooks", "--project"], projectDeps);
+    const projectFactory = createFactoryDeps();
+    await runUninstall(["react-hooks", "--project"], projectDeps, projectFactory);
     expect(projectDeps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
     });
 
     const globalDeps = createDeps();
-    await runUninstall(["react-hooks", "--global"], globalDeps);
+    const globalFactory = createFactoryDeps();
+    await runUninstall(["react-hooks", "--global"], globalDeps, globalFactory);
     expect(globalDeps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
@@ -317,8 +366,9 @@ describe("skill uninstall command", () => {
 
   it("forwards explicit dir scope when --dir is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks", "--dir", "/work/demo"], deps);
+    await runUninstall(["react-hooks", "--dir", "/work/demo"], deps, factory);
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
@@ -327,14 +377,15 @@ describe("skill uninstall command", () => {
 
   it("supports --json output for uninstall results", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks", "--json"], deps);
+    await runUninstall(["react-hooks", "--json"], deps, factory);
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [uninstallJsonData, uninstallJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [uninstallJsonData, uninstallJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(uninstallJsonData).toEqual({
       skillName: "react-hooks",
       removedPath: "/tmp/project/.betterprompt/skills/react-hooks",
@@ -348,14 +399,15 @@ describe("skill uninstall command", () => {
         throw new Error("Skill \"react-hooks\" is not installed.");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps);
+    await runUninstall(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Skill \"react-hooks\" is not installed.")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error throwables gracefully", async () => {
@@ -364,12 +416,13 @@ describe("skill uninstall command", () => {
         throw "timeout";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps);
+    await runUninstall(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
 
@@ -390,16 +443,17 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList([], deps);
+    await runList([], deps, factory);
 
     expect(listSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
     });
     expect(deps.installSkill).not.toHaveBeenCalled();
     expect(deps.uninstallSkill).not.toHaveBeenCalled();
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [listData, listCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [listData, listCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(listData).toEqual([
       { name: "react-hooks", title: "React Hooks", version: "1.2.3" },
       { name: "seo-blog-writer", title: "SEO Blog Writer", version: "2.0.0" },
@@ -413,7 +467,7 @@ describe("skill list command", () => {
       listSkills: projectListSkills,
     });
 
-    await runList(["--project"], projectDeps);
+    await runList(["--project"], projectDeps, createFactoryDeps());
 
     expect(projectListSkills).toHaveBeenCalledWith({
       scope: { type: "project" },
@@ -424,7 +478,7 @@ describe("skill list command", () => {
       listSkills: globalListSkills,
     });
 
-    await runList(["--global"], globalDeps);
+    await runList(["--global"], globalDeps, createFactoryDeps());
 
     expect(globalListSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
@@ -437,7 +491,7 @@ describe("skill list command", () => {
       listSkills,
     });
 
-    await runList(["--dir", "/work/demo"], deps);
+    await runList(["--dir", "/work/demo"], deps, createFactoryDeps());
 
     expect(listSkills).toHaveBeenCalledWith({
       scope: { type: "dir", path: "/work/demo" },
@@ -455,14 +509,15 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList(["--json"], deps);
+    await runList(["--json"], deps, factory);
 
     expect(listSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [listJsonData, listJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [listJsonData, listJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(listJsonData).toEqual([{ name: "react-hooks", title: "React Hooks", version: "1.2.3" }]);
     expect(listJsonCtx.outputFormat).toBe("json");
   });
@@ -472,14 +527,15 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList(["--json"], deps);
+    await runList(["--json"], deps, factory);
 
     expect(listSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [emptyJsonData, emptyJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [emptyJsonData, emptyJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(emptyJsonData).toEqual([]);
     expect(emptyJsonCtx.outputFormat).toBe("json");
   });
@@ -489,14 +545,15 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList([], deps);
+    await runList([], deps, factory);
 
     expect(listSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [emptyMsg] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [emptyMsg] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(emptyMsg as string).toContain("No installed skills found.");
   });
 
@@ -507,14 +564,15 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList([], deps);
+    await runList([], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Failed to read skills directory")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error throwables in list mode", async () => {
@@ -524,12 +582,13 @@ describe("skill list command", () => {
     const deps = createDeps({
       listSkills,
     });
+    const factory = createFactoryDeps();
 
-    await runList([], deps);
+    await runList([], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
 
@@ -544,30 +603,32 @@ describe("skill update command", () => {
 
   it("fails when neither skill name nor --all is provided", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate([], deps);
+    await runUpdate([], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining(
         'Skill command failed: Please provide a skill name or pass "--all" to update all installed skills.'
       )
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.updateSkill).not.toHaveBeenCalled();
     expect(deps.updateAllSkills).not.toHaveBeenCalled();
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("updates a single skill and prints human-readable output in default mode", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks"], deps);
+    await runUpdate(["react-hooks"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [updateData, updateCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [updateData, updateCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(updateData).toEqual({
       skillName: "react-hooks",
       fromVersion: "1.0.0",
@@ -586,14 +647,15 @@ describe("skill update command", () => {
         updated: false,
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks"], deps);
+    await runUpdate(["react-hooks"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
     });
-    expect(deps.printResult).toHaveBeenCalled();
-    const [noopData] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalled();
+    const [noopData] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     const noopStr = JSON.stringify(noopData);
     expect(noopStr).toContain("react-hooks");
     expect(noopStr).toContain("2.0.0");
@@ -601,8 +663,9 @@ describe("skill update command", () => {
 
   it("forwards --force flag to updateSkill", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--force"], deps);
+    await runUpdate(["react-hooks", "--force"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
@@ -612,8 +675,9 @@ describe("skill update command", () => {
 
   it("calls updateAllSkills when --all flag is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["--all"], deps);
+    await runUpdate(["--all"], deps, factory);
 
     expect(deps.updateAllSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
@@ -623,8 +687,9 @@ describe("skill update command", () => {
 
   it("forwards --force with --all to updateAllSkills", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["--all", "--force"], deps);
+    await runUpdate(["--all", "--force"], deps, factory);
 
     expect(deps.updateAllSkills).toHaveBeenCalledWith({
       scope: { type: "global" },
@@ -634,8 +699,9 @@ describe("skill update command", () => {
 
   it("forwards --project scope when --project is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--project"], deps);
+    await runUpdate(["react-hooks", "--project"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
@@ -644,8 +710,9 @@ describe("skill update command", () => {
 
   it("forwards --global scope when --global is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--global"], deps);
+    await runUpdate(["react-hooks", "--global"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
@@ -654,8 +721,9 @@ describe("skill update command", () => {
 
   it("forwards explicit dir scope when --dir is used", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--dir", "/work/demo"], deps);
+    await runUpdate(["react-hooks", "--dir", "/work/demo"], deps, factory);
 
     expect(deps.updateSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
@@ -664,11 +732,12 @@ describe("skill update command", () => {
 
   it("outputs structured JSON result in --json mode for single skill update", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--json"], deps);
+    await runUpdate(["react-hooks", "--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [updateJsonData, updateJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [updateJsonData, updateJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(updateJsonData).toEqual({
       skillName: "react-hooks",
       fromVersion: "1.0.0",
@@ -680,11 +749,12 @@ describe("skill update command", () => {
 
   it("outputs structured JSON array in --json mode for --all updates", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["--all", "--json"], deps);
+    await runUpdate(["--all", "--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [updateAllJsonData, updateAllJsonCtx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [updateAllJsonData, updateAllJsonCtx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(updateAllJsonData).toEqual([
       { skillName: "react-hooks", fromVersion: "1.0.0", toVersion: "2.0.0", updated: true },
     ]);
@@ -697,14 +767,15 @@ describe("skill update command", () => {
         throw new Error('Skill "react-hooks" is not installed.');
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks"], deps);
+    await runUpdate(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining('Skill command failed: Skill "react-hooks" is not installed.')
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles API errors gracefully for single skill update", async () => {
@@ -713,14 +784,15 @@ describe("skill update command", () => {
         throw new Error("Registry unavailable");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks"], deps);
+    await runUpdate(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Registry unavailable")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error throwables gracefully in update mode", async () => {
@@ -729,27 +801,136 @@ describe("skill update command", () => {
         throw "timeout";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks"], deps);
+    await runUpdate(["react-hooks"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.error).toHaveBeenCalledWith(expect.stringContaining("Skill command failed: timeout"));
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("fails when a skill name is provided with --all", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runUpdate(["react-hooks", "--all"], deps);
+    await runUpdate(["react-hooks", "--all"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining(
         'Skill command failed: Cannot use "--all" together with a specific skill name.'
       )
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.updateSkill).not.toHaveBeenCalled();
     expect(deps.updateAllSkills).not.toHaveBeenCalled();
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.printResult).not.toHaveBeenCalled();
+  });
+});
+
+describe("skill search command", () => {
+  it("does not register --version option", () => {
+    const command = createSkillCommand();
+    const searchCommand = command.commands.find((subcommand) => subcommand.name() === "search");
+
+    expect(searchCommand).toBeDefined();
+    expect(searchCommand?.options.some((option) => option.long === "--version")).toBe(false);
+  });
+
+  it("searches with a query and prints result in default mode", async () => {
+    const searchResult = { rows: [{ name: "react-hooks", title: "React Hooks" }] };
+    const deps = createDeps({
+      search: mock(async () => searchResult),
+    });
+    const factory = createFactoryDeps();
+
+    await runSearch(["react"], deps, factory);
+
+    expect(deps.validateQuery).toHaveBeenCalledWith("react");
+    expect(deps.search).toHaveBeenCalledWith("react", {});
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(data).toEqual(searchResult);
+    expect(ctx.outputFormat).toBe("text");
+  });
+
+  it("forwards --type filter to search", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runSearch(["hooks", "--type", "text"], deps, factory);
+
+    expect(deps.search).toHaveBeenCalledWith("hooks", { type: "text" });
+  });
+
+  it("forwards --author filter to search", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runSearch(["hooks", "--author", "alice"], deps, factory);
+
+    expect(deps.search).toHaveBeenCalledWith("hooks", { author: "alice" });
+  });
+
+  it("outputs structured JSON result in --json mode", async () => {
+    const searchResult = { rows: [{ name: "react-hooks" }] };
+    const deps = createDeps({
+      search: mock(async () => searchResult),
+    });
+    const factory = createFactoryDeps();
+
+    await runSearch(["react", "--json"], deps, factory);
+
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(data).toEqual(searchResult);
+    expect(ctx.outputFormat).toBe("json");
+  });
+
+  it("handles search service errors gracefully", async () => {
+    const deps = createDeps({
+      search: mock(async () => {
+        throw new Error("Registry unavailable");
+      }),
+    });
+    const factory = createFactoryDeps();
+
+    await runSearch(["react"], deps, factory);
+
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("Skill command failed: Registry unavailable")
+    );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
+  });
+
+  it("handles non-Error throwables gracefully", async () => {
+    const deps = createDeps({
+      search: mock(async () => {
+        throw "timeout";
+      }),
+    });
+    const factory = createFactoryDeps();
+
+    await runSearch(["react"], deps, factory);
+
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("Skill command failed: timeout")
+    );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
+  });
+
+  it("handles invalid --type filter gracefully", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runSearch(["hooks", "--type", "invalid-type"], deps, factory);
+
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining('Skill command failed: Invalid skill type "invalid-type"')
+    );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
