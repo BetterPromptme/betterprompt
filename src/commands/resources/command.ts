@@ -101,16 +101,18 @@ export const createResourcesCommand = (
 
         // In JSON mode, formatText is skipped — return filtered data for --models-only
         if (opts.modelsOnly) {
-          return data.resources.models;
+          return { kind: "models" as const, data: data.resources.models };
         }
-        return data;
+        return { kind: "full" as const, data };
       },
       formatText: (result) => {
-        // Array means --models-only was set
-        if (Array.isArray(result)) {
-          return formatModelsText(result as TResourceModel[]);
+        const r = result as
+          | { kind: "models"; data: TResourceModel[] }
+          | { kind: "full"; data: TResourcesData };
+        if (r.kind === "models") {
+          return formatModelsText(r.data);
         }
-        return formatResourcesText(result as TResourcesData);
+        return formatResourcesText(r.data);
       },
     },
     factoryDeps

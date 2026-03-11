@@ -149,7 +149,7 @@ describe("resources command", () => {
 
       const [data] = (factory.printResult as ReturnType<typeof mock>).mock
         .calls[0] as [unknown];
-      expect(data).toEqual(sampleData.resources.models);
+      expect(data).toEqual({ kind: "models", data: sampleData.resources.models });
     });
   });
 
@@ -163,7 +163,7 @@ describe("resources command", () => {
       expect(factory.printResult).toHaveBeenCalledTimes(1);
       const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
         .calls[0] as [unknown, { outputFormat: string }];
-      expect(data).toEqual(sampleData);
+      expect(data).toEqual({ kind: "full", data: sampleData });
       expect(ctx.outputFormat).toBe("json");
       expect(factory.error).not.toHaveBeenCalled();
     });
