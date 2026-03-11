@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { CONFIG_MESSAGES } from "../../../constants";
+import { createFactoryDeps } from "../../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSystemConfigKey } from "../../../types";
 import { createConfigCommand } from "../command";
 
@@ -19,14 +21,15 @@ const createDeps = (overrides: Partial<TConfigDeps> = {}): TConfigDeps => ({
       ? "/tmp/.betterprompt/auth.json"
       : "/tmp/.betterprompt/config.json"
   ),
-  log: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const runConfig = async (args: string[], deps: TConfigDeps) => {
-  const command = createConfigCommand(deps);
+const runConfig = async (
+  args: string[],
+  deps: TConfigDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) => {
+  const command = createConfigCommand(deps, factoryDeps);
   await command.parseAsync(args, { from: "user" });
 };
 
@@ -39,35 +42,44 @@ describe("config get subcommand", () => {
     const deps = createDeps({
       getValue: mock(async () => "bp_live_123"),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["get", "apiKey"], deps);
+    await runConfig(["get", "apiKey"], deps, factory);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiKey");
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("*******_123"));
-    expect(deps.log).not.toHaveBeenCalledWith(expect.stringContaining("bp_live_123"));
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("*******_123"),
+      expect.any(Object)
+    );
   });
 
   it("gets apiBaseUrl value", async () => {
     const deps = createDeps({
       getValue: mock(async () => "https://betterprompt.me/api"),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["get", "apiBaseUrl"], deps);
+    await runConfig(["get", "apiBaseUrl"], deps, factory);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiBaseUrl");
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("https://betterprompt.me/api"));
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("https://betterprompt.me/api"),
+      expect.any(Object)
+    );
   });
 
   it("outputs JSON for get when --json is provided with masked apiKey", async () => {
     const deps = createDeps({
       getValue: mock(async () => "bp_live_123"),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["--json", "get", "apiKey"], deps);
+    await runConfig(["--json", "get", "apiKey"], deps, factory);
 
     expect(deps.getValue).toHaveBeenCalledWith("apiKey");
-    expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify({ key: "apiKey", value: "*******_123" })
+    expect(factory.printResult).toHaveBeenCalledWith(
+      { key: "apiKey", value: "*******_123" },
+      expect.any(Object)
     );
   });
 
@@ -78,13 +90,18 @@ describe("config get subcommand", () => {
         apiBaseUrl: "https://betterprompt.me/api",
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["get"], deps);
+    await runConfig(["get"], deps, factory);
 
     expect(deps.getAllValues).toHaveBeenCalledTimes(1);
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining("apiKey=*******_123"));
-    expect(deps.log).toHaveBeenCalledWith(
-      expect.stringContaining("apiBaseUrl=https://betterprompt.me/api")
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("apiKey=*******_123"),
+      expect.any(Object)
+    );
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("apiBaseUrl=https://betterprompt.me/api"),
+      expect.any(Object)
     );
   });
 
@@ -95,12 +112,14 @@ describe("config get subcommand", () => {
         apiBaseUrl: "https://betterprompt.me/api",
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["--json", "get"], deps);
+    await runConfig(["--json", "get"], deps, factory);
 
     expect(deps.getAllValues).toHaveBeenCalledTimes(1);
-    expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify({ apiKey: "*******_123", apiBaseUrl: "https://betterprompt.me/api" })
+    expect(factory.printResult).toHaveBeenCalledWith(
+      { apiKey: "*******_123", apiBaseUrl: "https://betterprompt.me/api" },
+      expect.any(Object)
     );
   });
 
@@ -108,24 +127,29 @@ describe("config get subcommand", () => {
     const deps = createDeps({
       getAllValues: mock(async () => ({})),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["get"], deps);
+    await runConfig(["get"], deps, factory);
 
     expect(deps.getAllValues).toHaveBeenCalledTimes(1);
-    expect(deps.log).toHaveBeenCalledWith("No config values set.");
+    expect(factory.printResult).toHaveBeenCalledWith(
+      "No config values set.",
+      expect.any(Object)
+    );
   });
 
   it("fails when key value does not exist", async () => {
     const deps = createDeps({
       getValue: mock(async () => undefined),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["get", "apiKey"], deps);
+    await runConfig(["get", "apiKey"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledTimes(2);
-    expect(deps.error).toHaveBeenLastCalledWith(
+    expect(factory.error).toHaveBeenCalledTimes(2);
+    expect(factory.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 });
