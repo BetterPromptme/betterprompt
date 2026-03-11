@@ -1,1 +1,1 @@
-export type { TResetCommandDependencies } from "../../types/reset";
+export type { TResetCommandDependencies, TRunResetResult } from "../../types/reset";
