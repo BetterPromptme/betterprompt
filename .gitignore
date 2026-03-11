@@ -140,3 +140,4 @@ dist
 instructions/*
 .cursor/*
 tasks/*
+/.prompts
