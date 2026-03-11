@@ -20,12 +20,12 @@ export const createSkillCommand = (
       description: SKILLS_COMMAND.description,
       helpText: SKILLS_MESSAGES.helpText,
       subcommands: [
-        createSkillInfoSubcommand(deps),
-        createSkillInstallSubcommand(deps),
-        createSkillUninstallSubcommand(deps),
-        createSkillListSubcommand(deps),
-        createSkillUpdateSubcommand(deps),
-        createSkillSearchSubcommand(deps),
+        createSkillInfoSubcommand(deps, factoryDeps),
+        createSkillInstallSubcommand(deps, factoryDeps),
+        createSkillUninstallSubcommand(deps, factoryDeps),
+        createSkillListSubcommand(deps, factoryDeps),
+        createSkillUpdateSubcommand(deps, factoryDeps),
+        createSkillSearchSubcommand(deps, factoryDeps),
       ],
     },
     factoryDeps
