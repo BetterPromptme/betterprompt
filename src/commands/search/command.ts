@@ -51,6 +51,15 @@ export const createSearchCommand = (
       helpText: SEARCH_MESSAGES.helpText,
       spinnerMessage: "Searching skills...",
       errorPrefix: `${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix}`,
+      validate: ({ opts }) => {
+        if (
+          opts.type !== undefined &&
+          !(SKILL_TYPES as readonly string[]).includes(opts.type)
+        ) {
+          return `${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix} Invalid skill type "${opts.type}". Expected one of: ${SKILL_TYPES.join(", ")}.`;
+        }
+        return undefined;
+      },
       handler: async ({ args, opts }) => {
         const query = deps.validateQuery(args[SEARCH_COMMAND.arguments.query.name] as string);
         const filters = buildSearchFilters(opts);
