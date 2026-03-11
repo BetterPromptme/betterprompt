@@ -7,7 +7,10 @@ import type {
   TCommandSpec,
   TParentCommandSpec,
   TFlagSpec,
+  TArgumentSpec,
+  TCommandHandler,
 } from "../../types/command-spec";
+import type { TCliContext } from "../../types/context";
 
 const DEFAULT_ERROR_PREFIX = "Command failed:";
 
@@ -35,40 +38,36 @@ const applyFlags = (cmd: Command, flags: Record<string, TFlagSpec>): void => {
   }
 };
 
-export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
-  spec: TCommandSpec<TOpts>,
-  factoryDeps?: Partial<TCommandFactoryDeps>
-): Command => {
-  const deps = { ...createDefaultCommandFactoryDeps(), ...factoryDeps };
-  const cmd = new Command(spec.name).description(spec.description);
-
-  if (spec.flags) {
-    applyFlags(cmd, spec.flags);
-  }
-
-  if (spec.arguments) {
-    for (const argSpec of spec.arguments) {
-      if (argSpec.parse) {
-        cmd.addArgument(
-          new Argument(argSpec.name, argSpec.description).argParser(
-            argSpec.parse
-          )
-        );
-      } else {
-        cmd.argument(argSpec.name, argSpec.description);
-      }
+const applyArguments = (cmd: Command, args: TArgumentSpec[]): void => {
+  for (const argSpec of args) {
+    if (argSpec.parse) {
+      cmd.addArgument(
+        new Argument(argSpec.name, argSpec.description).argParser(argSpec.parse)
+      );
+    } else {
+      cmd.argument(argSpec.name, argSpec.description);
     }
   }
+};
 
-  if (spec.helpText) {
-    cmd.addHelpText("after", spec.helpText);
-  }
+type TActionSpec<TOpts> = {
+  arguments?: TArgumentSpec[];
+  handler: TCommandHandler<TOpts>;
+  spinnerMessage?: string;
+  formatText?: (result: unknown, ctx: TCliContext) => unknown;
+  validate?: (params: {
+    opts: TOpts;
+    args: Record<string, unknown>;
+    ctx: TCliContext;
+  }) => string | undefined;
+  errorPrefix?: string;
+};
 
-  if (spec.customAction) {
-    spec.customAction(cmd, deps);
-    return cmd;
-  }
-
+const wireAction = <TOpts>(
+  cmd: Command,
+  spec: TActionSpec<TOpts>,
+  deps: TCommandFactoryDeps
+): void => {
   cmd.action(async (...actionArgs: unknown[]) => {
     const command = actionArgs[actionArgs.length - 1] as Command;
     const opts = actionArgs[actionArgs.length - 2] as TOpts;
@@ -105,6 +104,7 @@ export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
               ctx,
               command,
               setExitCode: deps.setExitCode,
+              deps,
             }),
         });
       } else {
@@ -114,6 +114,7 @@ export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
           ctx,
           command,
           setExitCode: deps.setExitCode,
+          deps,
         });
       }
 
@@ -131,21 +132,70 @@ export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
       deps.setExitCode(1);
     }
   });
-
-  return cmd;
 };
 
-export const createParentCommandFromSpec = (
-  spec: TParentCommandSpec
+export const createCommandFromSpec = <TOpts = Record<string, unknown>>(
+  spec: TCommandSpec<TOpts>,
+  factoryDeps?: Partial<TCommandFactoryDeps>
 ): Command => {
+  const deps = { ...createDefaultCommandFactoryDeps(), ...factoryDeps };
   const cmd = new Command(spec.name).description(spec.description);
 
   if (spec.flags) {
     applyFlags(cmd, spec.flags);
   }
 
+  if (spec.arguments) {
+    applyArguments(cmd, spec.arguments);
+  }
+
   if (spec.helpText) {
     cmd.addHelpText("after", spec.helpText);
+  }
+
+  if (spec.configureOutput) {
+    cmd.configureOutput(spec.configureOutput);
+  }
+
+  if (spec.showHelpAfterError) {
+    cmd.showHelpAfterError();
+  }
+
+  if (spec.showSuggestionAfterError) {
+    cmd.showSuggestionAfterError();
+  }
+
+  if (spec.customAction) {
+    spec.customAction(cmd, deps);
+    return cmd;
+  }
+
+  wireAction(cmd, spec, deps);
+
+  return cmd;
+};
+
+export const createParentCommandFromSpec = <TOpts = Record<string, unknown>>(
+  spec: TParentCommandSpec<TOpts>,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+): Command => {
+  const deps = { ...createDefaultCommandFactoryDeps(), ...factoryDeps };
+  const cmd = new Command(spec.name).description(spec.description);
+
+  if (spec.flags) {
+    applyFlags(cmd, spec.flags);
+  }
+
+  if (spec.arguments) {
+    applyArguments(cmd, spec.arguments);
+  }
+
+  if (spec.helpText) {
+    cmd.addHelpText("after", spec.helpText);
+  }
+
+  if (spec.handler) {
+    wireAction(cmd, spec as TActionSpec<TOpts>, deps);
   }
 
   for (const subcommand of spec.subcommands) {
