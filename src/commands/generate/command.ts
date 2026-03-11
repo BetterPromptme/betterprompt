@@ -55,13 +55,19 @@ export const createGenerateCommand = (
       },
       customAction: (cmd, _factoryDeps) => {
         cmd.action(async (skillVersionId: string, opts: TGenerateCommandOptions, command) => {
-          await executeGenerate({
-            skillVersionId,
-            options: buildGenerateOptions(opts),
-            ctx: getCommandContext(command),
-            helpText: cmd.helpInformation(),
-            deps,
-          });
+          try {
+            await executeGenerate({
+              skillVersionId,
+              options: buildGenerateOptions(opts),
+              ctx: getCommandContext(command),
+              helpText: cmd.helpInformation(),
+              deps,
+            });
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            deps.error(message);
+            deps.setExitCode(1);
+          }
         });
       },
     },
