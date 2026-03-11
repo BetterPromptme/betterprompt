@@ -9,13 +9,15 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { API_CONFIG, AUTH_MESSAGES, AUTH_STORAGE } from "../../constants";
-import type { TAuthConfig } from "../../types/auth";
+import type { TAuthConfig, TAuthDependencies } from "../../types/auth";
 import type { TFetchLike } from "../../types/api";
 import type { TApiResponse } from "../../types/api";
 import type { TReadAuthOptions, TSaveAuthOptions } from "../../types/auth";
 import type { TCreditBalance } from "../../types/credits";
+import type { TCliContext } from "../../types/context";
 import type { TUserIdentity } from "../../types/whoami";
 import { loadOrInitConfig, resolveSystemConfigPath } from "../config/service";
+import { createErrorFormatter, runTaskWithSpinner } from "../error-ux/service";
 
 export const resolveAuthConfigPath = (
   getHomeDir: () => string = os.homedir
@@ -213,4 +215,65 @@ export const getCredits = async (
   }
 
   throw new Error(response.message ?? "Failed to fetch credits.");
+};
+
+/**
+ * Executes the interactive auth flow: prompt for API key, verify, and save.
+ *
+ * @param apiKey - API key from --api-key flag (skips prompt if provided).
+ * @param ctx - Resolved CLI context (used for color in error formatting).
+ * @param deps - Injectable dependencies for prompts, persistence, and logging.
+ */
+export const executeAuth = async (
+  apiKey: string | undefined,
+  ctx: TCliContext,
+  deps: TAuthDependencies
+): Promise<void> => {
+  deps.intro(AUTH_MESSAGES.introTitle);
+  const formatError = createErrorFormatter({ color: ctx.color });
+
+  try {
+    const keyInput =
+      apiKey ??
+      (await deps.password({
+        message: AUTH_MESSAGES.passwordPrompt,
+        placeholder: AUTH_MESSAGES.passwordPlaceholder,
+        validate: (value: string | undefined) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return AUTH_MESSAGES.emptyKeyError;
+          }
+
+          return undefined;
+        },
+      }));
+
+    if (deps.isCancel(keyInput)) {
+      deps.cancel(AUTH_MESSAGES.cancelMessage);
+      deps.setExitCode(1);
+      return;
+    }
+
+    const resolvedApiKey = typeof keyInput === "string" ? keyInput.trim() : "";
+    if (!resolvedApiKey) {
+      throw new Error(AUTH_MESSAGES.emptyKeyError);
+    }
+
+    await runTaskWithSpinner({
+      message: AUTH_MESSAGES.verifyKeyText,
+      createSpinner: deps.createSpinner,
+      task: async () => {
+        await deps.verifyApiKey(resolvedApiKey);
+      },
+    });
+
+    const configPath = await deps.saveAuthConfig(resolvedApiKey);
+    deps.outro(`${AUTH_MESSAGES.successPrefix} ${configPath}`);
+  } catch (error) {
+    const fallbackPath = deps.resolveAuthConfigPath();
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    deps.error(formatError(AUTH_MESSAGES.failedPrefix, errorMessage));
+    deps.error(`${AUTH_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
+    deps.setExitCode(1);
+  }
 };

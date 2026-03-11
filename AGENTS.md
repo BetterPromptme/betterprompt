@@ -166,6 +166,8 @@ ALWAYS run `bunx tsc --noEmit` and run `bun run lint` after finish edit file for
 
 ## Commit & Pull Request Guidelines
 
+Each commit should touch only one file (or one logical file group like a source file + its test). Do not bundle unrelated file changes into a single commit.
+
 Recent history includes `chore:` prefixes and merge commits. Follow concise, imperative commit messages; Conventional Commit style is preferred:
 
 - `feat: add prompt validator`

@@ -1,14 +1,13 @@
-import { Command } from "commander";
 import logSymbols from "log-symbols";
 import { RESOURCES_COMMAND, RESOURCES_MESSAGES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
-import { getCommandContext } from "../../services/context/service";
-import { printResult } from "../../services/output/service";
+import { createCommandFromSpec } from "../../services/command-factory/service";
 import {
   fetchResources,
   loadLocalResources,
   saveLocalResources,
 } from "../../services/resources/service";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TResourcesDependencies,
   TResourcesData,
@@ -49,6 +48,12 @@ const formatResourcesText = (data: TResourcesData): string =>
     })
     .join("\n\n");
 
+type TResourcesOpts = {
+  remote?: boolean;
+  sync?: boolean;
+  modelsOnly?: boolean;
+};
+
 const defaultDeps: TResourcesDependencies = {
   fetchResources: (opts) =>
     fetchResources(
@@ -58,93 +63,59 @@ const defaultDeps: TResourcesDependencies = {
     ),
   loadLocalResources: () => loadLocalResources(),
   saveLocalResources: (data) => saveLocalResources(data),
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => console.error(message),
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 };
 
 export const createResourcesCommand = (
-  deps: TResourcesDependencies = defaultDeps
-): Command => {
-  const command = new Command(RESOURCES_COMMAND.name).description(
-    RESOURCES_COMMAND.description
-  );
-  command.option(
-    RESOURCES_COMMAND.flags.remote.flag,
-    RESOURCES_COMMAND.flags.remote.description
-  );
-  command.option(
-    RESOURCES_COMMAND.flags.sync.flag,
-    RESOURCES_COMMAND.flags.sync.description
-  );
-  command.option(
-    RESOURCES_COMMAND.flags.modelsOnly.flag,
-    RESOURCES_COMMAND.flags.modelsOnly.description
-  );
-  command.option(
-    RESOURCES_COMMAND.flags.json.flag,
-    RESOURCES_COMMAND.flags.json.description
-  );
+  deps: TResourcesDependencies = defaultDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createCommandFromSpec<TResourcesOpts>(
+    {
+      name: RESOURCES_COMMAND.name,
+      description: RESOURCES_COMMAND.description,
+      flags: RESOURCES_COMMAND.flags,
+      errorPrefix: `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix}`,
+      validate: ({ opts }) => {
+        if (opts.remote && opts.sync) {
+          return `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${RESOURCES_MESSAGES.remoteSyncMutuallyExclusive}`;
+        }
+        return undefined;
+      },
+      handler: async ({ opts }) => {
+        let data: TResourcesData;
 
-  command.action(async (_opts: Record<string, unknown>, command: Command) => {
-    try {
-      const ctx = getCommandContext(command);
-      const opts = command.opts<{
-        remote?: boolean;
-        sync?: boolean;
-        modelsOnly?: boolean;
-      }>();
-
-      if (opts.remote && opts.sync) {
-        deps.error(
-          `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${RESOURCES_MESSAGES.remoteSyncMutuallyExclusive}`
-        );
-        deps.setExitCode(1);
-        return;
-      }
-
-      let data: TResourcesData;
-
-      if (opts.remote) {
-        data = await deps.fetchResources({ skipModelsHash: true });
-      } else if (opts.sync) {
-        data = await deps.fetchResources({ skipModelsHash: true });
-        await deps.saveLocalResources(data);
-      } else {
-        const local = await deps.loadLocalResources();
-        if (local !== null) {
-          data = local;
-        } else {
+        if (opts.remote) {
+          data = await deps.fetchResources({ skipModelsHash: true });
+        } else if (opts.sync) {
           data = await deps.fetchResources({ skipModelsHash: true });
           await deps.saveLocalResources(data);
+        } else {
+          const local = await deps.loadLocalResources();
+          if (local !== null) {
+            data = local;
+          } else {
+            data = await deps.fetchResources({ skipModelsHash: true });
+            await deps.saveLocalResources(data);
+          }
         }
-      }
 
-      if (ctx.outputFormat === "json") {
-        deps.printResult(opts.modelsOnly ? data.resources.models : data, ctx);
-      } else {
-        deps.printResult(
-          opts.modelsOnly
-            ? formatModelsText(data.resources.models)
-            : formatResourcesText(data),
-          ctx
-        );
-      }
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : String(error ?? RESOURCES_MESSAGES.unknownError);
-      deps.error(
-        `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${message}`
-      );
-      deps.setExitCode(1);
-    }
-  });
-
-  return command;
-};
+        // In JSON mode, formatText is skipped — return filtered data for --models-only
+        if (opts.modelsOnly) {
+          return { kind: "models" as const, data: data.resources.models };
+        }
+        return { kind: "full" as const, data };
+      },
+      formatText: (result) => {
+        const r = result as
+          | { kind: "models"; data: TResourceModel[] }
+          | { kind: "full"; data: TResourcesData };
+        if (r.kind === "models") {
+          return formatModelsText(r.data);
+        }
+        return formatResourcesText(r.data);
+      },
+    },
+    factoryDeps
+  );
 
 export const resourcesCommand = createResourcesCommand();
