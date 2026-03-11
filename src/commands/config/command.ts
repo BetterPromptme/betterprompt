@@ -76,11 +76,6 @@ const defaultDeps: TConfigCommandDependencies = {
     }
     return resolveSystemConfigPath();
   },
-  log: (message) => console.log(message),
-  error: (message) => console.error(message),
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 };
 
 export const createConfigCommand = (
