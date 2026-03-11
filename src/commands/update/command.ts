@@ -24,10 +24,10 @@ export const createUpdateCommand = (
       description: UPDATE_COMMAND.description,
       flags: UPDATE_COMMAND.flags,
       errorPrefix: `${logSymbols.error} ${UPDATE_MESSAGES.failedPrefix}`,
-      handler: async ({ ctx, deps: factoryDeps }) => {
+      handler: async ({ ctx, deps: resolvedDeps }) => {
         const checkResult = await runTaskWithSpinner({
           message: "Checking for updates...",
-          createSpinner: factoryDeps.createSpinner,
+          createSpinner: resolvedDeps.createSpinner,
           task: () => deps.checkForUpdate({ registry: ctx.registry }),
         });
 
@@ -35,7 +35,7 @@ export const createUpdateCommand = (
         if (checkResult.hasUpdate) {
           const updateResult = await runTaskWithSpinner({
             message: `Updating to ${checkResult.latestVersion}...`,
-            createSpinner: factoryDeps.createSpinner,
+            createSpinner: resolvedDeps.createSpinner,
             task: () =>
               deps.performUpdate({
                 registry: ctx.registry,
