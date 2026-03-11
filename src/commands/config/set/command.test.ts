@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { CONFIG_MESSAGES } from "../../../constants";
+import { createFactoryDeps } from "../../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSystemConfigKey } from "../../../types";
 import { createConfigCommand } from "../command";
 
@@ -19,14 +21,15 @@ const createDeps = (overrides: Partial<TConfigDeps> = {}): TConfigDeps => ({
       ? "/tmp/.betterprompt/auth.json"
       : "/tmp/.betterprompt/config.json"
   ),
-  log: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const runConfig = async (args: string[], deps: TConfigDeps) => {
-  const command = createConfigCommand(deps);
+const runConfig = async (
+  args: string[],
+  deps: TConfigDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) => {
+  const command = createConfigCommand(deps, factoryDeps);
   await command.parseAsync(args, { from: "user" });
 };
 
@@ -37,41 +40,52 @@ describe("config set subcommand", () => {
 
   it("sets apiKey value", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiKey", "bp_live_123"], deps);
+    await runConfig(["set", "apiKey", "bp_live_123"], deps, factory);
 
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_live_123");
     expect(deps.setValue).toHaveBeenCalledWith("apiKey", "bp_live_123");
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining(CONFIG_MESSAGES.savedSuccess),
+      expect.any(Object)
+    );
   });
 
   it("sets apiBaseUrl value", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps);
+    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps, factory);
 
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.setValue).toHaveBeenCalledWith(
       "apiBaseUrl",
       "https://betterprompt.me/api"
     );
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining(CONFIG_MESSAGES.savedSuccess),
+      expect.any(Object)
+    );
   });
 
   it("outputs JSON for set when --json is provided", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
     await runConfig(
       ["--json", "set", "apiBaseUrl", "https://betterprompt.me/api"],
-      deps
+      deps,
+      factory
     );
 
     expect(deps.setValue).toHaveBeenCalledWith(
       "apiBaseUrl",
       "https://betterprompt.me/api"
     );
-    expect(deps.log).toHaveBeenCalledWith(
-      JSON.stringify({ success: true, key: "apiBaseUrl" })
+    expect(factory.printResult).toHaveBeenCalledWith(
+      { success: true, key: "apiBaseUrl" },
+      expect.any(Object)
     );
   });
 
@@ -81,16 +95,17 @@ describe("config set subcommand", () => {
         throw new Error("API key verification failed. Unauthorized");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiKey", "bp_bad_key"], deps);
+    await runConfig(["set", "apiKey", "bp_bad_key"], deps, factory);
 
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_bad_key");
     expect(deps.setValue).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledTimes(2);
-    expect(deps.error).toHaveBeenLastCalledWith(
+    expect(factory.error).toHaveBeenCalledTimes(2);
+    expect(factory.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("shows system config path when setting apiBaseUrl fails", async () => {
@@ -99,12 +114,13 @@ describe("config set subcommand", () => {
         throw new Error("write failed");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps);
+    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps, factory);
 
-    expect(deps.error).toHaveBeenLastCalledWith(
+    expect(factory.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 });
