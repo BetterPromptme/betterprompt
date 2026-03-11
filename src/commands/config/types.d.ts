@@ -12,4 +12,6 @@ export type TConfigCommandDependencies = {
   setExitCode: (code: number) => void;
 };
 
+export type TConfigSubcommandOpts = { json?: boolean };
+
 export type { TSystemConfigKey };
