@@ -1,4 +1,4 @@
-import type { Command } from "commander";
+import type { Command, OutputConfiguration } from "commander";
 import type { TCliContext } from "./context";
 import type { TCommandFactoryDeps } from "./command-factory";
 
@@ -21,7 +21,14 @@ export type TCommandHandler<TOpts> = (params: {
   ctx: TCliContext;
   command: Command;
   setExitCode: (code: number) => void;
+  deps: TCommandFactoryDeps;
 }) => Promise<unknown>;
+
+export type TValidateFn<TOpts> = (params: {
+  opts: TOpts;
+  args: Record<string, unknown>;
+  ctx: TCliContext;
+}) => string | undefined;
 
 type TCommandSpecCore = {
   name: string;
@@ -29,6 +36,9 @@ type TCommandSpecCore = {
   flags?: Record<string, TFlagSpec>;
   arguments?: TArgumentSpec[];
   helpText?: string;
+  configureOutput?: OutputConfiguration;
+  showHelpAfterError?: boolean;
+  showSuggestionAfterError?: boolean;
 };
 
 type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
@@ -37,11 +47,7 @@ type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
   errorPrefix?: string;
   spinnerMessage?: string;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
-  validate?: (params: {
-    opts: TOpts;
-    args: Record<string, unknown>;
-    ctx: TCliContext;
-  }) => string | undefined;
+  validate?: TValidateFn<TOpts>;
 };
 
 type TCommandSpecWithCustomAction = TCommandSpecCore & {
@@ -53,10 +59,31 @@ export type TCommandSpec<TOpts = Record<string, unknown>> =
   | TCommandSpecWithHandler<TOpts>
   | TCommandSpecWithCustomAction;
 
-export type TParentCommandSpec = {
+type TParentCommandSpecCore = {
   name: string;
   description: string;
   flags?: Record<string, TFlagSpec>;
   helpText?: string;
   subcommands: Command[];
+  arguments?: TArgumentSpec[];
 };
+
+type TParentCommandSpecWithHandler<TOpts> = TParentCommandSpecCore & {
+  handler: TCommandHandler<TOpts>;
+  formatText?: (result: unknown, ctx: TCliContext) => unknown;
+  spinnerMessage?: string;
+  errorPrefix?: string;
+  validate?: TValidateFn<TOpts>;
+};
+
+type TParentCommandSpecWithoutHandler = TParentCommandSpecCore & {
+  handler?: never;
+  formatText?: never;
+  spinnerMessage?: never;
+  errorPrefix?: never;
+  validate?: never;
+};
+
+export type TParentCommandSpec<TOpts = Record<string, unknown>> =
+  | TParentCommandSpecWithHandler<TOpts>
+  | TParentCommandSpecWithoutHandler;
