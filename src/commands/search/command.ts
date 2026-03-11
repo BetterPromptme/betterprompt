@@ -1,12 +1,9 @@
-import { Command } from "commander";
 import logSymbols from "log-symbols";
-import ora from "ora";
 import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
-import { getCommandContext } from "../../services/context/service";
-import { runTaskWithSpinner } from "../../services/error-ux/service";
-import { printResult } from "../../services/output/service";
+import { createCommandFromSpec } from "../../services/command-factory/service";
 import { searchSkills, validateSearchQuery } from "../../services/skills/service";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TSearchCommandDependencies,
   TSearchCommandOptions,
@@ -16,11 +13,6 @@ import type {
 const defaultDeps: TSearchCommandDependencies = {
   validateQuery: validateSearchQuery,
   search: (query, filters) => searchSkills(getApiClient(), query, filters),
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => console.error(message),
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 };
 
 const buildSearchFilters = (opts: TSearchCommandOptions): TSearchFilters => {
@@ -41,45 +33,31 @@ const buildSearchFilters = (opts: TSearchCommandOptions): TSearchFilters => {
   return filters;
 };
 
-export const addSearchFilterOptions = (command: Command): Command =>
-  command
-    .option(SEARCH_COMMAND.flags.type.flag, SEARCH_COMMAND.flags.type.description)
-    .option(SEARCH_COMMAND.flags.author.flag, SEARCH_COMMAND.flags.author.description)
-    .option(SEARCH_COMMAND.flags.json.flag, SEARCH_COMMAND.flags.json.description);
-
 export const createSearchCommand = (
-  deps: TSearchCommandDependencies = defaultDeps
-): Command => {
-  const command = addSearchFilterOptions(
-    new Command(SEARCH_COMMAND.name)
-  )
-    .description(SEARCH_COMMAND.description)
-    .addHelpText("after", SEARCH_MESSAGES.helpText);
-
-  command
-    .argument(
-      SEARCH_COMMAND.arguments.query.name,
-      SEARCH_COMMAND.arguments.query.description
-    )
-    .action(async (query: string, opts: TSearchCommandOptions, command: Command) => {
-      try {
-        const ctx = getCommandContext(command);
-        const normalizedQuery = deps.validateQuery(query);
+  deps: TSearchCommandDependencies = defaultDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createCommandFromSpec<TSearchCommandOptions>(
+    {
+      name: SEARCH_COMMAND.name,
+      description: SEARCH_COMMAND.description,
+      flags: SEARCH_COMMAND.flags,
+      arguments: [
+        {
+          name: SEARCH_COMMAND.arguments.query.name,
+          description: SEARCH_COMMAND.arguments.query.description,
+        },
+      ],
+      helpText: SEARCH_MESSAGES.helpText,
+      spinnerMessage: "Searching skills...",
+      errorPrefix: `${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix}`,
+      handler: async ({ args, opts }) => {
+        const query = deps.validateQuery(args[SEARCH_COMMAND.arguments.query.name] as string);
         const filters = buildSearchFilters(opts);
-        const result = await runTaskWithSpinner({
-          message: "Searching skills...",
-          createSpinner: (message) => ora({ text: message, isEnabled: process.stderr.isTTY }),
-          task: () => deps.search(normalizedQuery, filters),
-        });
-        deps.printResult(result, ctx);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        deps.error(`${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix} ${errorMessage}`);
-        deps.setExitCode(1);
-      }
-    });
-
-  return command;
-};
+        return deps.search(query, filters);
+      },
+    },
+    factoryDeps
+  );
 
 export const searchCommand = createSearchCommand();
