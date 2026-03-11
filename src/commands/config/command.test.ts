@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { CONFIG_MESSAGES } from "../../constants";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TSystemConfigKey } from "../../types";
 import { createConfigCommand } from "./command";
 
@@ -31,8 +33,12 @@ const createDeps = (
   ...overrides,
 });
 
-const runConfig = async (args: string[], deps: TConfigDeps) => {
-  const command = createConfigCommand(deps);
+const runConfig = async (
+  args: string[],
+  deps: TConfigDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) => {
+  const command = createConfigCommand(deps, factoryDeps);
   await command.parseAsync(args, { from: "user" });
 };
 
@@ -210,11 +216,15 @@ describe("config command", () => {
 
   it("unsets existing apiBaseUrl value", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runConfig(["unset", "apiBaseUrl"], deps);
+    await runConfig(["unset", "apiBaseUrl"], deps, factory);
 
     expect(deps.unsetValue).toHaveBeenCalledWith("apiBaseUrl");
-    expect(deps.log).toHaveBeenCalledWith(expect.stringContaining(CONFIG_MESSAGES.savedSuccess));
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining(CONFIG_MESSAGES.savedSuccess),
+      expect.any(Object)
+    );
   });
 
   it("prints clear error when unsetting a missing key", async () => {
@@ -223,13 +233,14 @@ describe("config command", () => {
         throw new Error("apiBaseUrl is not set in config.json.");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runConfig(["unset", "apiBaseUrl"], deps);
+    await runConfig(["unset", "apiBaseUrl"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledTimes(2);
-    expect(deps.error).toHaveBeenLastCalledWith(
+    expect(factory.error).toHaveBeenCalledTimes(2);
+    expect(factory.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 });
