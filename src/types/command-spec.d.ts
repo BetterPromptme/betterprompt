@@ -24,6 +24,12 @@ export type TCommandHandler<TOpts> = (params: {
   deps: TCommandFactoryDeps;
 }) => Promise<unknown>;
 
+export type TValidateFn<TOpts> = (params: {
+  opts: TOpts;
+  args: Record<string, unknown>;
+  ctx: TCliContext;
+}) => string | undefined;
+
 type TCommandSpecCore = {
   name: string;
   description: string;
@@ -41,11 +47,7 @@ type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
   errorPrefix?: string;
   spinnerMessage?: string;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
-  validate?: (params: {
-    opts: TOpts;
-    args: Record<string, unknown>;
-    ctx: TCliContext;
-  }) => string | undefined;
+  validate?: TValidateFn<TOpts>;
 };
 
 type TCommandSpecWithCustomAction = TCommandSpecCore & {
@@ -57,20 +59,31 @@ export type TCommandSpec<TOpts = Record<string, unknown>> =
   | TCommandSpecWithHandler<TOpts>
   | TCommandSpecWithCustomAction;
 
-export type TParentCommandSpec<TOpts = Record<string, unknown>> = {
+type TParentCommandSpecCore = {
   name: string;
   description: string;
   flags?: Record<string, TFlagSpec>;
   helpText?: string;
   subcommands: Command[];
   arguments?: TArgumentSpec[];
-  handler?: TCommandHandler<TOpts>;
+};
+
+type TParentCommandSpecWithHandler<TOpts> = TParentCommandSpecCore & {
+  handler: TCommandHandler<TOpts>;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
   spinnerMessage?: string;
   errorPrefix?: string;
-  validate?: (params: {
-    opts: TOpts;
-    args: Record<string, unknown>;
-    ctx: TCliContext;
-  }) => string | undefined;
+  validate?: TValidateFn<TOpts>;
 };
+
+type TParentCommandSpecWithoutHandler = TParentCommandSpecCore & {
+  handler?: never;
+  formatText?: never;
+  spinnerMessage?: never;
+  errorPrefix?: never;
+  validate?: never;
+};
+
+export type TParentCommandSpec<TOpts = Record<string, unknown>> =
+  | TParentCommandSpecWithHandler<TOpts>
+  | TParentCommandSpecWithoutHandler;
