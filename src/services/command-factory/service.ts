@@ -191,6 +191,9 @@ export const createParentCommandFromSpec = <TOpts = Record<string, unknown>>(
     cmd.addHelpText("after", spec.helpText);
   }
 
+  // TODO: Phase 4 – add configureOutput, showHelpAfterError, showSuggestionAfterError
+  // support to parent commands when migrating config, outputs, and skill commands.
+
   if (spec.handler) {
     wireAction(cmd, spec as TActionSpec<TOpts>, deps);
   }
