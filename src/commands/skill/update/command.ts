@@ -2,7 +2,6 @@ import logSymbols from "log-symbols";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
-import { SKILL_COMMAND_FAILED_PREFIX } from "../constants";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
 import type { TSkillUpdateCommandOptions } from "./types";
@@ -27,16 +26,16 @@ export const createSkillUpdateSubcommand = (
         all: SKILLS_COMMAND.subcommands.update.flags.all,
         json: SKILLS_COMMAND.subcommands.update.flags.json,
       },
-      errorPrefix: SKILL_COMMAND_FAILED_PREFIX,
+      errorPrefix: SKILLS_MESSAGES.failedPrefix,
       validate: ({ opts, args }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name
         ] as string | undefined;
         if (skillName !== undefined && opts.all === true) {
-          return `${logSymbols.error} ${SKILL_COMMAND_FAILED_PREFIX} ${SKILLS_MESSAGES.updateAllWithSkillNameError}`;
+          return `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix} ${SKILLS_MESSAGES.updateAllWithSkillNameError}`;
         }
         if (skillName === undefined && opts.all !== true) {
-          return `${logSymbols.error} ${SKILL_COMMAND_FAILED_PREFIX} ${SKILLS_MESSAGES.updateRequiresSkillNameOrAllError}`;
+          return `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix} ${SKILLS_MESSAGES.updateRequiresSkillNameOrAllError}`;
         }
         return undefined;
       },
