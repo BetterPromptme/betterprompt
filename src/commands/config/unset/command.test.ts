@@ -21,9 +21,6 @@ const createDeps = (overrides: Partial<TConfigDeps> = {}): TConfigDeps => ({
       ? "/tmp/.betterprompt/auth.json"
       : "/tmp/.betterprompt/config.json"
   ),
-  log: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
