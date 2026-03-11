@@ -1,12 +1,15 @@
 import { Command } from "commander";
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, afterEach } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { createProgram } from "../../cli";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createSearchCommand } from "./command";
 import { createSkillCommand } from "../skill/command";
 
 type TSearchDeps = NonNullable<Parameters<typeof createSearchCommand>[0]>;
+type TSkillDeps = NonNullable<Parameters<typeof createSkillCommand>[0]>;
 
 const sampleRows = [
   {
@@ -20,26 +23,49 @@ const sampleRows = [
 const createDeps = (overrides: Partial<TSearchDeps> = {}): TSearchDeps => ({
   validateQuery: mock((query: string) => query.trim()),
   search: mock(async () => ({ rows: sampleRows })),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 
-const runSearch = async (args: string[], deps: TSearchDeps) => {
+const createSkillDeps = (searchDeps: TSearchDeps): TSkillDeps => ({
+  validateQuery: searchDeps.validateQuery,
+  search: searchDeps.search,
+  getSkill: mock(async () => ({})),
+  installSkill: mock(async () => ({})),
+  uninstallSkill: mock(async () => ({})),
+  listSkills: mock(async () => []),
+  updateSkill: mock(async () => ({ skillName: "", fromVersion: undefined, toVersion: "", updated: false })),
+  updateAllSkills: mock(async () => []),
+  printResult: mock(() => {}),
+  error: mock(() => {}),
+  setExitCode: mock(() => {}),
+});
+
+const runSearch = async (
+  args: string[],
+  deps: TSearchDeps,
+  factoryDeps: Partial<TCommandFactoryDeps> = createFactoryDeps()
+) => {
   const root = new Command().name("betterprompt").option("--json", "Render output as JSON");
-  root.addCommand(createSearchCommand(deps));
+  root.addCommand(createSearchCommand(deps, factoryDeps));
   await root.parseAsync(["node", "betterprompt", ...args]);
 };
 
-const runProgram = async (args: string[], deps: TSearchDeps) => {
+const runProgram = async (
+  args: string[],
+  deps: TSearchDeps,
+  factoryDeps: Partial<TCommandFactoryDeps> = createFactoryDeps()
+) => {
   const root = new Command().name("betterprompt").option("--json", "Render output as JSON");
-  root.addCommand(createSearchCommand(deps));
-  root.addCommand(createSkillCommand(deps as unknown as Parameters<typeof createSkillCommand>[0]));
+  root.addCommand(createSearchCommand(deps, factoryDeps));
+  root.addCommand(createSkillCommand(createSkillDeps(deps)));
   await root.parseAsync(["node", "betterprompt", ...args]);
 };
 
 describe("search command", () => {
+  afterEach(() => {
+    mock.restore();
+  });
+
   it("imports skill search behavior from services/skills", () => {
     const source = readFileSync(
       path.resolve(process.cwd(), "src/commands/search/command.ts"),
@@ -52,10 +78,12 @@ describe("search command", () => {
 
   it("forwards --author and --type flags to search layer", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
     await runSearch(
       ["search", "react", "--type", "text", "--author", "alice"],
-      deps
+      deps,
+      factory
     );
 
     expect(deps.validateQuery).toHaveBeenCalledWith("react");
@@ -78,24 +106,25 @@ describe("search command", () => {
 
   it("rejects invalid --type value and sets exit code", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runSearch(["search", "react", "--type", "workflow"], deps);
+    await runSearch(["search", "react", "--type", "workflow"], deps, factory);
 
     expect(deps.search).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining('Invalid skill type "workflow"')
     );
-
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("supports --json structured output", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runSearch(["--json", "search", "react"], deps);
+    await runSearch(["--json", "search", "react"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({ rows: sampleRows });
     expect(ctx.outputFormat).toBe("json");
   });
@@ -104,14 +133,15 @@ describe("search command", () => {
     const deps = createDeps({
       search: mock(async () => ({ rows: [] })),
     });
+    const factory = createFactoryDeps();
 
-    await runSearch(["search", "no-matches"], deps);
+    await runSearch(["search", "no-matches"], deps, factory);
 
     expect(deps.search).toHaveBeenCalledWith("no-matches", {});
-    expect(deps.error).not.toHaveBeenCalled();
-    expect(deps.setExitCode).not.toHaveBeenCalled();
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    expect(factory.error).not.toHaveBeenCalled();
+    expect(factory.setExitCode).not.toHaveBeenCalled();
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({ rows: [] });
     expect(ctx.outputFormat).toBe("text");
   });
@@ -164,13 +194,14 @@ describe("search command", () => {
         throw new Error("Search query must be at least 3 characters.");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runSearch(["search", "ab"], deps);
+    await runSearch(["search", "ab"], deps, factory);
 
     expect(deps.search).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Search command failed: Search query must be at least 3 characters.")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 });
