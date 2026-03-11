@@ -1,5 +1,3 @@
-import type { TPrintOptions } from "./outputs";
-
 export type TCheckForUpdateOptions = {
   registry?: string;
 };
@@ -26,7 +24,4 @@ export type TUpdateCommandDependencies = {
   performUpdate: (
     options?: TPerformUpdateOptions
   ) => Promise<TPerformUpdateResult>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };
