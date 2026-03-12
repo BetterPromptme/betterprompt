@@ -1,9 +1,24 @@
-import { Command } from "commander";
-import { OUTPUTS_COMMAND } from "../../../constants";
-import { executeOutputsGet } from "../../../services/outputs/service";
+import logSymbols from "log-symbols";
+import { OUTPUTS_COMMAND, OUTPUTS_MESSAGES } from "../../../constants";
+import { fetchOutputRun } from "../../../services/outputs/service";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TOutputsCommandDependencies, TOutputsCommandOptions } from "../../../types/outputs";
+import type { TRunResult } from "../../../types/run";
+
+export const formatRunOutputText = (result: unknown): string => {
+  const run = result as TRunResult;
+  const lines = [`${OUTPUTS_MESSAGES.runStatusPrefix} ${run.runStatus}`];
+  const displayOutputs = run.outputs.map((part) => part.data);
+  if (displayOutputs.length > 0) {
+    lines.push(...displayOutputs);
+  } else {
+    lines.push(
+      `${logSymbols.warning} ${OUTPUTS_MESSAGES.emptyMessagePrefix} ${run.runId}.`
+    );
+  }
+  return lines.join("\n");
+};
 
 export const createOutputsGetSubcommand = (
   deps: TOutputsCommandDependencies,
@@ -22,21 +37,17 @@ export const createOutputsGetSubcommand = (
         },
       ],
       flags: outputsGet.flags,
-      customAction: (cmd, _factoryDeps) => {
-        cmd.action(async (runId: string, opts: TOutputsCommandOptions, command: Command) => {
-          const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
-
-          await executeOutputsGet(
-            deps,
-            runId,
-            {
-              ...opts,
-              remote: opts.remote === true || rootRemote,
-            },
-            command
-          );
-        });
+      spinnerMessage: "Fetching output run...",
+      errorPrefix: `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix}`,
+      handler: async ({ opts, args, ctx, command }) => {
+        const runId = args[outputsGet.arguments.runId.name] as string;
+        const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
+        return fetchOutputRun(deps, runId, {
+          ...opts,
+          remote: opts.remote === true || rootRemote,
+        }, ctx);
       },
+      formatText: formatRunOutputText,
     },
     factoryDeps
   );
