@@ -163,6 +163,20 @@ const performBinaryUpdate = async (
     }
 
     const buffer = new Uint8Array(await response.arrayBuffer());
+
+    // Verify checksum if .sha256 file is available
+    const checksumUrl = `${downloadUrl}.sha256`;
+    const checksumResponse = await fetch(checksumUrl, { redirect: "follow" });
+    if (checksumResponse.ok) {
+      const expectedHash = (await checksumResponse.text())
+        .trim()
+        .split(/\s+/)[0];
+      const hash = new Bun.CryptoHasher("sha256").update(buffer).digest("hex");
+      if (hash !== expectedHash) {
+        throw new Error(UPDATE_MESSAGES.checksumMismatch);
+      }
+    }
+
     await writeFile(tempPath, buffer);
     await chmod(tempPath, 0o755);
     await rename(tempPath, installInfo.execPath);
