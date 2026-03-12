@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { RESOURCES_MESSAGES } from "../../constants";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
@@ -11,13 +12,23 @@ const sampleData: TResourcesData = {
   hash: "abc123",
   resources: {
     models: [
-      { model: "model-1", modality: "text", availableRunOptions: [{ key: "mode", options: ["fast", "accurate"] }] },
-      { model: "model-2", modality: "image", availableRunOptions: [{ key: "mode", options: ["standard"] }] },
+      {
+        model: "model-1",
+        modality: "text",
+        availableRunOptions: [{ key: "mode", options: ["fast", "accurate"] }],
+      },
+      {
+        model: "model-2",
+        modality: "image",
+        availableRunOptions: [{ key: "mode", options: ["standard"] }],
+      },
     ],
   },
 };
 
-const createDeps = (overrides: Partial<TResourcesDeps> = {}): TResourcesDeps => ({
+const createDeps = (
+  overrides: Partial<TResourcesDeps> = {}
+): TResourcesDeps => ({
   fetchResources: mock(async () => sampleData),
   loadLocalResources: mock(async () => sampleData),
   saveLocalResources: mock(async () => {}),
@@ -63,7 +74,9 @@ describe("resources command", () => {
 
       expect(deps.loadLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
-      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
+      expect(deps.fetchResources).toHaveBeenCalledWith({
+        skipModelsHash: true,
+      });
       expect(deps.saveLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.saveLocalResources).toHaveBeenCalledWith(sampleData);
       expect(factory.printResult).toHaveBeenCalledTimes(1);
@@ -79,7 +92,9 @@ describe("resources command", () => {
       await runResources(["--remote"], deps, factory);
 
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
-      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
+      expect(deps.fetchResources).toHaveBeenCalledWith({
+        skipModelsHash: true,
+      });
       expect(deps.loadLocalResources).not.toHaveBeenCalled();
       expect(deps.saveLocalResources).not.toHaveBeenCalled();
       expect(factory.printResult).toHaveBeenCalledTimes(1);
@@ -95,7 +110,9 @@ describe("resources command", () => {
       await runResources(["--sync"], deps, factory);
 
       expect(deps.fetchResources).toHaveBeenCalledTimes(1);
-      expect(deps.fetchResources).toHaveBeenCalledWith({ skipModelsHash: true });
+      expect(deps.fetchResources).toHaveBeenCalledWith({
+        skipModelsHash: true,
+      });
       expect(deps.loadLocalResources).not.toHaveBeenCalled();
       expect(deps.saveLocalResources).toHaveBeenCalledTimes(1);
       expect(deps.saveLocalResources).toHaveBeenCalledWith(sampleData);
@@ -149,7 +166,10 @@ describe("resources command", () => {
 
       const [data] = (factory.printResult as ReturnType<typeof mock>).mock
         .calls[0] as [unknown];
-      expect(data).toEqual({ kind: "models", data: sampleData.resources.models });
+      expect(data).toEqual({
+        kind: "models",
+        data: sampleData.resources.models,
+      });
     });
   });
 
