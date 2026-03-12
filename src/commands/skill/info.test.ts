@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+
 import { createProgram } from "../../cli";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
@@ -68,7 +69,8 @@ describe("skills command", () => {
 
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       skillId: "abc123",
       title: "React Hooks",
@@ -87,7 +89,8 @@ describe("skills command", () => {
 
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       skillId: "abc123",
       title: "React Hooks",
@@ -110,7 +113,9 @@ describe("skills command", () => {
 
   it("exposes info as a subcommand under skill", () => {
     const command = createSkillCommand();
-    const infoCommand = command.commands.find((subcommand) => subcommand.name() === "info");
+    const infoCommand = command.commands.find(
+      (subcommand) => subcommand.name() === "info"
+    );
 
     expect(command.name()).toBe("skill");
     expect(infoCommand).toBeDefined();
@@ -161,7 +166,9 @@ describe("skills command", () => {
     await runInfo([""], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
-      expect.stringContaining("Skill command failed: Skill name must not be empty.")
+      expect.stringContaining(
+        "Skill command failed: Skill name must not be empty."
+      )
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
