@@ -148,4 +148,4 @@ jobs:
             --base main \
             --head "$BRANCH")
 
-          gh pr merge "$PR_URL" --auto --squash
+          gh pr merge "$PR_URL" --auto --squash || echo "Warning: auto-merge could not be enabled. PR created for manual merging."
