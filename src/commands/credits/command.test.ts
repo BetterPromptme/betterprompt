@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { AUTH_MESSAGES } from "../../constants";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createCreditsCommand } from "./command";
 import type { TCreditsDependencies } from "./types";
 
-const createDeps = (overrides: Partial<TCreditsDependencies> = {}): TCreditsDependencies => ({
+const createDeps = (
+  overrides: Partial<TCreditsDependencies> = {}
+): TCreditsDependencies => ({
   getCredits: mock(async () => ({
     credits: 1_250_000,
   })),
