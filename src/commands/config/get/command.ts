@@ -1,9 +1,14 @@
 import logSymbols from "log-symbols";
+
 import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { maskApiKey, parseConfigKey } from "../utils";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
-import type { TConfigCommandDependencies, TConfigSubcommandOpts, TSystemConfigKey } from "../types";
+import type {
+  TConfigCommandDependencies,
+  TConfigSubcommandOpts,
+  TSystemConfigKey,
+} from "../types";
+import { maskApiKey, parseConfigKey } from "../utils";
 
 export const createConfigGetSubcommand = (
   deps: TConfigCommandDependencies,
@@ -25,7 +30,9 @@ export const createConfigGetSubcommand = (
       ],
       errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
       handler: async ({ args, ctx, deps: fd, setExitCode }) => {
-        const key = args[configGet.arguments.key.name] as TSystemConfigKey | undefined;
+        const key = args[configGet.arguments.key.name] as
+          | TSystemConfigKey
+          | undefined;
 
         try {
           if (!key) {
@@ -76,9 +83,7 @@ export const createConfigGetSubcommand = (
           fd.error(
             `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
           );
-          fd.error(
-            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
-          );
+          fd.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
           setExitCode(1);
           return undefined;
         }
