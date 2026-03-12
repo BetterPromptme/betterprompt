@@ -1,6 +1,7 @@
 import ora from "ora";
-import { printResult } from "../output/service";
+
 import type { TCommandFactoryDeps } from "../../types/command-factory";
+import { printResult } from "../output/service";
 
 export const createDefaultCommandFactoryDeps = (): TCommandFactoryDeps => ({
   createSpinner: (message) =>
