@@ -98,6 +98,7 @@ export const startCallbackServer = async (
   const port = await findAvailablePort();
 
   return new Promise<TCallbackServer>((resolve, reject) => {
+    server.on("error", reject);
     server.listen(port, "127.0.0.1", () => {
       const address = server.address();
       if (!address || typeof address === "string") {
