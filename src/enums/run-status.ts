@@ -1,6 +1,6 @@
 export enum RunStatus {
-  Queued = "queued",
-  Running = "running",
-  Succeeded = "succeeded",
-  Failed = "failed",
+  QUEUED = "queued",
+  RUNNING = "running",
+  SUCCEEDED = "succeeded",
+  FAILED = "failed",
 }
