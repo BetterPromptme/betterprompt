@@ -23,7 +23,7 @@ export const createConfigGetSubcommand = (
           parse: parseConfigKey as (v: string) => unknown,
         },
       ],
-      errorPrefix: CONFIG_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
       handler: async ({ args, ctx, deps: fd, setExitCode }) => {
         const key = args[configGet.arguments.key.name] as TSystemConfigKey | undefined;
 

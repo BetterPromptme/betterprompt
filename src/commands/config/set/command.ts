@@ -27,7 +27,7 @@ export const createConfigSetSubcommand = (
           description: configSet.arguments.value.description,
         },
       ],
-      errorPrefix: CONFIG_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
       formatText: () =>
         `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
       handler: async ({ args, deps: fd, setExitCode }) => {

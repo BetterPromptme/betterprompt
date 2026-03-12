@@ -16,7 +16,7 @@ export const createSkillListSubcommand = (
         json: SKILLS_COMMAND.subcommands.list.flags.json,
       },
       spinnerMessage: "Listing installed skills...",
-      errorPrefix: SKILLS_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       formatText: (result) => {
         const skills = result as Array<unknown>;
         if (skills.length === 0) {

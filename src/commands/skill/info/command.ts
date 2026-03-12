@@ -1,3 +1,4 @@
+import logSymbols from "log-symbols";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
@@ -22,7 +23,7 @@ export const createSkillInfoSubcommand = (
         json: SKILLS_COMMAND.subcommands.info.flags.json,
       },
       spinnerMessage: "Fetching skill details...",
-      errorPrefix: SKILLS_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       handler: async ({ args }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.info.arguments.skillSlug.name

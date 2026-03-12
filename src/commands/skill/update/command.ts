@@ -1,3 +1,4 @@
+import logSymbols from "log-symbols";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
@@ -25,7 +26,7 @@ export const createSkillUpdateSubcommand = (
         all: SKILLS_COMMAND.subcommands.update.flags.all,
         json: SKILLS_COMMAND.subcommands.update.flags.json,
       },
-      errorPrefix: SKILLS_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       validate: ({ opts, args }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name

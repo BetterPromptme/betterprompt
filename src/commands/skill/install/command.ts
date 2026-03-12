@@ -1,3 +1,4 @@
+import logSymbols from "log-symbols";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
@@ -23,7 +24,7 @@ export const createSkillInstallSubcommand = (
         json: SKILLS_COMMAND.subcommands.install.flags.json,
       },
       spinnerMessage: "Installing skill...",
-      errorPrefix: SKILLS_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       handler: async ({ args, opts, ctx }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.install.arguments.skillSlug.name

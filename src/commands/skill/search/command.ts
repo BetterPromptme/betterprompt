@@ -1,3 +1,4 @@
+import logSymbols from "log-symbols";
 import { SKILL_TYPES, SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TSearchFilters } from "../../../types/search";
@@ -47,7 +48,7 @@ export const createSkillSearchSubcommand = (
         json: SKILLS_COMMAND.subcommands.search.flags.json,
       },
       spinnerMessage: "Searching skills...",
-      errorPrefix: SKILLS_MESSAGES.failedPrefix,
+      errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       handler: async ({ args, opts }) => {
         const query = args[
           SKILLS_COMMAND.subcommands.search.arguments.query.name
