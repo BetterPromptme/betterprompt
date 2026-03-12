@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+
 import packageJson from "../../../package.json";
 import type {
   TCheckForUpdateOptions,
@@ -76,9 +77,13 @@ export const performUpdate = async (
   const pm = detectPackageManager();
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(pm.command, pm.args(`${packageName}${target}`, registry), {
-      stdio: "ignore",
-    });
+    const child = spawn(
+      pm.command,
+      pm.args(`${packageName}${target}`, registry),
+      {
+        stdio: "ignore",
+      }
+    );
 
     child.once("error", (error) => {
       reject(error);
