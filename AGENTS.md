@@ -134,28 +134,36 @@ export const createCreditsCommand = (
 **Pattern 2 — `customAction`** (escape hatch): For commands that need full Commander control (interactive flows, complex flag inheritance). The factory wires flags/args/help but delegates action registration to the command.
 
 ```typescript
-createCommandFromSpec<TAuthOpts>({
-  name: AUTH_COMMAND.name,
-  description: AUTH_COMMAND.description,
-  customAction: (cmd, deps) => {
-    cmd.action(async (opts, command) => { /* full control */ });
+createCommandFromSpec<TAuthOpts>(
+  {
+    name: AUTH_COMMAND.name,
+    description: AUTH_COMMAND.description,
+    customAction: (cmd, deps) => {
+      cmd.action(async (opts, command) => {
+        /* full control */
+      });
+    },
   },
-}, factoryDeps);
+  factoryDeps
+);
 ```
 
 **Pattern 3 — Parent command** (with subcommands): Uses `createParentCommandFromSpec`. Optionally has its own `handler` (e.g. `outputs` delegates to `get` when called directly).
 
 ```typescript
 export const createSkillCommand = (deps, factoryDeps?) =>
-  createParentCommandFromSpec({
-    name: SKILLS_COMMAND.name,
-    description: SKILLS_COMMAND.description,
-    subcommands: [
-      createSkillInfoSubcommand(deps, factoryDeps),
-      createSkillInstallSubcommand(deps, factoryDeps),
-      // ...
-    ],
-  }, factoryDeps);
+  createParentCommandFromSpec(
+    {
+      name: SKILLS_COMMAND.name,
+      description: SKILLS_COMMAND.description,
+      subcommands: [
+        createSkillInfoSubcommand(deps, factoryDeps),
+        createSkillInstallSubcommand(deps, factoryDeps),
+        // ...
+      ],
+    },
+    factoryDeps
+  );
 ```
 
 ### Export Convention
@@ -172,22 +180,22 @@ export const creditsCommand = createCreditsCommand();
 
 ### Spec Fields Reference
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | `string` | Yes | Command name from constants |
-| `description` | `string` | Yes | Command description from constants |
-| `flags` | `Record<string, TFlagSpec>` | No | Flag definitions from constants |
-| `arguments` | `TArgumentSpec[]` | No | Positional argument definitions |
-| `helpText` | `string` | No | Additional help text shown after default help |
-| `handler` | `TCommandHandler<TOpts>` | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch |
-| `customAction` | `(cmd, deps) => void` | Mutually exclusive with `handler` | Escape hatch for full Commander control |
-| `spinnerMessage` | `string` | No | If set, factory wraps handler in spinner |
-| `errorPrefix` | `string` | No | Prefix for error messages (default: `"Command failed:"`) |
-| `validate` | `TValidateFn<TOpts>` | No | Sync validation; return error string or `undefined` |
-| `formatText` | `(result, ctx) => unknown` | No | Transform result for text output (skipped in JSON mode) |
-| `configureOutput` | `OutputConfiguration` | No | Commander output configuration |
-| `showHelpAfterError` | `boolean` | No | Show help on error |
-| `showSuggestionAfterError` | `boolean` | No | Show did-you-mean suggestions |
+| Field                      | Type                        | Required                               | Description                                              |
+| -------------------------- | --------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| `name`                     | `string`                    | Yes                                    | Command name from constants                              |
+| `description`              | `string`                    | Yes                                    | Command description from constants                       |
+| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                          |
+| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                          |
+| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help            |
+| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch     |
+| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                  |
+| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                 |
+| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`) |
+| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`      |
+| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)  |
+| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                           |
+| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                       |
+| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                            |
 
 ### Constants convention
 
@@ -221,6 +229,7 @@ Current files:
 
 - `package.json`: package metadata and npm scripts.
 - `README.md`: CLI usage and behavior docs.
+- `install.sh`: standalone binary installer (macOS/Linux) via GitHub Releases.
 - `specs/DIRECTORY-LAYOUT.md`: canonical `~/.betterprompt` and project-local directory layout spec.
 
 ## `~/.betterprompt` Directory Layout
