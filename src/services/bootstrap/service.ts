@@ -1,13 +1,11 @@
-import { access, chmod, mkdir, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, chmod, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
 import { AUTH_STORAGE, SYSTEM_STORAGE } from "../../constants";
 import type { TBootstrapGlobalDirectoryOptions } from "../../types/bootstrap";
-import {
-  loadOrInitConfig,
-  resolveSystemConfigPath,
-} from "../config/service";
+import { loadOrInitConfig, resolveSystemConfigPath } from "../config/service";
 
 const getBootstrapRootDir = (getHomeDir: () => string): string =>
   path.join(getHomeDir(), SYSTEM_STORAGE.configDirName);
