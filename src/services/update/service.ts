@@ -141,7 +141,12 @@ const performBinaryUpdate = async (
   installInfo: TInstallMethodInfo,
   platform: TPlatformInfo
 ): Promise<TPerformUpdateResult> => {
-  const version = targetVersion ?? String(packageJson.version);
+  let version = targetVersion;
+  if (!version) {
+    const latest = await checkFromGitHub(String(packageJson.version));
+    version = latest.latestVersion;
+  }
+
   const fileName = `${UPDATE_BINARY.binaryName}-${version}-${platform.os}-${platform.arch}`;
   const downloadUrl = `${UPDATE_BINARY.githubDownloadBaseUrl}/v${version}/${fileName}`;
   const tempPath = path.join(
@@ -149,6 +154,7 @@ const performBinaryUpdate = async (
     `.${UPDATE_BINARY.binaryName}.update.tmp`
   );
 
+  // Phase 1: download + replace binary — EACCES here means "run with sudo"
   try {
     const response = await fetch(downloadUrl, { redirect: "follow" });
 
@@ -160,24 +166,8 @@ const performBinaryUpdate = async (
     await writeFile(tempPath, buffer);
     await chmod(tempPath, 0o755);
     await rename(tempPath, installInfo.execPath);
-
-    const symlinkPath = path.join(
-      installInfo.installDir,
-      UPDATE_BINARY.symlinkName
-    );
-
-    try {
-      await unlink(symlinkPath);
-    } catch (error: unknown) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-    }
-
-    await symlink(installInfo.execPath, symlinkPath);
-
-    return { updated: true };
   } catch (error: unknown) {
-    const errno = (error as NodeJS.ErrnoException).code;
-    if (errno === "EACCES") {
+    if ((error as NodeJS.ErrnoException).code === "EACCES") {
       throw new Error(UPDATE_MESSAGES.permissionDenied);
     }
     throw error;
@@ -188,6 +178,24 @@ const performBinaryUpdate = async (
       // temp file may already be renamed or not exist
     }
   }
+
+  // Phase 2: recreate symlink — best-effort, binary is already updated
+  const symlinkPath = path.join(
+    installInfo.installDir,
+    UPDATE_BINARY.symlinkName
+  );
+  try {
+    try {
+      await unlink(symlinkPath);
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    await symlink(installInfo.execPath, symlinkPath);
+  } catch {
+    // Symlink recreation failed but binary update succeeded — not fatal
+  }
+
+  return { updated: true };
 };
 
 const performPackageManagerUpdate = async (
