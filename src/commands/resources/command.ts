@@ -1,4 +1,5 @@
 import logSymbols from "log-symbols";
+
 import { RESOURCES_COMMAND, RESOURCES_MESSAGES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
@@ -9,9 +10,9 @@ import {
 } from "../../services/resources/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
-  TResourcesDependencies,
-  TResourcesData,
   TResourceModel,
+  TResourcesData,
+  TResourcesDependencies,
 } from "./types";
 
 const formatModelLine = (model: TResourceModel): string => {
