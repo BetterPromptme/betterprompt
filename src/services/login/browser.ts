@@ -24,7 +24,7 @@ export const openBrowser = (
         args = [url];
       } else if (deps.platform === "win32") {
         cmd = "cmd";
-        args = ["/c", "start", url];
+        args = ["/c", "start", "", url];
       } else {
         resolve(false);
         return;
