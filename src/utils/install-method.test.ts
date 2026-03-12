@@ -12,6 +12,7 @@ describe("utils/install-method", () => {
       method: "binary",
       execPath: "/usr/local/bin/betterprompt",
       installDir: "/usr/local/bin",
+      binDir: "/usr/local/bin",
     });
   });
 
@@ -24,6 +25,7 @@ describe("utils/install-method", () => {
       method: "package-manager",
       execPath: "/usr/local/bin/bun",
       installDir: "/usr/local/bin",
+      binDir: "/usr/local/bin",
     });
   });
 
@@ -36,6 +38,7 @@ describe("utils/install-method", () => {
       method: "package-manager",
       execPath: "/usr/bin/node",
       installDir: "/usr/bin",
+      binDir: "/usr/bin",
     });
   });
 
@@ -45,6 +48,21 @@ describe("utils/install-method", () => {
     });
 
     expect(result.method).toBe("binary");
+  });
+
+  it("derives binDir from versioned install path", () => {
+    const result = detectInstallMethod({
+      getExecPath: () =>
+        "/home/user/.local/share/betterprompt/versions/0.0.5/betterprompt",
+    });
+
+    expect(result).toEqual({
+      method: "binary",
+      execPath:
+        "/home/user/.local/share/betterprompt/versions/0.0.5/betterprompt",
+      installDir: "/home/user/.local/share/betterprompt/versions/0.0.5",
+      binDir: "/home/user/.local/bin",
+    });
   });
 
   it("uses process.execPath by default", () => {

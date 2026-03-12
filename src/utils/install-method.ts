@@ -20,9 +20,17 @@ export const detectInstallMethod = (
     ? "binary"
     : "package-manager";
 
+  const installDir = path.dirname(execPath);
+  const versionsSplit = installDir.split("/versions/");
+  const binDir =
+    versionsSplit.length > 1
+      ? path.resolve(versionsSplit[0], "../../bin")
+      : installDir;
+
   return {
     method,
     execPath,
-    installDir: path.dirname(execPath),
+    installDir,
+    binDir,
   };
 };
