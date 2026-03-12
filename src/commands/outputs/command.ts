@@ -12,8 +12,7 @@ import type {
   TOutputsCommandDependencies,
   TOutputsCommandOptions,
 } from "../../types/outputs";
-import { createOutputsGetSubcommand } from "./get/command";
-import { formatRunOutputText } from "./get/command";
+import { createOutputsGetSubcommand, formatRunOutputText } from "./get/command";
 import { createOutputsListSubcommand } from "./list/command";
 
 export const createOutputsCommand = (
