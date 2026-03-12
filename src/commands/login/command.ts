@@ -1,11 +1,7 @@
-import { cancel, intro, log, note, outro, spinner } from "@clack/prompts";
+import { intro, log, note, outro, spinner } from "@clack/prompts";
 
 import { LOGIN_COMMAND } from "../../constants";
-import {
-  resolveAuthConfigPath,
-  saveAuthConfig,
-  verifyApiKey,
-} from "../../services/auth/service";
+import { saveAuthConfig, verifyApiKey } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
 import { openBrowser } from "../../services/login/browser";
@@ -17,12 +13,10 @@ import type { TLoginDependencies } from "../../types/login";
 const defaultDeps: TLoginDependencies = {
   intro,
   outro,
-  cancel,
   registerSignal: (signal, handler) => process.on(signal, handler),
   unregisterSignal: (signal, handler) => process.off(signal, handler),
   verifyApiKey,
   saveAuthConfig,
-  resolveAuthConfigPath,
   startCallbackServer,
   openBrowser,
   spinner: spinner(),
