@@ -87,6 +87,12 @@ jobs:
           bun build ./src/cli.ts --compile --minify --target=bun-windows-x64   --outfile betterprompt-$VERSION-windows-x64
           bun build ./src/cli.ts --compile --minify --target=bun-windows-arm64 --outfile betterprompt-$VERSION-windows-arm64
 
+      - name: Generate checksums
+        run: |
+          for f in betterprompt-$VERSION-*; do
+            sha256sum "$f" > "$f.sha256"
+          done
+
       - name: Publish to npm
         run: |
           DIST_TAG="$PRE_ID"
@@ -105,10 +111,16 @@ jobs:
           prerelease: ${{ contains(env.VERSION, '-') }}
           files: |
             betterprompt-${{ env.VERSION }}-linux-x64
+            betterprompt-${{ env.VERSION }}-linux-x64.sha256
             betterprompt-${{ env.VERSION }}-linux-arm64
+            betterprompt-${{ env.VERSION }}-linux-arm64.sha256
             betterprompt-${{ env.VERSION }}-darwin-x64
+            betterprompt-${{ env.VERSION }}-darwin-x64.sha256
             betterprompt-${{ env.VERSION }}-darwin-arm64
+            betterprompt-${{ env.VERSION }}-darwin-arm64.sha256
             betterprompt-${{ env.VERSION }}-windows-x64.exe
+            betterprompt-${{ env.VERSION }}-windows-x64.exe.sha256
             betterprompt-${{ env.VERSION }}-windows-arm64.exe
+            betterprompt-${{ env.VERSION }}-windows-arm64.exe.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

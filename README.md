@@ -5,26 +5,24 @@ BetterPrompt CLI helps you discover skills, install them, generate outputs, and 
 - Binary names: `betterprompt` and `bp`
 - Package: `betterprompt`
 
-## Architecture
-
-The CLI is organized as:
-
-- `src/commands/<command>/command.ts`: command wiring only
-- `src/commands/<command>/types.d.ts`: command-local type declarations
-- `src/services/*`: reusable business logic used by commands
-- `src/cli.ts` + `src/cli/help.ts`: program bootstrap and CLI help formatting
-
-Legacy compatibility layers were removed:
-
-- no flat command adapters under `src/commands/*.ts`
-- no legacy re-export shim modules remain in the codebase
-
 ## Installation
 
 ### From npm
 
 ```bash
 npm install -g betterprompt
+```
+
+### From binary release (macOS / Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
+```
+
+Or specify a custom install directory:
+
+```bash
+INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
 ```
 
 ### Verify install
@@ -34,43 +32,36 @@ bp --version
 bp --help
 ```
 
-### Local development
-
-```bash
-bun install
-bun run build
-bun src/cli.ts --help
-```
-
 ## Quick Start
 
-1. Configure authentication:
+1. Authenticate:
 
 ```bash
 bp auth
-# or
+# or non-interactive
 bp auth --api-key bp_sk_abc123
 ```
 
 2. Discover a skill:
 
 ```bash
-bp skill search "seo blog"
-# alias
 bp search "seo blog"
+# or
+bp skill search "seo blog"
 ```
 
 3. Inspect and install:
 
 ```bash
 bp skill info seo-blog-writer
-bp skill install seo-blog-writer --project --pin
+bp skill install seo-blog-writer --project
 ```
 
-4. Generate output:
+4. Get the skill version ID and generate output:
 
 ```bash
-bp generate seo-blog-writer \
+bp skill list --json
+bp generate <skillVersionId> \
   --input topic="best ai prompt tools" \
   --input audience="marketers"
 ```
@@ -85,17 +76,19 @@ bp outputs list --limit 20
 
 These are available on the root command and inherited by subcommands.
 
-- `--project`: use project scope
-- `--global`: use global scope
-- `--dir <path>`: use an explicit working directory
-- `--registry <url>`: override API registry endpoint
-- `--json`: render output as JSON
-- `--quiet`: reduce non-essential output
-- `--verbose`: enable verbose output
-- `--no-color`: disable ANSI colors
-- `--yes`: answer yes to confirmations
-- `-h, --help`: show help
-- `-V, --version`: show CLI version
+| Flag               | Description                       |
+| ------------------ | --------------------------------- |
+| `--project`        | Use project scope                 |
+| `--global`         | Use global scope                  |
+| `--dir <path>`     | Use an explicit working directory |
+| `--registry <url>` | Override API registry endpoint    |
+| `--json`           | Output in JSON format             |
+| `--quiet`          | Reduce non-essential output       |
+| `--verbose`        | Enable verbose output             |
+| `--no-color`       | Disable ANSI colors               |
+| `--yes`            | Answer yes to all confirmations   |
+| `-h, --help`       | Show help                         |
+| `-V, --version`    | Show CLI version                  |
 
 ## Commands
 
@@ -107,126 +100,211 @@ bp whoami [--json]
 bp credits [--json]
 ```
 
-Examples:
-
-```bash
-bp auth
-bp whoami
-bp credits --json
-```
+- `bp auth` with no flags prompts interactively for an API key.
+- `--api-key` allows non-interactive setup (CI, scripts).
+- Get an API key at: https://betterprompt.me/api-keys
 
 ### Skill Discovery and Management
+
+#### Search
 
 ```bash
 bp search <query> [--type <image|video|text>] [--author <author>] [--json]
 bp skill search <query> [--type <image|video|text>] [--author <author>] [--json]
-bp skill info <skill-slug> [--json]
-bp skill install <skill-slug> [--version <version>] [--pin] [--overwrite] [--json]
-bp skill uninstall <skill-slug> [--json]
-bp skill list [--json]
-bp skill update [skill-slug] [--version <version>] [--force] [--all] [--json]
 ```
+
+`bp search` is a top-level alias for `bp skill search`.
+
+#### Info
+
+```bash
+bp skill info <skill-slug> [--json]
+```
+
+#### Install
+
+```bash
+bp skill install <skill-slug> [--overwrite] [--json]
+```
+
+#### Uninstall
+
+```bash
+bp skill uninstall <skill-slug> [--json]
+```
+
+#### List
+
+```bash
+bp skill list [--json]
+```
+
+#### Update
+
+```bash
+bp skill update [skill-slug] [--force] [--all] [--json]
+```
+
+- Provide a skill slug to update a single skill, or pass `--all` to update all installed skills in scope.
+- `--force` re-installs even if already at latest version.
 
 Examples:
 
 ```bash
 bp skill search "product photos" --type image
 bp skill info seo-blog-writer
-bp skill install seo-blog-writer --project --pin
+bp skill install seo-blog-writer --project
 bp skill list --project
 bp skill update --all --project
+bp skill update seo-blog-writer --force
 ```
 
 ### Generate
 
+Generate output from an installed skill. Get the `<skillVersionId>` via `bp skill list --json` or `bp skill info <skill-slug> --json`.
+
 ```bash
-bp generate <skill-slug> \
+bp generate <skillVersionId> \
   [--input <key=value>]... \
+  [--image-input-url <url>]... \
+  [--image-input-base64 <base64>]... \
+  [--input-payload <json>] \
   [--stdin] \
-  [--interactive] \
   [--model <model>] \
-  [--save-run] \
+  [--options <json>] \
   [--json]
 ```
+
+| Flag                            | Description                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `--input <key=value>`           | Pass an input key/value pair (repeatable)                                                              |
+| `--image-input-url <url>`       | Pass an image input URL (repeatable)                                                                   |
+| `--image-input-base64 <base64>` | Pass a base64 image input (repeatable)                                                                 |
+| `--input-payload <json>`        | JSON object shaped like `TRunInputs` (mutually exclusive with `--input`, `--image-input-*`, `--stdin`) |
+| `--stdin`                       | Read input payload from stdin                                                                          |
+| `--model <model>`               | Override generation model                                                                              |
+| `--options <json>`              | JSON object of run options (maps to `runOptions` payload field)                                        |
+| `--json`                        | Output in JSON format                                                                                  |
+
+Input precedence: `--input` / image flags > `--stdin` > prompt defaults. Or use `--input-payload` as the single inputs source.
 
 Examples:
 
 ```bash
-bp generate seo-blog-writer --input topic="ai prompts"
-cat input.json | bp generate internal-sales-reply --stdin --json
+bp generate skill-version-123 \
+  --input topic="best ai prompt tools" \
+  --input audience="marketers"
+
+bp generate skill-version-123 \
+  --image-input-url "https://example.com/reference.png" \
+  --options '{"reasoningEffort":"high"}'
+
+bp generate skill-version-123 \
+  --input-payload '{"textInputs":{"topic":"ai"}}'
+
+cat input.json | bp generate skill-version-123 --stdin --json
 ```
 
 ### Outputs
 
+#### Fetch outputs from a run
+
 ```bash
-bp outputs <run-id> [--out <path>] [--json]
-bp outputs list [--skill <skill-slug>] [--status <queued|running|succeeded|failed>] [--limit <n>] [--since <date>] [--json]
+bp outputs <run-id> [--sync] [--remote] [--json]
 ```
+
+| Flag       | Description                       |
+| ---------- | --------------------------------- |
+| `--sync`   | Wait for completion when possible |
+| `--remote` | Use remote API endpoint           |
+| `--json`   | Output in JSON format             |
+
+#### List recent runs
+
+```bash
+bp outputs list [--remote] [--status <status>] [--limit <n>] [--since <date>] [--json]
+```
+
+| Flag                | Description                                                   |
+| ------------------- | ------------------------------------------------------------- |
+| `--remote`          | Use remote API endpoint                                       |
+| `--status <status>` | Filter by status (`queued`, `running`, `succeeded`, `failed`) |
+| `--limit <n>`       | Limit the number of rows                                      |
+| `--since <date>`    | Filter by date (ISO 8601 or unix timestamp in ms)             |
+| `--json`            | Output in JSON format                                         |
 
 Examples:
 
 ```bash
-bp outputs output_abc123 --out ./downloads
-bp outputs list --skill seo-blog-writer --since 2026-02-01 --limit 10
+bp outputs list --limit 20
+bp outputs list --since 2026-02-01 --remote
+bp outputs output_abc123 --sync
+bp outputs output_abc123 --remote
 ```
 
 ### Resources
+
+Show available models and run options. Results are cached locally and auto-synced when the server signals an update.
 
 ```bash
 bp resources [--remote] [--sync] [--models-only] [--json]
 ```
 
+| Flag            | Description                                    |
+| --------------- | ---------------------------------------------- |
+| `--remote`      | Fetch from remote without updating local cache |
+| `--sync`        | Fetch from remote and save to local cache      |
+| `--models-only` | Output only the models list                    |
+| `--json`        | Output in JSON format                          |
+
+`--remote` and `--sync` are mutually exclusive.
+
 Examples:
 
 ```bash
-bp resources                  # show cached resources (fetches and caches on first run)
+bp resources                  # read from local cache (fetches on first run)
 bp resources --models-only    # list available models only
 bp resources --sync           # fetch from remote and update local cache
-bp resources --remote         # fetch from remote without updating local cache
-bp resources --json           # output as JSON
+bp resources --remote         # fetch from remote, do not update local cache
+bp resources --json
 ```
 
-### Config and Diagnostics
+### Config
+
+Read and update BetterPrompt config values. Supported keys: `apiKey`, `apiBaseUrl`.
 
 ```bash
 bp config get [key] [--json]
 bp config set <key> <value>
 bp config unset <key>
-bp doctor [--fix] [--json]
 ```
-
-Supported config keys:
-
-- `apiKey`
-- `apiBaseUrl`
-- `default_output_format`
-- `cache_ttl_seconds`
-- `telemetry`
-- `skills_dir`
 
 Examples:
 
 ```bash
 bp config get
-bp config get apiBaseUrl
-bp config set telemetry false
-bp config unset skills_dir
-bp doctor --fix
+bp config get apiBaseUrl --json
+bp config set apiKey bp_live_123
+bp config unset apiKey
 ```
+
+### Diagnostics
+
+```bash
+bp doctor [--fix] [--json]
+```
+
+Checks auth state, registry reachability, install directories, and write permissions. Use `--fix` to attempt automatic remediation.
 
 ### CLI Lifecycle
 
 ```bash
 bp update [--json]
-bp uninstall [--yes] [--json]
+bp reset [--yes] [--json]
 ```
 
-Examples:
-
-```bash
-bp update
-bp uninstall --yes
-```
+- `bp update` checks for CLI updates and installs when available.
+- `bp reset` removes the `~/.betterprompt` directory (config, auth, skills, outputs, logs). Prompts for confirmation unless `--yes` is passed.
 
 ## Directory Layout
 
@@ -258,14 +336,6 @@ See [`specs/DIRECTORY-LAYOUT.md`](specs/DIRECTORY-LAYOUT.md) for the full specif
 └── tmp/
 ```
 
-- `config.json`: global CLI defaults (registry, output format, cache TTL, telemetry)
-- `auth.json`: session metadata and account state; actual secrets/tokens are stored in the OS keychain
-- `resources.json`: cached available models and run options; updated automatically on first run or via `bp resources --sync`
-- `outputs/`: run history index (`history.jsonl`) and per-run snapshots with request, response, metadata, and downloaded assets
-- `skills/`: one folder per installed skill containing `SKILL.md`, `manifest.json`, and `schema.json`
-- `logs/`: CLI operational logs (`cli.log`, `auth.log`, `errors.log`); separate from outputs
-- `tmp/`: transient files, safe to clear on startup or via `bp cleanup`
-
 ### Project-local state
 
 Using `--project` initializes project-local files and folders:
@@ -279,9 +349,6 @@ Using `--project` initializes project-local files and folders:
     ├── logs/
     └── tmp/
 ```
-
-- `betterprompt.json`: project metadata/config (created on first `--project` use)
-- `.betterprompt/`: project-scoped skills, outputs, logs, and temp files
 
 Project-local state overrides global state when both exist.
 
