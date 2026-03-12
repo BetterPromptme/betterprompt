@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This repository is a Bun + TypeScript CLI. Use this refactor target structure:
+This repository is a Bun + TypeScript CLI. Structure:
 
 ```text
 bin/
@@ -32,20 +32,31 @@ src/
       types.d.ts
       list/
       get/
-    auth/
     config/
+      command.ts
+      constants.ts
+      types.d.ts
+      get/
+      set/
+      unset/
+    auth/
     credits/
     doctor/
     reset/
+    resources/
     search/
     update/
     whoami/
   services/
+    command-factory/  # factory functions for command wiring
     api/
     auth/
     config/
+    context/
+    doctor/
     generate/
     outputs/
+    resources/
     skills/
     run/
     scope/
@@ -54,7 +65,13 @@ src/
     output/
     persistence/
     logger/
+    reset/
+    update/
   types/
+    command-factory.d.ts
+    command-spec.d.ts
+    context.d.ts
+    error-ux.d.ts
     *.d.ts
 tsconfig.json
 package.json
@@ -62,11 +79,115 @@ package.json
 
 Architecture rules:
 
+- **All commands use the command factory pattern** (see Command Factory section below).
 - Commands stay thin and only handle CLI wiring.
 - Business logic lives in root `src/services/`.
 - Every command/subcommand uses a folder.
 - Use `types.d.ts` for type declarations (no runtime values in `.d.ts`).
 - **All command names, subcommand names, flags, and descriptions MUST be declared in constants.** Never hardcode these strings inline in command wiring or service logic. This keeps the CLI surface controllable, easy to maintain, and scalable.
+
+## Command Factory Pattern
+
+All commands are built using factory functions from `src/services/command-factory/service.ts`. **Do NOT create commands by manually instantiating `new Command()` in command files.** Always use `createCommandFromSpec` or `createParentCommandFromSpec`.
+
+### Core Factory Functions
+
+- **`createCommandFromSpec<TOpts>(spec, factoryDeps?)`** — for leaf commands (no subcommands).
+- **`createParentCommandFromSpec<TOpts>(spec, factoryDeps?)`** — for commands with subcommands (e.g. `skill`, `config`, `outputs`).
+
+### Factory Dependencies (`TCommandFactoryDeps`)
+
+```typescript
+type TCommandFactoryDeps = {
+  createSpinner: TSpinnerFactory;
+  printResult: (data: unknown, ctx: TCliContext) => void;
+  error: (message: string) => void;
+  setExitCode: (code: number) => void;
+};
+```
+
+Default deps are created by `createDefaultCommandFactoryDeps()` in `src/services/command-factory/deps.ts`. Commands accept optional `factoryDeps?: Partial<TCommandFactoryDeps>` for test injection.
+
+### Command Spec Patterns
+
+**Pattern 1 — Standard handler** (most commands): Declare `handler`, `spinnerMessage`, `errorPrefix`, `validate`, and `formatText` in the spec. The factory handles spinner lifecycle, validation, error catching, and output formatting.
+
+```typescript
+export const createCreditsCommand = (
+  deps = defaultDeps,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) =>
+  createCommandFromSpec(
+    {
+      name: CREDITS_COMMAND.name,
+      description: CREDITS_COMMAND.description,
+      flags: CREDITS_COMMAND.flags,
+      spinnerMessage: "Fetching credits balance...",
+      errorPrefix: `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix}`,
+      handler: () => deps.getCredits(),
+      formatText: (result) => formatCreditsText(result as TCreditBalance),
+    },
+    factoryDeps
+  );
+```
+
+**Pattern 2 — `customAction`** (escape hatch): For commands that need full Commander control (interactive flows, complex flag inheritance). The factory wires flags/args/help but delegates action registration to the command.
+
+```typescript
+createCommandFromSpec<TAuthOpts>({
+  name: AUTH_COMMAND.name,
+  description: AUTH_COMMAND.description,
+  customAction: (cmd, deps) => {
+    cmd.action(async (opts, command) => { /* full control */ });
+  },
+}, factoryDeps);
+```
+
+**Pattern 3 — Parent command** (with subcommands): Uses `createParentCommandFromSpec`. Optionally has its own `handler` (e.g. `outputs` delegates to `get` when called directly).
+
+```typescript
+export const createSkillCommand = (deps, factoryDeps?) =>
+  createParentCommandFromSpec({
+    name: SKILLS_COMMAND.name,
+    description: SKILLS_COMMAND.description,
+    subcommands: [
+      createSkillInfoSubcommand(deps, factoryDeps),
+      createSkillInstallSubcommand(deps, factoryDeps),
+      // ...
+    ],
+  }, factoryDeps);
+```
+
+### Export Convention
+
+Every command file MUST export:
+
+1. **`createXxxCommand(deps, factoryDeps?)`** — factory function for test injection.
+2. **`xxxCommand`** — pre-built instance using default deps (`createXxxCommand()`).
+
+```typescript
+export const createCreditsCommand = (deps = defaultDeps, factoryDeps?) => /* ... */;
+export const creditsCommand = createCreditsCommand();
+```
+
+### Spec Fields Reference
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | Yes | Command name from constants |
+| `description` | `string` | Yes | Command description from constants |
+| `flags` | `Record<string, TFlagSpec>` | No | Flag definitions from constants |
+| `arguments` | `TArgumentSpec[]` | No | Positional argument definitions |
+| `helpText` | `string` | No | Additional help text shown after default help |
+| `handler` | `TCommandHandler<TOpts>` | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch |
+| `customAction` | `(cmd, deps) => void` | Mutually exclusive with `handler` | Escape hatch for full Commander control |
+| `spinnerMessage` | `string` | No | If set, factory wraps handler in spinner |
+| `errorPrefix` | `string` | No | Prefix for error messages (default: `"Command failed:"`) |
+| `validate` | `TValidateFn<TOpts>` | No | Sync validation; return error string or `undefined` |
+| `formatText` | `(result, ctx) => unknown` | No | Transform result for text output (skipped in JSON mode) |
+| `configureOutput` | `OutputConfiguration` | No | Commander output configuration |
+| `showHelpAfterError` | `boolean` | No | Show help on error |
+| `showSuggestionAfterError` | `boolean` | No | Show did-you-mean suggestions |
 
 ### Constants convention
 
@@ -101,8 +222,6 @@ Current files:
 - `package.json`: package metadata and npm scripts.
 - `README.md`: CLI usage and behavior docs.
 - `specs/DIRECTORY-LAYOUT.md`: canonical `~/.betterprompt` and project-local directory layout spec.
-- `tasks/refactor/refactor-commands-services-structure.md`: refactor architecture plan.
-- `tasks/refactor/TASKS.json`: refactor execution order and dependencies.
 
 ## `~/.betterprompt` Directory Layout
 
