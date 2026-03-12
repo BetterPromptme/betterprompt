@@ -1,6 +1,8 @@
-import { describe, expect, it } from "bun:test";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+
+import { describe, expect, it } from "bun:test";
+
 import packageJson from "../package.json";
 import { createProgram } from "./cli";
 import * as runService from "./services/run/service";
@@ -97,8 +99,12 @@ describe("CLI run deprecation contract", () => {
 describe("CLI command registration parity", () => {
   it("keeps top-level search and nested skill search commands aligned", () => {
     const program = createProgram();
-    const searchCommand = program.commands.find((command) => command.name() === "search");
-    const skillCommand = program.commands.find((command) => command.name() === "skill");
+    const searchCommand = program.commands.find(
+      (command) => command.name() === "search"
+    );
+    const skillCommand = program.commands.find(
+      (command) => command.name() === "skill"
+    );
     const skillSearchCommand = skillCommand?.commands.find(
       (command) => command.name() === "search"
     );
@@ -106,7 +112,9 @@ describe("CLI command registration parity", () => {
     expect(searchCommand).toBeDefined();
     expect(skillCommand).toBeDefined();
     expect(skillSearchCommand).toBeDefined();
-    expect(searchCommand?.description()).toBe(skillSearchCommand?.description());
+    expect(searchCommand?.description()).toBe(
+      skillSearchCommand?.description()
+    );
     expect(searchCommand?.options.map((option) => option.long)).toEqual(
       skillSearchCommand?.options.map((option) => option.long)
     );
@@ -125,7 +133,9 @@ describe("CLI help output parity", () => {
 
   it("keeps expected skill subcommands in help output", () => {
     const program = createProgram();
-    const skillCommand = program.commands.find((command) => command.name() === "skill");
+    const skillCommand = program.commands.find(
+      (command) => command.name() === "skill"
+    );
     const skillHelp = skillCommand?.helpInformation() ?? "";
 
     expect(skillHelp).toContain("info");
@@ -138,8 +148,12 @@ describe("CLI help output parity", () => {
 
   it("keeps expected config and outputs nested help output", () => {
     const program = createProgram();
-    const configCommand = program.commands.find((command) => command.name() === "config");
-    const outputsCommand = program.commands.find((command) => command.name() === "outputs");
+    const configCommand = program.commands.find(
+      (command) => command.name() === "config"
+    );
+    const outputsCommand = program.commands.find(
+      (command) => command.name() === "outputs"
+    );
     const configHelp = configCommand?.helpInformation() ?? "";
     const outputsHelp = outputsCommand?.helpInformation() ?? "";
 
