@@ -4,6 +4,11 @@ import {
   CONFIG_MESSAGES,
 } from "../../constants";
 import { ApiClient } from "../../services/api/client";
+import {
+  readApiKeyFromAuthConfig,
+  resolveAuthConfigPath,
+  saveAuthConfig,
+} from "../../services/auth/service";
 import { createParentCommandFromSpec } from "../../services/command-factory/service";
 import {
   getSystemConfigValue,
@@ -11,15 +16,10 @@ import {
   setSystemConfigValue,
   unsetSystemConfigValue,
 } from "../../services/config/service";
-import {
-  readApiKeyFromAuthConfig,
-  resolveAuthConfigPath,
-  saveAuthConfig,
-} from "../../services/auth/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import type { TConfigCommandDependencies, TSystemConfigKey } from "./types";
 import { createConfigGetSubcommand } from "./get/command";
 import { createConfigSetSubcommand } from "./set/command";
+import type { TConfigCommandDependencies, TSystemConfigKey } from "./types";
 import { createConfigUnsetSubcommand } from "./unset/command";
 
 const defaultDeps: TConfigCommandDependencies = {
