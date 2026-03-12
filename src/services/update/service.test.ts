@@ -1,18 +1,20 @@
 import { describe, expect, it, mock } from "bun:test";
+
 import { checkForUpdate } from "./service";
 
 describe("services/update/service checkForUpdate", () => {
   it("returns update availability from registry metadata", async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = mock(async () =>
-      new Response(
-        JSON.stringify({
-          "dist-tags": {
-            latest: "9.9.9",
-          },
-        }),
-        { status: 200 }
-      )
+    const fetchMock = mock(
+      async () =>
+        new Response(
+          JSON.stringify({
+            "dist-tags": {
+              latest: "9.9.9",
+            },
+          }),
+          { status: 200 }
+        )
     );
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -36,15 +38,16 @@ describe("services/update/service checkForUpdate", () => {
 
   it("normalizes trailing slash in registry URL", async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = mock(async () =>
-      new Response(
-        JSON.stringify({
-          "dist-tags": {
-            latest: "9.9.9",
-          },
-        }),
-        { status: 200 }
-      )
+    const fetchMock = mock(
+      async () =>
+        new Response(
+          JSON.stringify({
+            "dist-tags": {
+              latest: "9.9.9",
+            },
+          }),
+          { status: 200 }
+        )
     );
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -69,7 +72,9 @@ describe("services/update/service checkForUpdate", () => {
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     try {
-      await expect(checkForUpdate()).rejects.toThrow("Failed to query registry (500)");
+      await expect(checkForUpdate()).rejects.toThrow(
+        "Failed to query registry (500)"
+      );
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -77,13 +82,14 @@ describe("services/update/service checkForUpdate", () => {
 
   it("throws when registry metadata is missing latest version", async () => {
     const originalFetch = globalThis.fetch;
-    const fetchMock = mock(async () =>
-      new Response(
-        JSON.stringify({
-          "dist-tags": {},
-        }),
-        { status: 200 }
-      )
+    const fetchMock = mock(
+      async () =>
+        new Response(
+          JSON.stringify({
+            "dist-tags": {},
+          }),
+          { status: 200 }
+        )
     );
 
     globalThis.fetch = fetchMock as unknown as typeof fetch;
