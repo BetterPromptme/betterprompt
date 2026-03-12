@@ -1,4 +1,11 @@
-import { mkdtemp, readFile, stat, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  readFile,
+  readlink,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -39,6 +46,7 @@ describe("services/update/service checkForUpdate", () => {
           method: "package-manager",
           execPath: "/usr/local/bin/bun",
           installDir: "/usr/local/bin",
+          binDir: "/usr/local/bin",
         }),
       }
     );
@@ -73,6 +81,7 @@ describe("services/update/service checkForUpdate", () => {
           method: "package-manager",
           execPath: "/usr/local/bin/bun",
           installDir: "/usr/local/bin",
+          binDir: "/usr/local/bin",
         }),
       }
     );
@@ -94,6 +103,7 @@ describe("services/update/service checkForUpdate", () => {
             method: "package-manager",
             execPath: "/usr/local/bin/bun",
             installDir: "/usr/local/bin",
+            binDir: "/usr/local/bin",
           }),
         }
       )
@@ -120,6 +130,7 @@ describe("services/update/service checkForUpdate", () => {
             method: "package-manager",
             execPath: "/usr/local/bin/bun",
             installDir: "/usr/local/bin",
+            binDir: "/usr/local/bin",
           }),
         }
       )
@@ -144,6 +155,7 @@ describe("services/update/service checkForUpdate (binary)", () => {
           method: "binary",
           execPath: "/usr/local/bin/betterprompt",
           installDir: "/usr/local/bin",
+          binDir: "/usr/local/bin",
         }),
       }
     );
@@ -172,6 +184,7 @@ describe("services/update/service checkForUpdate (binary)", () => {
           method: "binary",
           execPath: "/usr/local/bin/betterprompt",
           installDir: "/usr/local/bin",
+          binDir: "/usr/local/bin",
         }),
       }
     );
@@ -191,6 +204,7 @@ describe("services/update/service checkForUpdate (binary)", () => {
             method: "binary",
             execPath: "/usr/local/bin/betterprompt",
             installDir: "/usr/local/bin",
+            binDir: "/usr/local/bin",
           }),
         }
       )
@@ -211,6 +225,7 @@ describe("services/update/service checkForUpdate (binary)", () => {
             method: "binary",
             execPath: "/usr/local/bin/betterprompt",
             installDir: "/usr/local/bin",
+            binDir: "/usr/local/bin",
           }),
         }
       )
@@ -221,10 +236,18 @@ describe("services/update/service checkForUpdate (binary)", () => {
 // -- performUpdate (binary path) --
 
 describe("services/update/service performUpdate (binary)", () => {
-  it("downloads binary, sets permissions, renames, and creates symlink", async () => {
+  it("downloads binary to new version dir and creates symlinks in binDir", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    // Simulate versioned layout: versions/1.0.0/betterprompt
+    const { mkdir } = await import("node:fs/promises");
+    const versionsDir = path.join(tmpDir, "versions");
+    const oldVersionDir = path.join(versionsDir, "1.0.0");
+    await mkdir(oldVersionDir, { recursive: true });
+    const binaryPath = path.join(oldVersionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
 
     const fakeBinaryContent = "new-binary-content";
     const fetchMock = mock(async (url: string) => {
@@ -238,7 +261,8 @@ describe("services/update/service performUpdate (binary)", () => {
     const installInfo: TInstallMethodInfo = {
       method: "binary",
       execPath: binaryPath,
-      installDir: tmpDir,
+      installDir: oldVersionDir,
+      binDir,
     };
 
     const platform: TPlatformInfo = { os: "darwin", arch: "arm64" };
@@ -253,18 +277,20 @@ describe("services/update/service performUpdate (binary)", () => {
 
     expect(result.updated).toBe(true);
 
-    // Verify binary was replaced
-    const content = await readFile(binaryPath, "utf-8");
+    // Verify binary was installed in new version dir
+    const newBinaryPath = path.join(versionsDir, "2.0.0", "betterprompt");
+    const content = await readFile(newBinaryPath, "utf-8");
     expect(content).toBe(fakeBinaryContent);
 
     // Verify permissions
-    const fileStat = await stat(binaryPath);
+    const fileStat = await stat(newBinaryPath);
     expect(fileStat.mode & 0o755).toBe(0o755);
 
-    // Verify symlink was created
-    const symlinkPath = path.join(tmpDir, "bp");
-    const linkStat = await stat(symlinkPath);
-    expect(linkStat).toBeDefined();
+    // Verify symlinks in binDir
+    const bpLink = await readlink(path.join(binDir, "bp"));
+    expect(bpLink).toBe(newBinaryPath);
+    const betterpromptLink = await readlink(path.join(binDir, "betterprompt"));
+    expect(betterpromptLink).toBe(newBinaryPath);
 
     // Verify download URL
     expect(fetchMock).toHaveBeenCalledWith(
@@ -275,7 +301,10 @@ describe("services/update/service performUpdate (binary)", () => {
 
   it("throws download failed when fetch returns non-success", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
 
     const fetchMock = mock(
@@ -290,7 +319,8 @@ describe("services/update/service performUpdate (binary)", () => {
           detectInstallMethod: () => ({
             method: "binary",
             execPath: binaryPath,
-            installDir: tmpDir,
+            installDir: versionDir,
+            binDir: path.join(tmpDir, "bin"),
           }),
           resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
         }
@@ -312,8 +342,10 @@ describe("services/update/service performUpdate (binary)", () => {
         {
           detectInstallMethod: () => ({
             method: "binary",
-            execPath: "/usr/local/bin/betterprompt",
-            installDir: "/usr/local/bin",
+            execPath:
+              "/usr/local/share/betterprompt/versions/1.0.0/betterprompt",
+            installDir: "/usr/local/share/betterprompt/versions/1.0.0",
+            binDir: "/usr/local/bin",
           }),
           resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
         }
@@ -321,13 +353,18 @@ describe("services/update/service performUpdate (binary)", () => {
     ).rejects.toThrow(UPDATE_MESSAGES.permissionDenied);
   });
 
-  it("returns updated true when EACCES occurs during symlink after successful rename", async () => {
+  it("returns updated true when symlink recreation fails after successful install", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir, chmod: chmodFs } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
 
-    // Create a directory at the symlink path to cause EACCES/EEXIST on symlink creation
-    const symlinkPath = path.join(tmpDir, "bp");
+    // Create binDir as read-only to cause symlink failure
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
+    await chmodFs(binDir, 0o000);
 
     const fetchMock = mock(async (url: string) => {
       if (typeof url === "string" && url.endsWith(".sha256")) {
@@ -337,18 +374,14 @@ describe("services/update/service performUpdate (binary)", () => {
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
-    // Make symlink dir read-only to cause failure during symlink phase
-    const { mkdir, chmod: chmodFs } = await import("node:fs/promises");
-    await mkdir(symlinkPath);
-    await chmodFs(symlinkPath, 0o000);
-
     const result = await performUpdate(
       { targetVersion: "2.0.0" },
       {
         detectInstallMethod: () => ({
           method: "binary",
           execPath: binaryPath,
-          installDir: tmpDir,
+          installDir: versionDir,
+          binDir,
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
@@ -357,18 +390,30 @@ describe("services/update/service performUpdate (binary)", () => {
     // Binary update succeeded despite symlink failure
     expect(result.updated).toBe(true);
 
-    // Verify binary was actually replaced
-    const content = await readFile(binaryPath, "utf-8");
+    // Verify binary was actually installed in new version dir
+    const newBinaryPath = path.join(
+      tmpDir,
+      "versions",
+      "2.0.0",
+      "betterprompt"
+    );
+    const content = await readFile(newBinaryPath, "utf-8");
     expect(content).toBe("new-binary");
 
     // Cleanup: restore permissions so tmpdir can be removed
-    await chmodFs(symlinkPath, 0o755);
+    await chmodFs(binDir, 0o755);
   });
 
   it("resolves latest version from GitHub when targetVersion is omitted", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
 
     const fetchMock = mock(async (url: string) => {
       // GitHub API to resolve latest version
@@ -392,7 +437,8 @@ describe("services/update/service performUpdate (binary)", () => {
         detectInstallMethod: () => ({
           method: "binary",
           execPath: binaryPath,
-          installDir: tmpDir,
+          installDir: versionDir,
+          binDir,
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
@@ -417,7 +463,10 @@ describe("services/update/service performUpdate (binary)", () => {
 
   it("cleans up temp file on failure", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
 
     const fetchMock = mock(
@@ -432,7 +481,8 @@ describe("services/update/service performUpdate (binary)", () => {
           detectInstallMethod: () => ({
             method: "binary",
             execPath: binaryPath,
-            installDir: tmpDir,
+            installDir: versionDir,
+            binDir: path.join(tmpDir, "bin"),
           }),
           resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
         }
@@ -441,18 +491,27 @@ describe("services/update/service performUpdate (binary)", () => {
       // expected
     }
 
-    const tempPath = path.join(tmpDir, ".betterprompt.update.tmp");
+    // Temp file should not exist in the new version dir
+    const newVersionDir = path.join(tmpDir, "versions", "99.0.0");
+    const tempPath = path.join(newVersionDir, ".betterprompt.update.tmp");
     await expect(stat(tempPath)).rejects.toThrow();
   });
 
-  it("recreates symlink when it already exists", async () => {
+  it("recreates symlinks when they already exist", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionsDir = path.join(tmpDir, "versions");
+    const oldVersionDir = path.join(versionsDir, "1.0.0");
+    await mkdir(oldVersionDir, { recursive: true });
+    const binaryPath = path.join(oldVersionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
 
-    // Create existing symlink pointing somewhere else
-    const symlinkPath = path.join(tmpDir, "bp");
-    await symlink(binaryPath, symlinkPath);
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
+
+    // Create existing symlinks pointing to old version
+    await symlink(binaryPath, path.join(binDir, "betterprompt"));
+    await symlink(binaryPath, path.join(binDir, "bp"));
 
     const fetchMock = mock(async (url: string) => {
       if (typeof url === "string" && url.endsWith(".sha256")) {
@@ -468,15 +527,21 @@ describe("services/update/service performUpdate (binary)", () => {
         detectInstallMethod: () => ({
           method: "binary",
           execPath: binaryPath,
-          installDir: tmpDir,
+          installDir: oldVersionDir,
+          binDir,
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
     );
 
     expect(result.updated).toBe(true);
-    const linkStat = await stat(symlinkPath);
-    expect(linkStat).toBeDefined();
+
+    // Verify symlinks now point to new version
+    const newBinaryPath = path.join(versionsDir, "2.0.0", "betterprompt");
+    const bpLink = await readlink(path.join(binDir, "bp"));
+    expect(bpLink).toBe(newBinaryPath);
+    const betterpromptLink = await readlink(path.join(binDir, "betterprompt"));
+    expect(betterpromptLink).toBe(newBinaryPath);
   });
 });
 
@@ -485,8 +550,14 @@ describe("services/update/service performUpdate (binary)", () => {
 describe("services/update/service checksum verification", () => {
   it("passes when downloaded binary hash matches checksum file", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
 
     const binaryContent = "verified-binary-content";
     const expectedHash = new Bun.CryptoHasher("sha256")
@@ -512,7 +583,8 @@ describe("services/update/service checksum verification", () => {
         detectInstallMethod: () => ({
           method: "binary",
           execPath: binaryPath,
-          installDir: tmpDir,
+          installDir: versionDir,
+          binDir,
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
@@ -523,8 +595,14 @@ describe("services/update/service checksum verification", () => {
 
   it("throws checksumMismatch when hash does not match", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
 
     const fetchMock = mock(async (url: string) => {
       if (typeof url === "string" && url.endsWith(".sha256")) {
@@ -546,7 +624,8 @@ describe("services/update/service checksum verification", () => {
           detectInstallMethod: () => ({
             method: "binary",
             execPath: binaryPath,
-            installDir: tmpDir,
+            installDir: versionDir,
+            binDir,
           }),
           resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
         }
@@ -556,8 +635,14 @@ describe("services/update/service checksum verification", () => {
 
   it("skips checksum verification when .sha256 file is not available", async () => {
     const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
-    const binaryPath = path.join(tmpDir, "betterprompt");
+    const { mkdir } = await import("node:fs/promises");
+    const versionDir = path.join(tmpDir, "versions", "1.0.0");
+    await mkdir(versionDir, { recursive: true });
+    const binaryPath = path.join(versionDir, "betterprompt");
     await writeFile(binaryPath, "old-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
 
     const fetchMock = mock(async (url: string) => {
       if (typeof url === "string" && url.endsWith(".sha256")) {
@@ -573,7 +658,8 @@ describe("services/update/service checksum verification", () => {
         detectInstallMethod: () => ({
           method: "binary",
           execPath: binaryPath,
-          installDir: tmpDir,
+          installDir: versionDir,
+          binDir,
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
@@ -596,6 +682,7 @@ describe("services/update/service performUpdate (package-manager)", () => {
           method: "package-manager",
           execPath: "/usr/local/bin/bun",
           installDir: "/usr/local/bin",
+          binDir: "/usr/local/bin",
         }),
         resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
       }
