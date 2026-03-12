@@ -29,7 +29,10 @@ export const executeLogin = async (
     await deps.openBrowser(url);
     s.stop(LOGIN_MESSAGES.browserPrompt);
 
-    deps.note(LOGIN_MESSAGES.loginPrompt(url), LOGIN_MESSAGES.linkInstructions);
+    deps.note(
+      [url, "", LOGIN_MESSAGES.loginPromptSuffix].join("\n"),
+      LOGIN_MESSAGES.linkInstructions
+    );
 
     s.start(LOGIN_MESSAGES.waitingForCallback);
     let apiKey: string;
