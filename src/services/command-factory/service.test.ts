@@ -1,12 +1,13 @@
-import { Command } from "commander";
 import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
-import { createCommandFromSpec, createParentCommandFromSpec } from "./service";
+import { Command } from "commander";
+
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TCommandSpec,
   TParentCommandSpec,
 } from "../../types/command-spec";
 import type { TSpinnerLike } from "../../types/error-ux";
+import { createCommandFromSpec, createParentCommandFromSpec } from "./service";
 
 const createSpinnerLike = (): TSpinnerLike => ({
   start: mock(function (this: TSpinnerLike) {
@@ -252,7 +253,9 @@ describe("createCommandFromSpec", () => {
     expect(validate).toHaveBeenCalledTimes(1);
     expect(handler).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledTimes(1);
-    expect(deps.error).toHaveBeenCalledWith("Command failed: validation failed: bad input");
+    expect(deps.error).toHaveBeenCalledWith(
+      "Command failed: validation failed: bad input"
+    );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
   });
@@ -613,7 +616,7 @@ describe("createParentCommandFromSpec", () => {
     const cmd = createParentCommandFromSpec(spec);
     // Commander's _actionHandler is null when no .action() is called
     // We verify by checking there's no action registered
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     expect((cmd as any)._actionHandler).toBeNull();
   });
 
@@ -717,7 +720,7 @@ describe("createParentCommandFromSpec", () => {
     const cmd = createParentCommandFromSpec(spec);
     expect(cmd.name()).toBe("parent");
     expect(cmd.commands.map((c) => c.name())).toContain("sub");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     expect((cmd as any)._actionHandler).toBeNull();
   });
 
