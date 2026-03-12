@@ -8,6 +8,8 @@ import type {
   TCallbackServerDeps,
   TCallbackServerOptions,
 } from "../../types/login";
+import { errorHtmlTemplate } from "./error-html";
+import { successHtml } from "./success-html";
 
 export const findAvailablePort = async (): Promise<number> => {
   const { min, max } = LOGIN_CALLBACK.portRange;
@@ -70,18 +72,22 @@ export const startCallbackServer = async (
 
     if (receivedState !== state) {
       res.writeHead(403, { "Content-Type": "text/html" });
-      res.end(LOGIN_MESSAGES.errorHtml(LOGIN_MESSAGES.stateMismatch));
+      res.end(
+        errorHtmlTemplate.replace("{{MESSAGE}}", LOGIN_MESSAGES.stateMismatch)
+      );
       return;
     }
 
     if (!apiKey) {
       res.writeHead(400, { "Content-Type": "text/html" });
-      res.end(LOGIN_MESSAGES.errorHtml(LOGIN_MESSAGES.missingApiKey));
+      res.end(
+        errorHtmlTemplate.replace("{{MESSAGE}}", LOGIN_MESSAGES.missingApiKey)
+      );
       return;
     }
 
     res.writeHead(200, { "Content-Type": "text/html" });
-    res.end(LOGIN_MESSAGES.successHtml);
+    res.end(successHtml);
 
     if (resolveCallback) {
       if (timeoutId !== undefined) {
