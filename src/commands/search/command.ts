@@ -56,7 +56,7 @@ export const createSearchCommand = (
           opts.type !== undefined &&
           !(SKILL_TYPES as readonly string[]).includes(opts.type)
         ) {
-          return `${logSymbols.error} ${SEARCH_MESSAGES.failedPrefix} Invalid skill type "${opts.type}". Expected one of: ${SKILL_TYPES.join(", ")}.`;
+          return `Invalid skill type "${opts.type}". Expected one of: ${SKILL_TYPES.join(", ")}.`;
         }
         return undefined;
       },

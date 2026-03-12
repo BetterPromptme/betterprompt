@@ -1,12 +1,3 @@
-export type TSkillInfoOptions = {
-  version?: string;
-  examples?: boolean;
-  schema?: boolean;
-  pricing?: boolean;
-};
-
-export type TSkillInfoCommandOptions = TSkillInfoOptions;
-
 export type TSkillInstallScope =
   | { type: "global" }
   | { type: "project" }

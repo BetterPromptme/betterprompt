@@ -25,9 +25,6 @@ const createDeps = (overrides: Partial<TSkillDeps> = {}): TSkillDeps => ({
   updateAllSkills: mock(async () => []),
   validateQuery: mock((query: string) => query.trim()),
   search: mock(async () => ({ rows: [] })),
-  printResult: mock(() => {}),
-  error: mock(() => {}),
-  setExitCode: mock(() => {}),
   ...overrides,
 });
 

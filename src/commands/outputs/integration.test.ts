@@ -1,6 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 import { PART_TYPE, RunStatus } from "../../enums";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { buildOutputsListQuery, createOutputsCommand } from "./command";
 
 type TOutputsCommandDeps = NonNullable<Parameters<typeof createOutputsCommand>[0]>;
@@ -33,13 +35,13 @@ const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsComma
     })),
     listOutputs: mock(async () => [] as TListOutputsResult),
     readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
-    printResult: mock(() => {}),
-    error: mock(() => {}),
-    setExitCode: mock(() => {}),
     ...overrides,
   });
 
-const createRoot = (deps: ReturnType<typeof createDeps>) => {
+const createRoot = (
+  deps: ReturnType<typeof createDeps>,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
@@ -50,24 +52,26 @@ const createRoot = (deps: ReturnType<typeof createDeps>) => {
     .option("--verbose")
     .option("--no-color")
     .option("--yes")
-    .addCommand(createOutputsCommand(deps));
+    .addCommand(createOutputsCommand(deps, factoryDeps));
 
   return root;
 };
 
 const runOutputs = async (
   args: string[],
-  deps: ReturnType<typeof createDeps>
+  deps: ReturnType<typeof createDeps>,
+  factory: Partial<TCommandFactoryDeps>
 ) => {
-  const root = createRoot(deps);
+  const root = createRoot(deps, factory);
   await root.parseAsync(["outputs", ...args], { from: "user" });
 };
 
 describe("outputs command", () => {
   it("fetches run result by ID from local persistence by default", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-123"], deps);
+    await runOutputs(["run-123"], deps, factory);
 
     expect(deps.fetchRun).toHaveBeenCalledWith("run-123", {
       remote: false,
@@ -90,17 +94,17 @@ describe("outputs command", () => {
         ],
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-text"], deps);
+    await runOutputs(["run-text"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenNthCalledWith(
-      1,
-      "Run status: succeeded",
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("Run status: succeeded"),
       expect.objectContaining({ outputFormat: "text" })
     );
-    expect(deps.printResult).toHaveBeenNthCalledWith(
-      2,
-      "A plain text artifact",
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("A plain text artifact"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -115,15 +119,16 @@ describe("outputs command", () => {
         outputs: [],
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-empty"], deps);
+    await runOutputs(["run-empty"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("No outputs found for run run-empty"),
       expect.objectContaining({ outputFormat: "text" })
     );
-    expect(deps.error).not.toHaveBeenCalled();
-    expect(deps.setExitCode).not.toHaveBeenCalled();
+    expect(factory.error).not.toHaveBeenCalled();
+    expect(factory.setExitCode).not.toHaveBeenCalled();
   });
 
   it("persists output artifacts when --sync is provided", async () => {
@@ -141,8 +146,9 @@ describe("outputs command", () => {
         ],
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-image", "--sync"], deps);
+    await runOutputs(["run-image", "--sync"], deps, factory);
 
     expect(deps.persistRunOutput).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -173,19 +179,21 @@ describe("outputs command", () => {
         ],
       })),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-video"], deps);
+    await runOutputs(["run-video"], deps, factory);
 
     expect(deps.persistRunOutput).not.toHaveBeenCalled();
   });
 
   it("returns structured metadata in --json mode", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-123", "--json"], deps);
+    await runOutputs(["run-123", "--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock.calls[0] as [
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [result, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [
       Record<string, unknown>,
       { outputFormat: string },
     ];
@@ -199,8 +207,9 @@ describe("outputs command", () => {
 
   it("passes --remote to fetch run", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-123", "--remote"], deps);
+    await runOutputs(["run-123", "--remote"], deps, factory);
 
     expect(deps.fetchRun).toHaveBeenCalledWith("run-123", {
       remote: true,
@@ -210,14 +219,15 @@ describe("outputs command", () => {
 
   it("handles invalid run ID error", async () => {
     const deps = createDeps();
+    const factory = createFactoryDeps();
 
-    await runOutputs(["   "], deps);
+    await runOutputs(["   "], deps, factory);
 
     expect(deps.fetchRun).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
 
   it("handles run not found errors", async () => {
@@ -226,14 +236,15 @@ describe("outputs command", () => {
         throw new Error("Run not found: run-404");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-404"], deps);
+    await runOutputs(["run-404"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed: Run not found: run-404")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("shows --remote hint when local fetch fails", async () => {
@@ -242,16 +253,17 @@ describe("outputs command", () => {
         throw new Error("Run not found in local persistence: run-404");
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-404"], deps);
+    await runOutputs(["run-404"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining(
         "Outputs command failed: Run not found in local persistence: run-404\nHint: retry with --remote to fetch from API."
       )
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 
   it("handles non-Error failures gracefully", async () => {
@@ -260,23 +272,25 @@ describe("outputs command", () => {
         throw "timeout";
       }),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputs(["run-500"], deps);
+    await runOutputs(["run-500"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed: timeout")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
 
 describe("outputs list command", () => {
   const runOutputsList = async (
     args: string[],
-    deps: ReturnType<typeof createDeps>
+    deps: ReturnType<typeof createDeps>,
+    factory: Partial<TCommandFactoryDeps>
   ) => {
-    const root = createRoot(deps);
+    const root = createRoot(deps, factory);
     await root.parseAsync(["outputs", "list", ...args], { from: "user" });
   };
 
@@ -292,12 +306,13 @@ describe("outputs list command", () => {
         },
       ]),
     });
+    const factory = createFactoryDeps();
 
-    await runOutputsList([], deps);
+    await runOutputsList([], deps, factory);
 
     expect(deps.listOutputs).not.toHaveBeenCalled();
     expect(deps.readHistoryEntries).toHaveBeenCalledWith("/tmp/.betterprompt");
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("run-1"),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -309,8 +324,9 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs,
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--remote"], deps);
+    await runOutputsList(["--remote"], deps, factory);
 
     expect(listOutputs).toHaveBeenCalledWith({ remote: true });
     expect(deps.readHistoryEntries).not.toHaveBeenCalled();
@@ -327,8 +343,9 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs,
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--status", status, "--remote"], deps);
+    await runOutputsList(["--status", status, "--remote"], deps, factory);
 
     expect(listOutputs).toHaveBeenCalledWith({ status, remote: true });
   });
@@ -339,8 +356,9 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs,
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--limit", "25", "--remote"], deps);
+    await runOutputsList(["--limit", "25", "--remote"], deps, factory);
 
     expect(listOutputs).toHaveBeenCalledWith({ limit: 25, remote: true });
   });
@@ -351,8 +369,9 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs,
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--since", "2026-03-01", "--remote"], deps);
+    await runOutputsList(["--since", "2026-03-01", "--remote"], deps, factory);
 
     expect(listOutputs).toHaveBeenCalledWith({
       since: "2026-03-01",
@@ -366,6 +385,7 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs,
     };
+    const factory = createFactoryDeps();
 
     await runOutputsList(
       [
@@ -377,7 +397,8 @@ describe("outputs list command", () => {
         "2026-03-01",
         "--remote",
       ],
-      deps
+      deps,
+      factory
     );
 
     expect(listOutputs).toHaveBeenCalledWith({
@@ -403,11 +424,12 @@ describe("outputs list command", () => {
       ...createDeps(),
       readHistoryEntries,
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--json"], deps);
+    await runOutputsList(["--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [result, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
       .calls[0] as [Record<string, unknown>, { outputFormat: string }];
 
     expect(ctx.outputFormat).toBe("json");
@@ -438,11 +460,12 @@ describe("outputs list command", () => {
         },
       ]),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--json"], deps);
+    await runOutputsList(["--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    const [result, ctx] = (deps.printResult as ReturnType<typeof mock>).mock
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    const [result, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
       .calls[0] as [Record<string, unknown>, { outputFormat: string }];
 
     expect(ctx.outputFormat).toBe("json");
@@ -472,10 +495,11 @@ describe("outputs list command", () => {
         },
       ]),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList([], deps);
+    await runOutputsList([], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringMatching(/RUN ID\s+SKILL VERSION ID\s+STATUS\s+CREATED AT/i),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -494,10 +518,11 @@ describe("outputs list command", () => {
         },
       ]),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList([], deps);
+    await runOutputsList([], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("run-local"),
       expect.objectContaining({ outputFormat: "text" })
     );
@@ -508,15 +533,16 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs: mock(async () => []),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList([], deps);
+    await runOutputsList([], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       expect.stringContaining("No outputs found"),
       expect.objectContaining({ outputFormat: "text" })
     );
-    expect(deps.error).not.toHaveBeenCalled();
-    expect(deps.setExitCode).not.toHaveBeenCalled();
+    expect(factory.error).not.toHaveBeenCalled();
+    expect(factory.setExitCode).not.toHaveBeenCalled();
   });
 
   it("returns empty rows array in --json mode when no results are found", async () => {
@@ -524,16 +550,17 @@ describe("outputs list command", () => {
       ...createDeps(),
       listOutputs: mock(async () => []),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--json"], deps);
+    await runOutputsList(["--json"], deps, factory);
 
-    expect(deps.printResult).toHaveBeenCalledTimes(1);
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    expect(factory.printResult).toHaveBeenCalledWith(
       { rows: [] },
       expect.objectContaining({ outputFormat: "json" })
     );
-    expect(deps.error).not.toHaveBeenCalled();
-    expect(deps.setExitCode).not.toHaveBeenCalled();
+    expect(factory.error).not.toHaveBeenCalled();
+    expect(factory.setExitCode).not.toHaveBeenCalled();
   });
 
   it("handles list API failures gracefully", async () => {
@@ -543,14 +570,15 @@ describe("outputs list command", () => {
         throw new Error("API unavailable");
       }),
     };
+    const factory = createFactoryDeps();
 
-    await runOutputsList(["--remote"], deps);
+    await runOutputsList(["--remote"], deps, factory);
 
-    expect(deps.error).toHaveBeenCalledWith(
+    expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Outputs command failed: API unavailable")
     );
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
-    expect(deps.printResult).not.toHaveBeenCalled();
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(factory.printResult).not.toHaveBeenCalled();
   });
 });
 

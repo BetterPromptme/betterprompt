@@ -162,4 +162,5 @@ Examples:
   updateAllWithSkillNameError:
     'Cannot use "--all" together with a specific skill name.',
   failedPrefix: "Skill command failed:",
+  emptyListMessage: "No installed skills found.",
 } as const;

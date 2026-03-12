@@ -83,7 +83,8 @@ const wireAction = <TOpts>(
       if (spec.validate) {
         const validationError = spec.validate({ opts, args, ctx });
         if (validationError !== undefined) {
-          deps.error(validationError);
+          const prefix = spec.errorPrefix ?? DEFAULT_ERROR_PREFIX;
+          deps.error(`${prefix} ${validationError}`);
           deps.setExitCode(1);
           return;
         }

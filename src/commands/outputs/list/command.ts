@@ -1,30 +1,38 @@
-import { Command } from "commander";
-import { OUTPUTS_COMMAND } from "../../../constants";
-import { executeOutputsList } from "../../../services/outputs/service";
-import type { TOutputsCommandDependencies, TOutputsListCommandOptions } from "../../../types/outputs";
+import logSymbols from "log-symbols";
+import { OUTPUTS_COMMAND, OUTPUTS_MESSAGES } from "../../../constants";
+import { fetchOutputsList, formatTable } from "../../../services/outputs/service";
+import { createCommandFromSpec } from "../../../services/command-factory/service";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
+import type { TOutputsCommandDependencies, TOutputsListCommandOptions, TOutputListRow } from "../../../types/outputs";
 
 export const createOutputsListSubcommand = (
-  deps: TOutputsCommandDependencies
-): Command => {
+  deps: TOutputsCommandDependencies,
+  factoryDeps?: Partial<TCommandFactoryDeps>
+) => {
   const outputsList = OUTPUTS_COMMAND.subcommands.list;
 
-  return new Command(outputsList.name)
-    .description(outputsList.description)
-    .option(outputsList.flags.remote.flag, outputsList.flags.remote.description)
-    .option(outputsList.flags.status.flag, outputsList.flags.status.description)
-    .option(outputsList.flags.limit.flag, outputsList.flags.limit.description)
-    .option(outputsList.flags.since.flag, outputsList.flags.since.description)
-    .option(outputsList.flags.json.flag, outputsList.flags.json.description)
-    .action(async (opts: TOutputsListCommandOptions, command: Command) => {
-      const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
-
-      await executeOutputsList(
-        deps,
-        {
+  return createCommandFromSpec<TOutputsListCommandOptions>(
+    {
+      name: outputsList.name,
+      description: outputsList.description,
+      flags: outputsList.flags,
+      spinnerMessage: "Loading outputs list...",
+      errorPrefix: `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix}`,
+      handler: async ({ opts, ctx, command }) => {
+        const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
+        return fetchOutputsList(deps, {
           ...opts,
           remote: opts.remote === true || rootRemote,
-        },
-        command
-      );
-    });
+        }, ctx);
+      },
+      formatText: (result) => {
+        const { rows } = result as { rows: TOutputListRow[] };
+        if (rows.length === 0) {
+          return `${logSymbols.warning} No outputs found.`;
+        }
+        return formatTable(rows);
+      },
+    },
+    factoryDeps
+  );
 };

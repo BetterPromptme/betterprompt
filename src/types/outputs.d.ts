@@ -90,7 +90,4 @@ export type TOutputsCommandDependencies = {
   ) => Promise<TPersistRunOutputResult>;
   listOutputs: (filters: TOutputListFilters) => Promise<TOutputListItem[]>;
   readHistoryEntries: (rootDir: string) => Promise<TOutputHistoryEntry[]>;
-  printResult: (data: unknown, ctx: TPrintOptions) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };

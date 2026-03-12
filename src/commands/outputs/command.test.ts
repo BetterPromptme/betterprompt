@@ -3,6 +3,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { Command } from "commander";
 import { PART_TYPE, RunStatus } from "../../enums";
+import { createFactoryDeps } from "../../services/command-factory/test-helpers";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createOutputsCommand } from "./command";
 
 type TOutputsCommandDeps = NonNullable<Parameters<typeof createOutputsCommand>[0]>;
@@ -30,13 +32,13 @@ const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsComma
     })),
     listOutputs: mock(async () => [] as TListOutputsResult),
     readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
-    printResult: mock(() => {}),
-    error: mock(() => {}),
-    setExitCode: mock(() => {}),
     ...overrides,
   });
 
-const createRoot = (deps: ReturnType<typeof createDeps>) => {
+const createRoot = (
+  deps: ReturnType<typeof createDeps>,
+  factoryDeps: Partial<TCommandFactoryDeps>
+) => {
   const root = new Command("betterprompt");
   root
     .option("--project")
@@ -47,7 +49,7 @@ const createRoot = (deps: ReturnType<typeof createDeps>) => {
     .option("--verbose")
     .option("--no-color")
     .option("--yes")
-    .addCommand(createOutputsCommand(deps));
+    .addCommand(createOutputsCommand(deps, factoryDeps));
 
   return root;
 };
@@ -55,7 +57,8 @@ const createRoot = (deps: ReturnType<typeof createDeps>) => {
 describe("commands/outputs/command", () => {
   it("preserves outputs <run-id> behavior from folder path", async () => {
     const deps = createDeps();
-    const root = createRoot(deps);
+    const factory = createFactoryDeps();
+    const root = createRoot(deps, factory);
 
     await root.parseAsync(["outputs", "run-123"], { from: "user" });
 
@@ -63,21 +66,21 @@ describe("commands/outputs/command", () => {
       remote: false,
       rootDir: "/tmp/.betterprompt",
     });
-    expect(deps.printResult).toHaveBeenNthCalledWith(
-      1,
-      "Run status: succeeded",
+    expect(factory.printResult).toHaveBeenCalledTimes(1);
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("Run status: succeeded"),
       expect.objectContaining({ outputFormat: "text" })
     );
-    expect(deps.printResult).toHaveBeenNthCalledWith(
-      2,
-      "Generated text output",
+    expect(factory.printResult).toHaveBeenCalledWith(
+      expect.stringContaining("Generated text output"),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
 
   it("preserves outputs list filters and json mode behavior from folder path", async () => {
     const deps = createDeps();
-    const root = createRoot(deps);
+    const factory = createFactoryDeps();
+    const root = createRoot(deps, factory);
 
     await root.parseAsync(
       [
@@ -101,7 +104,7 @@ describe("commands/outputs/command", () => {
       limit: 10,
       since: "2026-03-01",
     });
-    expect(deps.printResult).toHaveBeenCalledWith(
+    expect(factory.printResult).toHaveBeenCalledWith(
       { rows: [] },
       expect.objectContaining({ outputFormat: "json" })
     );

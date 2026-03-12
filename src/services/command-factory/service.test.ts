@@ -252,7 +252,7 @@ describe("createCommandFromSpec", () => {
     expect(validate).toHaveBeenCalledTimes(1);
     expect(handler).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledTimes(1);
-    expect(deps.error).toHaveBeenCalledWith("validation failed: bad input");
+    expect(deps.error).toHaveBeenCalledWith("Command failed: validation failed: bad input");
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
   });
@@ -738,7 +738,7 @@ describe("createParentCommandFromSpec", () => {
 
     expect(validate).toHaveBeenCalledTimes(1);
     expect(handler).not.toHaveBeenCalled();
-    expect(deps.error).toHaveBeenCalledWith("invalid run-id");
+    expect(deps.error).toHaveBeenCalledWith("Command failed: invalid run-id");
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
     expect(deps.printResult).not.toHaveBeenCalled();
   });

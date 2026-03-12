@@ -1,9 +1,7 @@
 import { SEARCH_CONFIG, SEARCH_MESSAGES, SKILLS_MESSAGES } from "../../constants";
 import type { TApiResponse } from "../../types/api";
 import type { TSearchFilters } from "../../types/search";
-import type { TSkillInfoOptions } from "../../types/skills";
 import { getApiClient } from "../api/client";
-import { printResult } from "../output/service";
 import {
   installSkill as installSkillService,
   listSkills as listSkillsService,
@@ -68,38 +66,15 @@ export const searchSkills = async (
 
 export const getSkillByName = async (
   apiClient: TSkillSearchApi,
-  skillName: string,
-  options?: TSkillInfoOptions
+  skillName: string
 ): Promise<TSkillDetail> => {
   if (!skillName || !skillName.trim()) {
     throw new Error(SKILLS_MESSAGES.invalidSkillNameError);
   }
 
-  const query: Record<string, string | boolean> = {};
-  if (options?.version !== undefined) {
-    query.version = options.version;
-  }
-  if (options?.examples !== undefined) {
-    query.examples = options.examples;
-  }
-  if (options?.schema !== undefined) {
-    query.schema = options.schema;
-  }
-  if (options?.pricing !== undefined) {
-    query.pricing = options.pricing;
-  }
-
-  const response =
-    Object.keys(query).length > 0
-      ? await apiClient.get<TApiResponse<TSkillDetail>>(
-          `/skills/${skillName.trim()}`,
-          {
-            query,
-          }
-        )
-      : await apiClient.get<TApiResponse<TSkillDetail>>(
-          `/skills/${skillName.trim()}`
-        );
+  const response = await apiClient.get<TApiResponse<TSkillDetail>>(
+    `/skills/${skillName.trim()}`
+  );
 
   if (response.status === "SUCCESS" && response.data) {
     return response.data;
@@ -117,11 +92,4 @@ export const createDefaultSkillCommandDependencies = (): TSkillCommandDependenci
   updateAllSkills: updateAllSkillsService,
   validateQuery: validateSearchQuery,
   search: (query, filters) => searchSkills(getApiClient(), query, filters),
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => {
-    console.error(message);
-  },
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
 });

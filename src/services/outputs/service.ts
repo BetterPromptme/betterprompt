@@ -1,16 +1,12 @@
-import logSymbols from "log-symbols";
 import fs from "node:fs/promises";
 import path from "node:path";
-import ora from "ora";
 import { getApiClient } from "../api/client";
-import { getCommandContext } from "../context/service";
-import { runTaskWithSpinner } from "../error-ux/service";
-import { printResult } from "../output/service";
+import { validateRunId } from "../run/service";
 import {
   persistRunOutput,
   readPersistedRunOutput,
 } from "../persistence/service";
-import { getRun, validateRunId } from "../run/service";
+import { getRun } from "../run/service";
 import { resolveScope } from "../scope/service";
 import { RunStatus } from "../../enums";
 import { OUTPUTS_MESSAGES } from "../../constants";
@@ -24,7 +20,7 @@ import type {
   TOutputsListCommandOptions,
 } from "../../types/outputs";
 import type { TRunResult } from "../../types/run";
-import type { Command } from "commander";
+import type { TCliContext } from "../../types/context";
 
 const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
   RunStatus.Queued,
@@ -123,18 +119,7 @@ export const createDefaultOutputsCommandDependencies =
           }
         });
     },
-    printResult: (data, ctx) => printResult(data, ctx),
-    error: (message) => console.error(message),
-    setExitCode: (code) => {
-      process.exitCode = code;
-    },
   });
-
-const formatDisplayOutputs = (run: TRunResult): string[] =>
-  run.outputs.map((part) => part.data);
-
-const formatRunStatusHeader = (runStatus: RunStatus): string =>
-  `${OUTPUTS_MESSAGES.runStatusPrefix} ${runStatus}`;
 
 const normalizeRunStatus = (
   value: string | undefined
@@ -275,7 +260,7 @@ const getOutputListData = async (
 const padCell = (value: string, width: number): string =>
   value.length >= width ? value : value.padEnd(width, " ");
 
-const formatTable = (rows: TOutputListRow[]): string => {
+export const formatTable = (rows: TOutputListRow[]): string => {
   const headers = ["RUN ID", "SKILL VERSION ID", "STATUS", "CREATED AT"];
   const values = rows.map((row) => [
     row.runId,
@@ -332,115 +317,61 @@ const parseListFilters = (
   return filters;
 };
 
-export const executeOutputsGet = async (
+export const fetchOutputRun = async (
   deps: TOutputsCommandDependencies,
   runId: string,
   opts: TOutputsCommandOptions,
-  command: Command
-): Promise<void> => {
-  let shouldUseRemote = false;
+  ctx: TCliContext
+): Promise<TRunResult> => {
+  validateRunId(runId);
+  const scope = await deps.resolveScope(ctx);
+  const shouldUseRemote = opts.remote === true || opts.sync === true;
+
+  let run: TRunResult;
   try {
-    const ctx = getCommandContext(command);
-    validateRunId(runId);
-    const scope = await deps.resolveScope(ctx);
-    shouldUseRemote = opts.remote === true || opts.sync === true;
-
-    const run = await runTaskWithSpinner({
-      message: "Fetching output run...",
-      createSpinner: (message) =>
-        ora({ text: message, isEnabled: process.stderr.isTTY }),
-      task: () =>
-        deps.fetchRun(runId, {
-          remote: shouldUseRemote,
-          rootDir: scope.rootDir,
-        }),
+    run = await deps.fetchRun(runId, {
+      remote: shouldUseRemote,
+      rootDir: scope.rootDir,
     });
-
-    if (opts.sync === true) {
-      await deps.persistRunOutput({
-        scope,
-        runId: run.runId,
-        skillVersionId:
-          typeof run.promptVersionId === "string" &&
-          run.promptVersionId.length > 0
-            ? run.promptVersionId
-            : "-",
-        request: {
-          runId,
-          remote: shouldUseRemote,
-        },
-        response: run,
-        metadata: {
-          runStatus: run.runStatus,
-          syncedAt: new Date().toISOString(),
-        },
-      });
-    }
-
-    if (ctx.outputFormat === "json") {
-      deps.printResult(run, ctx);
-      return;
-    }
-
-    deps.printResult(formatRunStatusHeader(run.runStatus), ctx);
-
-    const displayOutputs = formatDisplayOutputs(run);
-    if (displayOutputs.length > 0) {
-      displayOutputs.forEach((output) => {
-        deps.printResult(output, ctx);
-      });
-      return;
-    }
-
-    deps.printResult(
-      `${logSymbols.warning} ${OUTPUTS_MESSAGES.emptyMessagePrefix} ${run.runId}.`,
-      ctx
-    );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorWithHint =
-      shouldUseRemote === false
-        ? `${errorMessage}\n${OUTPUTS_MESSAGES.remoteHint}`
-        : errorMessage;
-    deps.error(
-      `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix} ${errorWithHint}`
-    );
-    deps.setExitCode(1);
+    if (!shouldUseRemote) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`${message}\n${OUTPUTS_MESSAGES.remoteHint}`);
+    }
+    throw error;
   }
+
+  if (opts.sync === true) {
+    await deps.persistRunOutput({
+      scope,
+      runId: run.runId,
+      skillVersionId:
+        typeof run.promptVersionId === "string" &&
+        run.promptVersionId.length > 0
+          ? run.promptVersionId
+          : "-",
+      request: {
+        runId,
+        remote: shouldUseRemote,
+      },
+      response: run,
+      metadata: {
+        runStatus: run.runStatus,
+        syncedAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  return run;
 };
 
-export const executeOutputsList = async (
+export const fetchOutputsList = async (
   deps: TOutputsCommandDependencies,
   opts: TOutputsListCommandOptions,
-  command: Command
-): Promise<void> => {
-  try {
-    const ctx = getCommandContext(command);
-    const scope = await deps.resolveScope(ctx);
-    const filters = parseListFilters(opts);
-    const rows = await runTaskWithSpinner({
-      message: "Loading outputs list...",
-      createSpinner: (message) =>
-        ora({ text: message, isEnabled: process.stderr.isTTY }),
-      task: () => getOutputListData(deps, filters, scope.rootDir),
-    });
-
-    if (ctx.outputFormat === "json") {
-      deps.printResult({ rows }, ctx);
-      return;
-    }
-
-    if (rows.length === 0) {
-      deps.printResult(`${logSymbols.warning} No outputs found.`, ctx);
-      return;
-    }
-
-    deps.printResult(formatTable(rows), ctx);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    deps.error(
-      `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix} ${errorMessage}`
-    );
-    deps.setExitCode(1);
-  }
+  ctx: TCliContext
+): Promise<{ rows: TOutputListRow[] }> => {
+  const scope = await deps.resolveScope(ctx);
+  const filters = parseListFilters(opts);
+  const rows = await getOutputListData(deps, filters, scope.rootDir);
+  return { rows };
 };

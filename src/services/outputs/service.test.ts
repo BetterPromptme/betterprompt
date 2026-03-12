@@ -94,8 +94,6 @@ describe("services/outputs/service", () => {
     expect(typeof deps.fetchRun).toBe("function");
     expect(typeof deps.listOutputs).toBe("function");
     expect(typeof deps.readHistoryEntries).toBe("function");
-    expect(typeof deps.printResult).toBe("function");
-    expect(typeof deps.error).toBe("function");
-    expect(typeof deps.setExitCode).toBe("function");
+    expect(typeof deps.persistRunOutput).toBe("function");
   });
 });

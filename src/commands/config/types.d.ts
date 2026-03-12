@@ -7,9 +7,8 @@ export type TConfigCommandDependencies = {
   unsetValue: (key: TSystemConfigKey) => Promise<string>;
   verifyApiKey: (apiKey: string) => Promise<void>;
   resolveConfigPath: (key?: TSystemConfigKey) => string;
-  log: (message: string) => void;
-  error: (message: string) => void;
-  setExitCode: (code: number) => void;
 };
+
+export type TConfigSubcommandOpts = { json?: boolean };
 
 export type { TSystemConfigKey };
