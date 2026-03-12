@@ -31,8 +31,8 @@ export const createOutputsCommand = (
         return undefined;
       },
       subcommands: [
-        createOutputsGetSubcommand(deps),
-        createOutputsListSubcommand(deps),
+        createOutputsGetSubcommand(deps, factoryDeps),
+        createOutputsListSubcommand(deps, factoryDeps),
       ],
     },
     factoryDeps
