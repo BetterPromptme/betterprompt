@@ -40,12 +40,10 @@ const makeDeps = (
 ): TLoginDependencies => ({
   intro: mock(() => {}),
   outro: mock(() => {}),
-  cancel: mock(() => {}),
   registerSignal: mock(() => {}),
   unregisterSignal: mock(() => {}),
   verifyApiKey: mock(() => Promise.resolve()),
   saveAuthConfig: mock(() => Promise.resolve("/home/.betterprompt/auth.json")),
-  resolveAuthConfigPath: mock(() => "/home/.betterprompt/auth.json"),
   startCallbackServer: mock(() => Promise.resolve(makeServer())),
   openBrowser: mock(() => Promise.resolve(true)),
   spinner: makeSpinner(),
