@@ -175,6 +175,10 @@ const performBinaryUpdate = async (
       if (hash !== expectedHash) {
         throw new Error(UPDATE_MESSAGES.checksumMismatch);
       }
+    } else if (checksumResponse.status !== 404) {
+      throw new Error(
+        `${UPDATE_MESSAGES.checksumFetchFailed} (${checksumResponse.status})`
+      );
     }
 
     await writeFile(tempPath, buffer);
