@@ -1,11 +1,11 @@
 import { GENERATE_MESSAGES } from "../../constants";
-import type { ApiClient } from "../api/client";
 import type {
   TRunInputs,
   TRunOptions,
   TRunPayload,
   TRunResponse,
 } from "../../types/run";
+import type { ApiClient } from "../api/client";
 
 export const validateRunPayload = (payload: TRunPayload): void => {
   if (!payload.promptVersionId.trim()) {
