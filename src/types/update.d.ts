@@ -1,3 +1,20 @@
+export type TInstallMethod = "binary" | "package-manager";
+
+export type TInstallMethodInfo = {
+  method: TInstallMethod;
+  execPath: string;
+  installDir: string;
+};
+
+export type TGitHubRelease = {
+  tag_name?: string;
+};
+
+export type TPlatformInfo = {
+  os: string;
+  arch: string;
+};
+
 export type TCheckForUpdateOptions = {
   registry?: string;
 };
