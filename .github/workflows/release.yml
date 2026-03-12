@@ -111,11 +111,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create version sync PR
-        if: env.DRY_RUN != 'true'
+        if: env.DRY_RUN != 'true' && !contains(env.VERSION, '-')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Check if main already has this version
+          git checkout -- package.json
           git checkout main
           git pull origin main
           PKG_VERSION=$(git show main:package.json | jq -r .version)
