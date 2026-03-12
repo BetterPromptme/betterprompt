@@ -1,4 +1,5 @@
 import { mock } from "bun:test";
+
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 
 /**
@@ -17,7 +18,11 @@ export const createFactoryDeps = (
 ): TCommandFactoryDeps => ({
   // Chainable spinner stub: start/succeed/fail all return the same object.
   createSpinner: mock(() => {
-    const s = { start: mock(() => s), succeed: mock(() => s), fail: mock(() => s) };
+    const s = {
+      start: mock(() => s),
+      succeed: mock(() => s),
+      fail: mock(() => s),
+    };
     return s;
   }),
   printResult: mock(() => {}),
