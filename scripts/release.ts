@@ -21,7 +21,7 @@ try {
 }
 
 // Calculate next version
-const [major, minor, patch] = current.split(".").map(Number);
+const [major, minor, patch] = current.replace(/-.*$/, "").split(".").map(Number);
 let next: string;
 switch (type) {
   case "major":
