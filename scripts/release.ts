@@ -50,6 +50,11 @@ try {
 
 // Create and push tag
 await $`git tag ${tag}`;
-await $`git push origin ${tag}`;
+try {
+  await $`git push origin ${tag}`;
+} catch (e) {
+  await $`git tag -d ${tag}`.quiet().nothrow();
+  throw e;
+}
 // eslint-disable-next-line no-console
 console.log(`Released ${tag}`);
