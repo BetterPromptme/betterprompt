@@ -1,4 +1,5 @@
 import chalk from "chalk";
+
 import packageJson from "../../package.json";
 import { SHARED_FLAGS } from "./shared-flags";
 
