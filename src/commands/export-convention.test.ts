@@ -2,6 +2,7 @@ import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "bun:test";
+import { Command } from "commander";
 
 const COMMANDS_DIR = path.resolve(import.meta.dir);
 
@@ -46,6 +47,7 @@ describe("command export convention", () => {
       expect(typeof exports[factoryName]).toBe("function");
 
       expect(exports).toHaveProperty(instanceName);
+      expect(exports[instanceName]).toBeInstanceOf(Command);
     });
   }
 });
