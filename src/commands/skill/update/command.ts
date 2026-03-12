@@ -1,4 +1,3 @@
-import logSymbols from "log-symbols";
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
@@ -32,10 +31,10 @@ export const createSkillUpdateSubcommand = (
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name
         ] as string | undefined;
         if (skillName !== undefined && opts.all === true) {
-          return `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix} ${SKILLS_MESSAGES.updateAllWithSkillNameError}`;
+          return SKILLS_MESSAGES.updateAllWithSkillNameError;
         }
         if (skillName === undefined && opts.all !== true) {
-          return `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix} ${SKILLS_MESSAGES.updateRequiresSkillNameOrAllError}`;
+          return SKILLS_MESSAGES.updateRequiresSkillNameOrAllError;
         }
         return undefined;
       },
