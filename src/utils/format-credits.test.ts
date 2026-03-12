@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import formatCredits from "./format-credits";
+
+import { formatCredits } from "./format-credits";
 
 describe("formatCredits", () => {
   it("formats credits without scaling", () => {
