@@ -1,7 +1,9 @@
-import { describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import { describe, expect, it } from "bun:test";
+
 import { API_CONFIG, SYSTEM_CONFIG } from "../../constants";
 import { bootstrapGlobalDirectory } from "./service";
 
@@ -72,7 +74,10 @@ describe("global directory bootstrap", () => {
           2
         )}\n`
       );
-      await writeFile(authPath, `${JSON.stringify({ apiKey: "bp_live_custom" }, null, 2)}\n`);
+      await writeFile(
+        authPath,
+        `${JSON.stringify({ apiKey: "bp_live_custom" }, null, 2)}\n`
+      );
 
       await expect(
         bootstrapGlobalDirectory({
