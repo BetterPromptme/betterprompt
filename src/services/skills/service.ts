@@ -1,4 +1,8 @@
-import { SEARCH_CONFIG, SEARCH_MESSAGES, SKILLS_MESSAGES } from "../../constants";
+import {
+  SEARCH_CONFIG,
+  SEARCH_MESSAGES,
+  SKILLS_MESSAGES,
+} from "../../constants";
 import type { TApiResponse } from "../../types/api";
 import type { TSearchFilters } from "../../types/search";
 import { getApiClient } from "../api/client";
@@ -9,12 +13,8 @@ import {
   updateAllSkills as updateAllSkillsService,
   updateSkill as updateSkillService,
 } from "./installer";
-import {
-  TSkillDetail,
-  TSkillSearchApi,
-  TSkillSearchRow,
-} from "./types";
 import type { TSkillCommandDependencies } from "./types";
+import type { TSkillDetail, TSkillSearchApi, TSkillSearchRow } from "./types";
 
 export type { TSkillDetail, TSkillSearchRow };
 
@@ -50,12 +50,11 @@ export const searchSkills = async (
     queryParams.author = filters.author;
   }
 
-  const response = await apiClient.get<TApiResponse<{ rows: TSkillSearchRow[] }>>(
-    "/skills",
-    {
-      query: queryParams,
-    }
-  );
+  const response = await apiClient.get<
+    TApiResponse<{ rows: TSkillSearchRow[] }>
+  >("/skills", {
+    query: queryParams,
+  });
 
   if (response.status === "SUCCESS" && response.data) {
     return response.data.rows;
@@ -83,13 +82,14 @@ export const getSkillByName = async (
   throw new Error(response.message);
 };
 
-export const createDefaultSkillCommandDependencies = (): TSkillCommandDependencies => ({
-  getSkill: (skillName) => getSkillByName(getApiClient(), skillName),
-  installSkill: installSkillService,
-  uninstallSkill: uninstallSkillService,
-  listSkills: listSkillsService,
-  updateSkill: updateSkillService,
-  updateAllSkills: updateAllSkillsService,
-  validateQuery: validateSearchQuery,
-  search: (query, filters) => searchSkills(getApiClient(), query, filters),
-});
+export const createDefaultSkillCommandDependencies =
+  (): TSkillCommandDependencies => ({
+    getSkill: (skillName) => getSkillByName(getApiClient(), skillName),
+    installSkill: installSkillService,
+    uninstallSkill: uninstallSkillService,
+    listSkills: listSkillsService,
+    updateSkill: updateSkillService,
+    updateAllSkills: updateAllSkillsService,
+    validateQuery: validateSearchQuery,
+    search: (query, filters) => searchSkills(getApiClient(), query, filters),
+  });
