@@ -1,6 +1,6 @@
-import { PART_TYPE } from "../../enums";
-import type { TPart } from "../../types/outputs";
 import type { TGenerateRunResult } from "../../commands/generate/types";
+import { PartType } from "../../enums";
+import type { TPart } from "../../types/outputs";
 
 export const isRunResult = (value: unknown): value is TGenerateRunResult => {
   if (value === null || typeof value !== "object") {
@@ -17,10 +17,10 @@ export const isRunResult = (value: unknown): value is TGenerateRunResult => {
 
 export const formatPartForTextOutput = (part: TPart): string => {
   switch (part.type) {
-    case PART_TYPE.TEXT:
-    case PART_TYPE.IMAGE:
-    case PART_TYPE.ERROR:
-    case PART_TYPE.VIDEO:
+    case PartType.TEXT:
+    case PartType.IMAGE:
+    case PartType.ERROR:
+    case PartType.VIDEO:
       return part.data;
     default:
       return "";
