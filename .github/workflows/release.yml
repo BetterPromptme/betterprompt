@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  pull-requests: write
 
 jobs:
   test:
@@ -67,13 +68,9 @@ jobs:
           echo "PRE_ID=$PRE_ID" >> "$GITHUB_ENV"
           echo "DRY_RUN=$DRY_RUN" >> "$GITHUB_ENV"
 
-      - name: Validate version matches package.json
+      - name: Sync package.json version to tag
         run: |
-          PKG_VERSION=$(jq -r .version package.json)
-          if [ "$PKG_VERSION" != "$VERSION" ]; then
-            echo "::error::Tag version ($VERSION) does not match package.json version ($PKG_VERSION). Update package.json before tagging."
-            exit 1
-          fi
+          jq --arg v "$VERSION" '.version = $v' package.json > tmp.json && mv tmp.json package.json
 
       - name: Build npm bundle
         run: bun build ./src/cli.ts --outdir ./dist --target node
@@ -112,3 +109,42 @@ jobs:
             betterprompt-${{ env.VERSION }}-windows-arm64.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create version sync PR
+        if: env.DRY_RUN != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if main already has this version
+          git checkout main
+          git pull origin main
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$PKG_VERSION" = "$VERSION" ]; then
+            echo "package.json already at $VERSION, skipping PR"
+            exit 0
+          fi
+
+          # Check if PR already exists (idempotent re-runs)
+          BRANCH="release/v$VERSION"
+          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already exists, skipping"
+            exit 0
+          fi
+
+          # Create branch, bump version, push, create PR with auto-merge
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          jq --arg v "$VERSION" '.version = $v' package.json > tmp.json && mv tmp.json package.json
+          git add package.json
+          git commit -m "chore(release): v$VERSION"
+          git push origin "$BRANCH"
+
+          PR_URL=$(gh pr create \
+            --title "chore(release): v$VERSION" \
+            --body "Automated version sync from release workflow." \
+            --base main \
+            --head "$BRANCH")
+
+          gh pr merge "$PR_URL" --auto --squash
