@@ -227,9 +227,12 @@ describe("services/update/service performUpdate (binary)", () => {
     await writeFile(binaryPath, "old-binary");
 
     const fakeBinaryContent = "new-binary-content";
-    const fetchMock = mock(
-      async () => new Response(fakeBinaryContent, { status: 200 })
-    );
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response(fakeBinaryContent, { status: 200 });
+    });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const installInfo: TInstallMethodInfo = {
@@ -326,9 +329,12 @@ describe("services/update/service performUpdate (binary)", () => {
     // Create a directory at the symlink path to cause EACCES/EEXIST on symlink creation
     const symlinkPath = path.join(tmpDir, "bp");
 
-    const fetchMock = mock(
-      async () => new Response("new-binary", { status: 200 })
-    );
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response("new-binary", { status: 200 });
+    });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     // Make symlink dir read-only to cause failure during symlink phase
@@ -365,13 +371,17 @@ describe("services/update/service performUpdate (binary)", () => {
     await writeFile(binaryPath, "old-binary");
 
     const fetchMock = mock(async (url: string) => {
-      // First call: GitHub API to resolve latest version
+      // GitHub API to resolve latest version
       if (typeof url === "string" && url.includes("api.github.com")) {
         return new Response(JSON.stringify({ tag_name: "v5.0.0" }), {
           status: 200,
         });
       }
-      // Second call: download the binary
+      // Checksum file not available
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      // Download the binary
       return new Response("latest-binary", { status: 200 });
     });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -389,7 +399,7 @@ describe("services/update/service performUpdate (binary)", () => {
     );
 
     expect(result.updated).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     // First call should be to GitHub API
     expect(fetchMock.mock.calls[0][0]).toBe(UPDATE_BINARY.githubApiUrl);
@@ -397,6 +407,11 @@ describe("services/update/service performUpdate (binary)", () => {
     // Second call should use the resolved version
     expect(fetchMock.mock.calls[1][0]).toBe(
       `${UPDATE_BINARY.githubDownloadBaseUrl}/v5.0.0/betterprompt-5.0.0-darwin-arm64`
+    );
+
+    // Third call should be the checksum file
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      `${UPDATE_BINARY.githubDownloadBaseUrl}/v5.0.0/betterprompt-5.0.0-darwin-arm64.sha256`
     );
   });
 
@@ -439,9 +454,12 @@ describe("services/update/service performUpdate (binary)", () => {
     const symlinkPath = path.join(tmpDir, "bp");
     await symlink(binaryPath, symlinkPath);
 
-    const fetchMock = mock(
-      async () => new Response("new-binary", { status: 200 })
-    );
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response("new-binary", { status: 200 });
+    });
     globalThis.fetch = fetchMock as unknown as typeof fetch;
 
     const result = await performUpdate(
@@ -459,6 +477,109 @@ describe("services/update/service performUpdate (binary)", () => {
     expect(result.updated).toBe(true);
     const linkStat = await stat(symlinkPath);
     expect(linkStat).toBeDefined();
+  });
+});
+
+// -- checksum verification --
+
+describe("services/update/service checksum verification", () => {
+  it("passes when downloaded binary hash matches checksum file", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const binaryPath = path.join(tmpDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+
+    const binaryContent = "verified-binary-content";
+    const expectedHash = new Bun.CryptoHasher("sha256")
+      .update(new TextEncoder().encode(binaryContent))
+      .digest("hex");
+
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response(
+          `${expectedHash}  betterprompt-2.0.0-darwin-arm64`,
+          {
+            status: 200,
+          }
+        );
+      }
+      return new Response(binaryContent, { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await performUpdate(
+      { targetVersion: "2.0.0" },
+      {
+        detectInstallMethod: () => ({
+          method: "binary",
+          execPath: binaryPath,
+          installDir: tmpDir,
+        }),
+        resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+      }
+    );
+
+    expect(result.updated).toBe(true);
+  });
+
+  it("throws checksumMismatch when hash does not match", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const binaryPath = path.join(tmpDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response(
+          "badhashbadhashbadhashbadhash000000000000000000000000000000000000",
+          {
+            status: 200,
+          }
+        );
+      }
+      return new Response("binary-content", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      performUpdate(
+        { targetVersion: "2.0.0" },
+        {
+          detectInstallMethod: () => ({
+            method: "binary",
+            execPath: binaryPath,
+            installDir: tmpDir,
+          }),
+          resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+        }
+      )
+    ).rejects.toThrow(UPDATE_MESSAGES.checksumMismatch);
+  });
+
+  it("skips checksum verification when .sha256 file is not available", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const binaryPath = path.join(tmpDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response("binary-content", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await performUpdate(
+      { targetVersion: "2.0.0" },
+      {
+        detectInstallMethod: () => ({
+          method: "binary",
+          execPath: binaryPath,
+          installDir: tmpDir,
+        }),
+        resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+      }
+    );
+
+    expect(result.updated).toBe(true);
   });
 });
 
