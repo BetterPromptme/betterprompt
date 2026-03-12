@@ -28,7 +28,10 @@
   "scripts": {
     "test": "bun test",
     "build": "bun build ./src/cli.ts --outdir ./dist --target node",
-    "prerelease": "bun pm version prerelease --preid=dev --no-git-tag-version && bun run build && bun publish --tag latest",
+    "release": "bun run scripts/release.ts",
+    "release:patch": "bun run scripts/release.ts patch",
+    "release:minor": "bun run scripts/release.ts minor",
+    "release:major": "bun run scripts/release.ts major",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
