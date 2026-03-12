@@ -1,5 +1,3 @@
-import { errorHtmlTemplate } from "../services/login/error-html";
-import { successHtml } from "../services/login/success-html";
 import { CLI_HOSTS } from "./cli";
 
 const LOGIN_URL_BASE = `${CLI_HOSTS.web}/api-keys`;
@@ -29,7 +27,7 @@ export const LOGIN_MESSAGES = {
   browserPrompt: "Finish signing in via your browser",
   linkInstructions:
     "If the link doesn't open automatically, open the following link to authenticate:",
-  loginPrompt: (url: string) => [url, "", "Press Ctrl+C to cancel"].join("\n"),
+  loginPromptSuffix: "Press Ctrl+C to cancel",
   waitingForCallback: "Waiting for authentication...",
   noAvailablePort:
     "No available port in range 22450–22460. Close other processes and try again.",
@@ -42,7 +40,4 @@ export const LOGIN_MESSAGES = {
   cancelMessage: "Login canceled.",
   failedPrefix: "Login failed:",
   failedNoChangesPrefix: "No changes were saved to",
-  successHtml,
-  errorHtml: (message: string) =>
-    errorHtmlTemplate.replace("{{MESSAGE}}", message),
 } as const;
