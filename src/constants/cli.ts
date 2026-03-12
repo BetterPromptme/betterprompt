@@ -3,6 +3,11 @@ import chalk from "chalk";
 import packageJson from "../../package.json";
 import { SHARED_FLAGS } from "./shared-flags";
 
+export const CLI_HOSTS = {
+  web: "https://betterprompt.me",
+  api: "https://api.betterprompt.me",
+} as const;
+
 export const CLI_META = {
   name: "betterprompt",
   description: "BetterPrompt CLI Tools",
