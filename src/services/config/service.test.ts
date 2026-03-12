@@ -1,4 +1,3 @@
-import { afterEach, describe, expect, it } from "bun:test";
 import {
   mkdir,
   mkdtemp,
@@ -9,11 +8,14 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { afterEach, describe, expect, it } from "bun:test";
+
 import { API_CONFIG, SYSTEM_CONFIG } from "../../constants";
 import type { TSystemConfigKey } from "../../types";
 import {
-  getSystemConfigValue,
   getLoadedSystemConfig,
+  getSystemConfigValue,
   loadOrInitConfig,
   resetSystemConfigForTests,
   resolveSystemConfigPath,
@@ -111,11 +113,9 @@ describe("system config core", () => {
     const tempDir = await createTempDir();
     const configPath = path.join(tempDir, ".betterprompt", "config.json");
 
-    await setSystemConfigValue(
-      "apiBaseUrl",
-      "https://runtime.example/api",
-      { configPath }
-    );
+    await setSystemConfigValue("apiBaseUrl", "https://runtime.example/api", {
+      configPath,
+    });
 
     const value = await getSystemConfigValue("apiBaseUrl", { configPath });
     expect(value).toBe("https://runtime.example/api");
