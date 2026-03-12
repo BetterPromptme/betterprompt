@@ -32,4 +32,5 @@ export const UPDATE_MESSAGES = {
   unsupportedArch: "Unsupported architecture for binary update",
   checksumMismatch:
     "Checksum verification failed — downloaded binary may be corrupted or tampered with",
+  checksumFetchFailed: "Failed to fetch checksum file",
 } as const;
