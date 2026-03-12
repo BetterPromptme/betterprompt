@@ -1,11 +1,8 @@
 import { describe, expect, it, mock } from "bun:test";
+
 import { runDoctorChecks } from "./service";
 
-type TCheckName =
-  | "auth"
-  | "registry"
-  | "dirs"
-  | "permissions";
+type TCheckName = "auth" | "registry" | "dirs" | "permissions";
 
 type TCheckStatus = "pass" | "fail";
 
@@ -55,10 +52,12 @@ const runDoctor = async (
   deps: TDoctorDeps,
   fixMode = false
 ): Promise<TDoctorRunResult> =>
-  (runDoctorChecks as unknown as (options: {
-    fix?: boolean;
-    deps: TDoctorDeps;
-  }) => Promise<TDoctorRunResult>)({
+  (
+    runDoctorChecks as unknown as (options: {
+      fix?: boolean;
+      deps: TDoctorDeps;
+    }) => Promise<TDoctorRunResult>
+  )({
     fix: fixMode,
     deps,
   });
@@ -96,23 +95,32 @@ describe("doctor core", () => {
       {
         name: "registry",
         override: {
-          checkRegistry: mock(async () => fail("Registry unreachable: timeout.")),
+          checkRegistry: mock(async () =>
+            fail("Registry unreachable: timeout.")
+          ),
         },
         expectedMessage: "Registry unreachable: timeout.",
       },
       {
         name: "dirs",
         override: {
-          checkDirs: mock(async () => fail("Missing skills directory: ~/.betterprompt/skills.")),
+          checkDirs: mock(async () =>
+            fail("Missing skills directory: ~/.betterprompt/skills.")
+          ),
         },
         expectedMessage: "Missing skills directory: ~/.betterprompt/skills.",
       },
       {
         name: "permissions",
         override: {
-          checkPermissions: mock(async () => fail("No write permission to skills directory: ~/.betterprompt/skills.")),
+          checkPermissions: mock(async () =>
+            fail(
+              "No write permission to skills directory: ~/.betterprompt/skills."
+            )
+          ),
         },
-        expectedMessage: "No write permission to skills directory: ~/.betterprompt/skills.",
+        expectedMessage:
+          "No write permission to skills directory: ~/.betterprompt/skills.",
       },
     ];
 
@@ -122,7 +130,9 @@ describe("doctor core", () => {
       const result = await runDoctor(deps);
 
       expect(result.healthy).toBe(false);
-      const check = result.checks.find((entry) => entry.name === failingCheck.name);
+      const check = result.checks.find(
+        (entry) => entry.name === failingCheck.name
+      );
       expect(check).toBeDefined();
       expect(check?.status).toBe("fail");
       expect(check?.message).toContain(failingCheck.expectedMessage);
@@ -147,7 +157,9 @@ describe("doctor core", () => {
     });
 
     const invalidKeyResult = await runDoctor(invalidKeyDeps);
-    expect(invalidKeyResult.checks.find((check) => check.name === "auth")).toMatchObject({
+    expect(
+      invalidKeyResult.checks.find((check) => check.name === "auth")
+    ).toMatchObject({
       status: "fail",
       message: "API key is invalid or expired.",
     });
@@ -155,13 +167,17 @@ describe("doctor core", () => {
 
   it("registry check reports unreachable endpoint failures", async () => {
     const deps = createDeps({
-      checkRegistry: mock(async () => fail("Registry unreachable: ECONNREFUSED.")),
+      checkRegistry: mock(async () =>
+        fail("Registry unreachable: ECONNREFUSED.")
+      ),
     });
 
     const result = await runDoctor(deps);
 
     expect(result.healthy).toBe(false);
-    expect(result.checks.find((check) => check.name === "registry")).toMatchObject({
+    expect(
+      result.checks.find((check) => check.name === "registry")
+    ).toMatchObject({
       status: "fail",
       message: "Registry unreachable: ECONNREFUSED.",
     });
@@ -188,7 +204,10 @@ describe("doctor core", () => {
     const fixPermissions = mock(async () => {});
     const deps = createDeps({
       checkPermissions: mock(async () =>
-        fail("No write permission to skills directory: ~/.betterprompt/skills.", fixPermissions)
+        fail(
+          "No write permission to skills directory: ~/.betterprompt/skills.",
+          fixPermissions
+        )
       ),
     });
 
@@ -210,7 +229,9 @@ describe("doctor core", () => {
 
     const result = await runDoctor(deps, true);
 
-    const registryCheck = result.checks.find((check) => check.name === "registry");
+    const registryCheck = result.checks.find(
+      (check) => check.name === "registry"
+    );
     expect(registryCheck).toMatchObject({
       status: "fail",
       message: "Registry unreachable: timeout.",
