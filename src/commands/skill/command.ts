@@ -1,14 +1,14 @@
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../constants";
-import { createDefaultSkillCommandDependencies } from "../../services/skills/service";
 import { createParentCommandFromSpec } from "../../services/command-factory/service";
+import { createDefaultSkillCommandDependencies } from "../../services/skills/service";
+import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createSkillInfoSubcommand } from "./info/command";
 import { createSkillInstallSubcommand } from "./install/command";
 import { createSkillListSubcommand } from "./list/command";
 import { createSkillSearchSubcommand } from "./search/command";
+import type { TSkillCommandDependencies } from "./types";
 import { createSkillUninstallSubcommand } from "./uninstall/command";
 import { createSkillUpdateSubcommand } from "./update/command";
-import type { TSkillCommandDependencies } from "./types";
-import type { TCommandFactoryDeps } from "../../types/command-factory";
 
 export const createSkillCommand = (
   deps: TSkillCommandDependencies = createDefaultSkillCommandDependencies(),
