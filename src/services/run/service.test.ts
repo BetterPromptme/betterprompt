@@ -1,12 +1,13 @@
 import { describe, expect, it, mock } from "bun:test";
+
+import { RunStatus } from "../../enums/run-status";
+import type { TRunPayload } from "../../types/run";
 import {
   createRun,
   parseInputsJson,
   parseRunOptionsJson,
   validateRunPayload,
 } from "./service";
-import { RunStatus } from "../../enums/run-status";
-import type { TRunPayload } from "../../types/run";
 
 describe("validateRunPayload", () => {
   it("passes with inputs", () => {
@@ -116,7 +117,7 @@ describe("createRun", () => {
       data: {
         runId: "run-1",
         outputs: [],
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         createdAt: "2026-03-04T11:00:00.000Z",
         promptVersionId: "uuid-123",
       },
@@ -146,7 +147,7 @@ describe("createRun", () => {
         data: {
           runId: "run-2",
           outputs: [],
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T11:00:00.000Z",
           promptVersionId: "uuid-123",
         },

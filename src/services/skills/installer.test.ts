@@ -1,8 +1,16 @@
-import { describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { installSkill, listSkills, uninstallSkill, updateAllSkills, updateSkill } from "./installer";
+
+import { describe, expect, it } from "bun:test";
+
+import {
+  installSkill,
+  listSkills,
+  uninstallSkill,
+  updateAllSkills,
+  updateSkill,
+} from "./installer";
 
 describe("services/skills/installer", () => {
   it("exports installer operations from services/skills", () => {
@@ -14,7 +22,9 @@ describe("services/skills/installer", () => {
   });
 
   it("listSkills resolves a dir scope and returns empty list when no skills are installed", async () => {
-    const rootDir = await mkdtemp(path.join(tmpdir(), "betterprompt-services-installer-"));
+    const rootDir = await mkdtemp(
+      path.join(tmpdir(), "betterprompt-services-installer-")
+    );
 
     try {
       await mkdir(path.join(rootDir, "skills"), { recursive: true });

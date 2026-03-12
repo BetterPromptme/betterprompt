@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createDoctorCommand } from "./command";
@@ -12,7 +13,11 @@ const createResult = (overrides: Partial<TDoctorResult> = {}): TDoctorResult =>
       { name: "auth", status: "pass", message: "Auth key is valid." },
       { name: "registry", status: "pass", message: "Registry is reachable." },
       { name: "dirs", status: "pass", message: "Directories exist." },
-      { name: "permissions", status: "pass", message: "Permissions are valid." },
+      {
+        name: "permissions",
+        status: "pass",
+        message: "Permissions are valid.",
+      },
     ],
     ...overrides,
   }) as TDoctorResult;
@@ -137,7 +142,9 @@ describe("doctor command", () => {
     await runDoctor([], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
-      expect.stringContaining("Doctor command failed: Registry check failed: ECONNRESET")
+      expect.stringContaining(
+        "Doctor command failed: Registry check failed: ECONNRESET"
+      )
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });

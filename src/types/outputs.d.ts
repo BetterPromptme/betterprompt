@@ -1,8 +1,11 @@
-import type { TRunResult } from "./run";
+import type { PartType } from "../enums";
 import type { RunStatus } from "../enums/run-status";
-import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
+import type {
+  TPersistRunOutputArgs,
+  TPersistRunOutputResult,
+} from "./persistence";
+import type { TRunResult } from "./run";
 import type { TResolveScope } from "./scope";
-import { PART_TYPE } from "../enums";
 
 export type TOutputFormat = "text" | "json";
 
@@ -11,13 +14,13 @@ export type TPrintOptions = {
 };
 
 export type TTextPart = {
-  type: PART_TYPE.TEXT;
+  type: PartType.TEXT;
   data: string;
   thoughtSignature?: string;
 };
 
 export type TImagePart = {
-  type: PART_TYPE.IMAGE;
+  type: PartType.IMAGE;
   /**
    * The s3 key of the image
    */
@@ -25,12 +28,12 @@ export type TImagePart = {
 };
 
 export type TErrorPart = {
-  type: PART_TYPE.ERROR;
+  type: PartType.ERROR;
   data: string;
 };
 
 export type TVideoPart = {
-  type: PART_TYPE.VIDEO;
+  type: PartType.VIDEO;
   /**
    * The s3 key of the video
    */

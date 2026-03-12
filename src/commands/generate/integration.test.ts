@@ -1,17 +1,18 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+
+import { PartType, RunStatus } from "../../enums";
 import {
   createGenerateCommand,
   formatGenerateOptionErrorMessage,
 } from "./command";
-import { PART_TYPE, RunStatus } from "../../enums";
 
 const createDeps = (overrides = {}) =>
   ({
     generate: mock(async () => ({
       runId: "run-123",
       outputs: [],
-      runStatus: RunStatus.Queued,
+      runStatus: RunStatus.QUEUED,
     })),
     readStdin: mock(async () => "{}"),
     resolveScope: mock(async () => ({
@@ -174,12 +175,7 @@ describe("generate command", () => {
     });
 
     await runGenerate(
-      [
-        "skill-version-123",
-        "--model",
-        "gpt-4.1",
-        "--stdin",
-      ],
+      ["skill-version-123", "--model", "gpt-4.1", "--stdin"],
       deps
     );
 
@@ -251,16 +247,13 @@ describe("generate command", () => {
 
   it("merges stdin text inputs with --input, with --input taking precedence", async () => {
     const deps = createDeps({
-      readStdin: mock(async () => '{"textInputs":{"topic":"from-stdin","tone":"friendly"}}'),
+      readStdin: mock(
+        async () => '{"textInputs":{"topic":"from-stdin","tone":"friendly"}}'
+      ),
     });
 
     await runGenerate(
-      [
-        "skill-version-123",
-        "--stdin",
-        "--input",
-        "topic=from-cli",
-      ],
+      ["skill-version-123", "--stdin", "--input", "topic=from-cli"],
       deps
     );
 
@@ -375,10 +368,10 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         outputs: [
           {
-            type: PART_TYPE.TEXT,
+            type: PartType.TEXT,
             data: "## Generated Markdown\n\nThis is a body.",
           },
         ],
@@ -397,10 +390,10 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         outputs: [
           {
-            type: PART_TYPE.IMAGE,
+            type: PartType.IMAGE,
             data: "outputs/run-123/image-1.png",
           },
         ],
@@ -419,10 +412,10 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         outputs: [
           {
-            type: PART_TYPE.VIDEO,
+            type: PartType.VIDEO,
             data: "outputs/run-123/video-1.mp4",
           },
         ],
@@ -441,10 +434,10 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Failed,
+        runStatus: RunStatus.FAILED,
         outputs: [
           {
-            type: PART_TYPE.ERROR,
+            type: PartType.ERROR,
             data: "Generation failed due to invalid input.",
           },
         ],
@@ -462,10 +455,10 @@ describe("generate command", () => {
   it("returns raw TRunResult when --json is enabled", async () => {
     const rawRunResult = {
       runId: "run-123",
-      runStatus: RunStatus.Succeeded,
+      runStatus: RunStatus.SUCCEEDED,
       outputs: [
-        { type: PART_TYPE.TEXT, data: "hello" },
-        { type: PART_TYPE.IMAGE, data: "outputs/run-123/image.png" },
+        { type: PartType.TEXT, data: "hello" },
+        { type: PartType.IMAGE, data: "outputs/run-123/image.png" },
       ],
     };
 
@@ -486,8 +479,8 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
-        outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+        runStatus: RunStatus.SUCCEEDED,
+        outputs: [{ type: PartType.TEXT, data: "hello world" }],
       })),
     });
 
@@ -507,8 +500,8 @@ describe("generate command", () => {
         },
         response: {
           runId: "run-123",
-          runStatus: RunStatus.Succeeded,
-          outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+          runStatus: RunStatus.SUCCEEDED,
+          outputs: [{ type: PartType.TEXT, data: "hello world" }],
         },
       })
     );
@@ -518,8 +511,8 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
-        outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+        runStatus: RunStatus.SUCCEEDED,
+        outputs: [{ type: PartType.TEXT, data: "hello world" }],
       })),
     });
 
@@ -560,8 +553,8 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
-        outputs: [{ type: PART_TYPE.TEXT, data: "hello world" }],
+        runStatus: RunStatus.SUCCEEDED,
+        outputs: [{ type: PartType.TEXT, data: "hello world" }],
       })),
     });
 
@@ -608,22 +601,22 @@ describe("generate command", () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         outputs: [
           {
-            type: PART_TYPE.TEXT,
+            type: PartType.TEXT,
             data: "First markdown block",
           },
           {
-            type: PART_TYPE.IMAGE,
+            type: PartType.IMAGE,
             data: "outputs/run-123/image-1.png",
           },
           {
-            type: PART_TYPE.VIDEO,
+            type: PartType.VIDEO,
             data: "outputs/run-123/video-1.mp4",
           },
           {
-            type: PART_TYPE.ERROR,
+            type: PartType.ERROR,
             data: "A recoverable part-level error happened.",
           },
         ],
@@ -657,5 +650,4 @@ describe("generate command", () => {
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
-
 });

@@ -1,15 +1,17 @@
-import { parseInputsJson, parseRunOptionsJson } from "../run/service";
-import type { TRunInputs, TRunPayload } from "../../types/run";
 import type {
   TBuildRunPayloadArgs,
   TGenerateCommandOptions,
   TGenerateOptions,
 } from "../../commands/generate/types";
+import type { TRunInputs, TRunPayload } from "../../types/run";
+import { parseInputsJson, parseRunOptionsJson } from "../run/service";
 
 export const GENERATE_INPUT_PAYLOAD_EXCLUSIVE_MESSAGE =
   "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin.";
 
-const buildTextInputs = (input: string[] | undefined): Record<string, string> => {
+const buildTextInputs = (
+  input: string[] | undefined
+): Record<string, string> => {
   if (input === undefined || input.length === 0) {
     return {};
   }
@@ -99,7 +101,8 @@ export const validateGenerateOptions = (options: TGenerateOptions): void => {
 export const buildGenerateOptions = (
   opts: TGenerateCommandOptions
 ): TGenerateOptions => ({
-  ...(opts.input !== undefined && opts.input.length > 0 && { input: opts.input }),
+  ...(opts.input !== undefined &&
+    opts.input.length > 0 && { input: opts.input }),
   ...(opts.imageInputUrl !== undefined &&
     opts.imageInputUrl.length > 0 && { imageInputUrl: opts.imageInputUrl }),
   ...(opts.imageInputBase64 !== undefined &&

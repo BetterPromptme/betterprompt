@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { AUTH_MESSAGES } from "../../constants";
 import { createAuthCommand } from "./command";
 

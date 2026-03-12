@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+
 import { getSkillByName, searchSkills, validateSearchQuery } from "./service";
 
 describe("skills core", () => {
@@ -104,7 +105,9 @@ describe("skills core", () => {
       })),
     } as Parameters<typeof searchSkills>[0];
 
-    await expect(searchSkills(apiClient, "react")).rejects.toThrow("Search is unavailable");
+    await expect(searchSkills(apiClient, "react")).rejects.toThrow(
+      "Search is unavailable"
+    );
   });
 });
 

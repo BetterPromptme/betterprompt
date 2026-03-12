@@ -1,5 +1,5 @@
-import { SHARED_FLAGS } from "./shared-flags";
 import { SKILL_TYPES } from "./search";
+import { SHARED_FLAGS } from "./shared-flags";
 
 const SKILL_NAME_ARGUMENT = {
   name: "<skill-slug>",

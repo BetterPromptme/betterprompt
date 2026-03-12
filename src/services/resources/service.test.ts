@@ -1,13 +1,15 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { afterEach, describe, expect, it, mock } from "bun:test";
+
+import type { TResourcesData } from "../../types/resources";
 import {
   fetchResources,
   loadLocalResources,
   saveLocalResources,
 } from "./service";
-import type { TResourcesData } from "../../types/resources";
 
 const tempDirs: string[] = [];
 
@@ -28,8 +30,16 @@ const sampleData: TResourcesData = {
   hash: "abc123",
   resources: {
     models: [
-      { model: "model-1", modality: "text", availableRunOptions: [{ key: "mode", options: ["fast", "accurate"] }] },
-      { model: "model-2", modality: "image", availableRunOptions: [{ key: "mode", options: ["standard"] }] },
+      {
+        model: "model-1",
+        modality: "text",
+        availableRunOptions: [{ key: "mode", options: ["fast", "accurate"] }],
+      },
+      {
+        model: "model-2",
+        modality: "image",
+        availableRunOptions: [{ key: "mode", options: ["standard"] }],
+      },
     ],
   },
 };

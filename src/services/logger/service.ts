@@ -1,11 +1,12 @@
 import { mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+
 import type {
-  TLogLevel,
   TLogger,
   TLoggerFactory,
   TLoggerOptions,
   TLoggerVerbosity,
+  TLogLevel,
 } from "../../types/logger";
 
 const DEFAULT_MAX_LOG_FILE_SIZE_BYTES = 1024 * 1024;
@@ -103,7 +104,8 @@ const writeToConsole = (
 export const createLogger: TLoggerFactory = (options): TLogger => {
   const verbosity = options.verbosity ?? "normal";
   const loggerConsole = options.console ?? console;
-  const maxFileSizeBytes = options.maxFileSizeBytes ?? DEFAULT_MAX_LOG_FILE_SIZE_BYTES;
+  const maxFileSizeBytes =
+    options.maxFileSizeBytes ?? DEFAULT_MAX_LOG_FILE_SIZE_BYTES;
   const logsDir = path.join(options.rootDir, "logs");
   const initPromise = ensureBaseLogFiles(logsDir);
 

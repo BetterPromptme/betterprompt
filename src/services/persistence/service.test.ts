@@ -1,8 +1,10 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { PART_TYPE } from "../../enums";
+
+import { afterEach, describe, expect, it, mock } from "bun:test";
+
+import { PartType } from "../../enums";
 import {
   persistRunOutput,
   readPersistedRunOutput,
@@ -43,7 +45,7 @@ const createPersistArgs = (rootDir: string): TPersistRunOutputArgs => ({
   response: {
     runId: "run_abc123",
     runStatus: "SUCCEEDED",
-    outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+    outputs: [{ type: PartType.TEXT, data: "Generated copy" }],
     createdAt: "2026-03-04T11:59:00.000Z",
   },
   metadata: {
@@ -65,15 +67,15 @@ describe("persistRunOutput", () => {
     const args = createPersistArgs(rootDir);
     const result = await persistRunOutput(args);
 
-    await expect(readFile(path.join(result.outputDir, "request.json"), "utf8")).resolves.toBe(
-      `${JSON.stringify(args.request, null, 2)}\n`
-    );
-    await expect(readFile(path.join(result.outputDir, "response.json"), "utf8")).resolves.toBe(
-      `${JSON.stringify(args.response, null, 2)}\n`
-    );
-    await expect(readFile(path.join(result.outputDir, "metadata.json"), "utf8")).resolves.toBe(
-      `${JSON.stringify(args.metadata, null, 2)}\n`
-    );
+    await expect(
+      readFile(path.join(result.outputDir, "request.json"), "utf8")
+    ).resolves.toBe(`${JSON.stringify(args.request, null, 2)}\n`);
+    await expect(
+      readFile(path.join(result.outputDir, "response.json"), "utf8")
+    ).resolves.toBe(`${JSON.stringify(args.response, null, 2)}\n`);
+    await expect(
+      readFile(path.join(result.outputDir, "metadata.json"), "utf8")
+    ).resolves.toBe(`${JSON.stringify(args.metadata, null, 2)}\n`);
   });
 
   it("does not create assets/ subdirectory", async () => {
@@ -95,7 +97,7 @@ describe("persistRunOutput", () => {
     second.response = {
       runId: "run_def456",
       runStatus: "SUCCEEDED",
-      outputs: [{ type: PART_TYPE.IMAGE, data: "outputs/run_def456/image.png" }],
+      outputs: [{ type: PartType.IMAGE, data: "outputs/run_def456/image.png" }],
       createdAt: "2026-03-04T12:00:00.000Z",
     };
     await persistRunOutput(second);
@@ -189,11 +191,13 @@ describe("persistRunOutput", () => {
       response: {
         runId: "output_abc123",
         runStatus: "SUCCEEDED",
-        outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+        outputs: [{ type: PartType.TEXT, data: "Generated copy" }],
       },
     });
 
-    expect(result.outputDir).toBe(path.join(rootDir, "outputs", "output_abc123"));
+    expect(result.outputDir).toBe(
+      path.join(rootDir, "outputs", "output_abc123")
+    );
 
     const historyRaw = await readFile(
       path.join(rootDir, "outputs", "history.jsonl"),
@@ -211,7 +215,7 @@ describe("shouldPersistRunOutput", () => {
   it("returns true for text-only outputs when --save-run is true", () => {
     const value = shouldPersistRunOutput({
       saveRun: true,
-      outputs: [{ type: PART_TYPE.TEXT, data: "text" }],
+      outputs: [{ type: PartType.TEXT, data: "text" }],
     });
 
     expect(value).toBe(true);
@@ -220,7 +224,7 @@ describe("shouldPersistRunOutput", () => {
   it("returns false for text-only outputs when --save-run is false", () => {
     const value = shouldPersistRunOutput({
       saveRun: false,
-      outputs: [{ type: PART_TYPE.TEXT, data: "text" }],
+      outputs: [{ type: PartType.TEXT, data: "text" }],
     });
 
     expect(value).toBe(false);
@@ -230,14 +234,14 @@ describe("shouldPersistRunOutput", () => {
     expect(
       shouldPersistRunOutput({
         saveRun: false,
-        outputs: [{ type: PART_TYPE.IMAGE, data: "outputs/run/image.png" }],
+        outputs: [{ type: PartType.IMAGE, data: "outputs/run/image.png" }],
       })
     ).toBe(true);
 
     expect(
       shouldPersistRunOutput({
         saveRun: false,
-        outputs: [{ type: PART_TYPE.VIDEO, data: "outputs/run/video.mp4" }],
+        outputs: [{ type: PartType.VIDEO, data: "outputs/run/video.mp4" }],
       })
     ).toBe(true);
   });
@@ -246,8 +250,8 @@ describe("shouldPersistRunOutput", () => {
     const value = shouldPersistRunOutput({
       saveRun: false,
       outputs: [
-        { type: PART_TYPE.TEXT, data: "summary" },
-        { type: PART_TYPE.IMAGE, data: "outputs/run/image.png" },
+        { type: PartType.TEXT, data: "summary" },
+        { type: PartType.IMAGE, data: "outputs/run/image.png" },
       ],
     });
 
@@ -297,7 +301,12 @@ describe("readPersistedRunOutput", () => {
 
   it("preserves validation error for invalid persisted run shape", async () => {
     const rootDir = await createTempDir();
-    const responsePath = path.join(rootDir, "outputs", "run_invalid", "response.json");
+    const responsePath = path.join(
+      rootDir,
+      "outputs",
+      "run_invalid",
+      "response.json"
+    );
 
     await persistRunOutput({
       ...createPersistArgs(rootDir),
@@ -305,11 +314,15 @@ describe("readPersistedRunOutput", () => {
       response: {
         runId: "run_invalid",
         runStatus: "SUCCEEDED",
-        outputs: [{ type: PART_TYPE.TEXT, data: "Generated copy" }],
+        outputs: [{ type: PartType.TEXT, data: "Generated copy" }],
       },
     });
 
-    await writeFile(responsePath, `${JSON.stringify({ runId: "run_invalid" }, null, 2)}\n`, "utf8");
+    await writeFile(
+      responsePath,
+      `${JSON.stringify({ runId: "run_invalid" }, null, 2)}\n`,
+      "utf8"
+    );
 
     await expect(
       readPersistedRunOutput({

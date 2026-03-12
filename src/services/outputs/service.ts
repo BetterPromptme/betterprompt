@@ -1,16 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { getApiClient } from "../api/client";
-import { validateRunId } from "../run/service";
-import {
-  persistRunOutput,
-  readPersistedRunOutput,
-} from "../persistence/service";
-import { getRun } from "../run/service";
-import { resolveScope } from "../scope/service";
-import { RunStatus } from "../../enums";
+
 import { OUTPUTS_MESSAGES } from "../../constants";
+import { RunStatus } from "../../enums";
 import type { TApiResponse } from "../../types/api";
+import type { TCliContext } from "../../types/context";
 import type {
   TOutputHistoryEntry,
   TOutputListFilters,
@@ -20,13 +14,20 @@ import type {
   TOutputsListCommandOptions,
 } from "../../types/outputs";
 import type { TRunResult } from "../../types/run";
-import type { TCliContext } from "../../types/context";
+import { getApiClient } from "../api/client";
+import {
+  persistRunOutput,
+  readPersistedRunOutput,
+} from "../persistence/service";
+import { validateRunId } from "../run/service";
+import { getRun } from "../run/service";
+import { resolveScope } from "../scope/service";
 
 const OUTPUTS_LIST_STATUS_VALUES: readonly RunStatus[] = [
-  RunStatus.Queued,
-  RunStatus.Running,
-  RunStatus.Succeeded,
-  RunStatus.Failed,
+  RunStatus.QUEUED,
+  RunStatus.RUNNING,
+  RunStatus.SUCCEEDED,
+  RunStatus.FAILED,
 ];
 
 export const parseSinceToUnixMs = (value: string): number => {

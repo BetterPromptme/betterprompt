@@ -1,4 +1,5 @@
 import type { Command } from "commander";
+
 import type { TCliContext, TScope, TVerbosity } from "../../types/context";
 
 const asBoolean = (value: unknown): boolean => value === true;
@@ -35,7 +36,10 @@ const resolveScope = (
   return { type: "global" };
 };
 
-const resolveVerbosity = (quietFlag: boolean, verboseFlag: boolean): TVerbosity => {
+const resolveVerbosity = (
+  quietFlag: boolean,
+  verboseFlag: boolean
+): TVerbosity => {
   if (quietFlag && verboseFlag) {
     throw new Error("Cannot use --quiet and --verbose together");
   }

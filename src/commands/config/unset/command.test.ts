@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { CONFIG_MESSAGES } from "../../../constants";
 import { createFactoryDeps } from "../../../services/command-factory/test-helpers";
-import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSystemConfigKey } from "../../../types";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import { createConfigCommand } from "../command";
 
 type TConfigDeps = NonNullable<Parameters<typeof createConfigCommand>[0]>;

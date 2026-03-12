@@ -1,11 +1,14 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { AUTH_MESSAGES } from "../../constants";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createWhoamiCommand } from "./command";
 import type { TWhoamiDependencies } from "./types";
 
-const createDeps = (overrides: Partial<TWhoamiDependencies> = {}): TWhoamiDependencies => ({
+const createDeps = (
+  overrides: Partial<TWhoamiDependencies> = {}
+): TWhoamiDependencies => ({
   getCurrentUser: mock(async () => ({
     username: "jane",
     displayName: "Jane Doe",
@@ -39,7 +42,8 @@ describe("whoami command", () => {
     expect(factory.setExitCode).not.toHaveBeenCalled();
     expect(factory.printResult).toHaveBeenCalledTimes(1);
 
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(typeof data).toBe("string");
     expect(data as string).toContain("jane");
     expect(data as string).toContain("Jane Doe");
@@ -55,7 +59,8 @@ describe("whoami command", () => {
 
     expect(deps.getCurrentUser).toHaveBeenCalledTimes(1);
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({
       username: "jane",
       displayName: "Jane Doe",

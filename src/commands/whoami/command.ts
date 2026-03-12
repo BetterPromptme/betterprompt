@@ -1,5 +1,6 @@
 import chalk from "chalk";
 import logSymbols from "log-symbols";
+
 import { WHOAMI_COMMAND, WHOAMI_MESSAGES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { getCurrentUser } from "../../services/auth/service";

@@ -1,9 +1,13 @@
 import logSymbols from "log-symbols";
+
 import { OUTPUTS_COMMAND, OUTPUTS_MESSAGES } from "../../../constants";
-import { fetchOutputRun } from "../../../services/outputs/service";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
+import { fetchOutputRun } from "../../../services/outputs/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
-import type { TOutputsCommandDependencies, TOutputsCommandOptions } from "../../../types/outputs";
+import type {
+  TOutputsCommandDependencies,
+  TOutputsCommandOptions,
+} from "../../../types/outputs";
 import type { TRunResult } from "../../../types/run";
 
 export const formatRunOutputText = (result: unknown): string => {
@@ -41,11 +45,17 @@ export const createOutputsGetSubcommand = (
       errorPrefix: `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix}`,
       handler: async ({ opts, args, ctx, command }) => {
         const runId = args[outputsGet.arguments.runId.name] as string;
-        const rootRemote = command.parent?.opts<{ remote?: boolean }>().remote === true;
-        return fetchOutputRun(deps, runId, {
-          ...opts,
-          remote: opts.remote === true || rootRemote,
-        }, ctx);
+        const rootRemote =
+          command.parent?.opts<{ remote?: boolean }>().remote === true;
+        return fetchOutputRun(
+          deps,
+          runId,
+          {
+            ...opts,
+            remote: opts.remote === true || rootRemote,
+          },
+          ctx
+        );
       },
       formatText: formatRunOutputText,
     },

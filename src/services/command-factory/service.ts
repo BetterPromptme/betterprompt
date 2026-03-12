@@ -1,17 +1,18 @@
 import { Argument, Command } from "commander";
-import { getCommandContext } from "../context/service";
-import { runTaskWithSpinner } from "../error-ux/service";
-import { createDefaultCommandFactoryDeps } from "./deps";
+
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
-  TCommandSpec,
-  TParentCommandSpec,
-  TFlagSpec,
   TArgumentSpec,
   TCommandHandler,
+  TCommandSpec,
+  TFlagSpec,
+  TParentCommandSpec,
   TValidateFn,
 } from "../../types/command-spec";
 import type { TCliContext } from "../../types/context";
+import { getCommandContext } from "../context/service";
+import { runTaskWithSpinner } from "../error-ux/service";
+import { createDefaultCommandFactoryDeps } from "./deps";
 
 const DEFAULT_ERROR_PREFIX = "Command failed:";
 

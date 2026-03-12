@@ -1,10 +1,11 @@
 import logSymbols from "log-symbols";
+
 import { CREDITS_COMMAND, CREDITS_MESSAGES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { getCredits } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import formatCredits from "../../utils/format-credits";
+import { formatCredits } from "../../utils/format-credits";
 import type { TCreditBalance, TCreditsDependencies } from "./types";
 
 const formatCreditsText = (credits: TCreditBalance): string =>

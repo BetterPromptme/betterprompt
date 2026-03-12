@@ -1,12 +1,13 @@
 import { describe, expect, it } from "bun:test";
-import { generateZodSchema, INPUT_TYPE } from "./schema";
+
+import { generateZodSchema, InputType } from "./schema";
 
 describe("generateZodSchema", () => {
   it("rejects invalid value for single select variable", () => {
     const schema = generateZodSchema({
       variables: {
         tone: {
-          type: INPUT_TYPE.SELECT,
+          type: InputType.SELECT,
           options: {
             friendly: "Friendly",
             formal: "Formal",
@@ -37,7 +38,7 @@ describe("generateZodSchema", () => {
     const schema = generateZodSchema({
       variables: {
         channels: {
-          type: INPUT_TYPE.SELECT,
+          type: InputType.SELECT,
           options: {
             email: "Email",
             sms: "SMS",
@@ -89,10 +90,10 @@ describe("generateZodSchema", () => {
     const schema = generateZodSchema({
       variables: {
         title: {
-          type: INPUT_TYPE.TEXT,
+          type: InputType.TEXT,
         },
         note: {
-          type: INPUT_TYPE.TEXT,
+          type: InputType.TEXT,
           allowEmpty: true,
         },
       },

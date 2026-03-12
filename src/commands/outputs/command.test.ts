@@ -1,39 +1,46 @@
-import { describe, expect, it, mock } from "bun:test";
 import { existsSync } from "node:fs";
 import path from "node:path";
+
+import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
-import { PART_TYPE, RunStatus } from "../../enums";
+
+import { PartType, RunStatus } from "../../enums";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createOutputsCommand } from "./command";
 
-type TOutputsCommandDeps = NonNullable<Parameters<typeof createOutputsCommand>[0]>;
-type TListOutputsResult = Awaited<ReturnType<TOutputsCommandDeps["listOutputs"]>>;
+type TOutputsCommandDeps = NonNullable<
+  Parameters<typeof createOutputsCommand>[0]
+>;
+type TListOutputsResult = Awaited<
+  ReturnType<TOutputsCommandDeps["listOutputs"]>
+>;
 type THistoryEntriesResult = Awaited<
   ReturnType<TOutputsCommandDeps["readHistoryEntries"]>
 >;
 
-const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsCommandDeps =>
-  ({
-    resolveScope: mock(async () => ({
-      type: "project" as const,
-      rootDir: "/tmp/.betterprompt",
-    })),
-    fetchRun: mock(async () => ({
-      runId: "run-123",
-      promptVersionId: "skill-version-123",
-      runStatus: RunStatus.Succeeded,
-      createdAt: "2026-03-04T11:00:00.000Z",
-      outputs: [{ type: PART_TYPE.TEXT, data: "Generated text output" }],
-    })),
-    persistRunOutput: mock(async () => ({
-      outputDir: "/tmp/.betterprompt/outputs/run-123",
-      historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
-    })),
-    listOutputs: mock(async () => [] as TListOutputsResult),
-    readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
-    ...overrides,
-  });
+const createDeps = (
+  overrides: Partial<TOutputsCommandDeps> = {}
+): TOutputsCommandDeps => ({
+  resolveScope: mock(async () => ({
+    type: "project" as const,
+    rootDir: "/tmp/.betterprompt",
+  })),
+  fetchRun: mock(async () => ({
+    runId: "run-123",
+    promptVersionId: "skill-version-123",
+    runStatus: RunStatus.SUCCEEDED,
+    createdAt: "2026-03-04T11:00:00.000Z",
+    outputs: [{ type: PartType.TEXT, data: "Generated text output" }],
+  })),
+  persistRunOutput: mock(async () => ({
+    outputDir: "/tmp/.betterprompt/outputs/run-123",
+    historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
+  })),
+  listOutputs: mock(async () => [] as TListOutputsResult),
+  readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
+  ...overrides,
+});
 
 const createRoot = (
   deps: ReturnType<typeof createDeps>,
@@ -88,7 +95,7 @@ describe("commands/outputs/command", () => {
         "list",
         "--remote",
         "--status",
-        RunStatus.Succeeded,
+        RunStatus.SUCCEEDED,
         "--limit",
         "10",
         "--since",
@@ -100,7 +107,7 @@ describe("commands/outputs/command", () => {
 
     expect(deps.listOutputs).toHaveBeenCalledWith({
       remote: true,
-      status: RunStatus.Succeeded,
+      status: RunStatus.SUCCEEDED,
       limit: 10,
       since: "2026-03-01",
     });

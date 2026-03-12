@@ -1,4 +1,5 @@
 import logSymbols from "log-symbols";
+
 import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
@@ -16,7 +17,8 @@ export const createSkillUninstallSubcommand = (
         {
           name: SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.name,
           description:
-            SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.description,
+            SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug
+              .description,
         },
       ],
       flags: {

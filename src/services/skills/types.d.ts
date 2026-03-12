@@ -1,4 +1,3 @@
-import type { ApiClient } from "../api/client";
 import type { TSkillSummary, TUpdateSkillResult } from "../../types/installer";
 import type { TSearchFilters } from "../../types/search";
 import type {
@@ -8,6 +7,7 @@ import type {
   TSkillUpdateOptions,
 } from "../../types/skills";
 import type { TInputMetadata } from "../../utils/schema";
+import type { ApiClient } from "../api/client";
 
 export type TSkillSearchApi = Pick<ApiClient, "get">;
 

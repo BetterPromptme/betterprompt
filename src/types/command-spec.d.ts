@@ -1,6 +1,7 @@
 import type { Command, OutputConfiguration } from "commander";
-import type { TCliContext } from "./context";
+
 import type { TCommandFactoryDeps } from "./command-factory";
+import type { TCliContext } from "./context";
 
 export type TFlagSpec = {
   flag: string;

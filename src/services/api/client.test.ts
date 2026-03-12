@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { readApiKeyFromAuthConfig } from "../auth/service";
-import { getApiClient, resetApiClientForTests } from "./client";
 import { loadOrInitConfig, resetSystemConfigForTests } from "../config/service";
+import { getApiClient, resetApiClientForTests } from "./client";
 
 const tempDirs: string[] = [];
 
@@ -32,12 +34,14 @@ describe("api client", () => {
   });
 
   it("applies base url, query params, and bearer authorization header", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     const client = getApiClient({
       baseUrl: "https://api.example.com",
@@ -63,12 +67,14 @@ describe("api client", () => {
   });
 
   it("does not duplicate bearer scheme when token already includes it", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     const client = getApiClient({
       baseUrl: "https://api.example.com",
@@ -85,12 +91,14 @@ describe("api client", () => {
   });
 
   it("serializes json body for post requests", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ id: "1" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ id: "1" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     const client = getApiClient({
       baseUrl: "https://api.example.com",
@@ -108,15 +116,17 @@ describe("api client", () => {
   });
 
   it("throws ApiError for non-2xx responses", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(
-        JSON.stringify({ message: "Unauthorized", code: "AUTH_401" }),
-        {
-          status: 401,
-          headers: { "content-type": "application/json" },
-        }
-      );
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(
+          JSON.stringify({ message: "Unauthorized", code: "AUTH_401" }),
+          {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          }
+        );
+      }
+    );
 
     const client = getApiClient({
       baseUrl: "https://api.example.com",
@@ -198,7 +208,9 @@ describe("api client", () => {
     });
 
     const userController = new AbortController();
-    const requestPromise = client.get("/v1/cancel", { signal: userController.signal });
+    const requestPromise = client.get("/v1/cancel", {
+      signal: userController.signal,
+    });
     userController.abort();
 
     await expect(requestPromise).rejects.toMatchObject({
@@ -217,12 +229,14 @@ describe("api client", () => {
       JSON.stringify({ auth: { apiKey: "bp_from_file" } }, null, 2)
     );
 
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     const client = getApiClient({
       baseUrl: "https://api.example.com",
@@ -275,12 +289,14 @@ describe("api client", () => {
     );
     await loadOrInitConfig({ configPath });
 
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     const client = getApiClient({
       fetch: fetchMock,

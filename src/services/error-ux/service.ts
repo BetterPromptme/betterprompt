@@ -1,5 +1,6 @@
 import { Chalk } from "chalk";
 import logSymbols from "log-symbols";
+
 import type {
   TErrorFormatterOptions,
   TFormatErrorMessage,
@@ -11,8 +12,7 @@ import type {
 const INTERRUPT_MESSAGE = "Interrupted (Ctrl+C). Exiting gracefully.";
 const CTRL_C_EXIT_CODE = 130;
 
-const createChalk = (color: boolean) =>
-  new Chalk({ level: color ? 1 : 0 });
+const createChalk = (color: boolean) => new Chalk({ level: color ? 1 : 0 });
 
 export const createErrorFormatter = (
   options: TErrorFormatterOptions

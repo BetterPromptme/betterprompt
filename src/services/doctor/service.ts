@@ -1,10 +1,9 @@
-import { access, chmod, mkdir, stat } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, chmod, mkdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
 import { API_CONFIG } from "../../constants";
-import { readApiKeyFromAuthConfig, verifyApiKey } from "../auth/service";
-import { loadOrInitConfig } from "../config/service";
 import type {
   TDoctorCheck,
   TDoctorCheckName,
@@ -13,6 +12,8 @@ import type {
   TDoctorResult,
   TRunDoctorChecksOptions,
 } from "../../types/doctor";
+import { readApiKeyFromAuthConfig, verifyApiKey } from "../auth/service";
+import { loadOrInitConfig } from "../config/service";
 
 const BETTERPROMPT_DIR_MODE = 0o700;
 

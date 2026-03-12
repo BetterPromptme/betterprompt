@@ -1,10 +1,15 @@
+import type { TCliContext } from "../../types/context";
 import type { TPart, TPrintOptions } from "../../types/outputs";
 import type {
   TPersistRunOutputArgs,
   TPersistRunOutputResult,
 } from "../../types/persistence";
-import type { TCliContext } from "../../types/context";
-import type { TRunInputs, TRunPayload, TRunResult, TImageInput } from "../../types/run";
+import type {
+  TImageInput,
+  TRunInputs,
+  TRunPayload,
+  TRunResult,
+} from "../../types/run";
 import type { TResolveScope } from "../../types/scope";
 
 export type TGenerateOptions = {
@@ -46,7 +51,10 @@ export type TBuildRunPayloadArgs = {
   stdinInputs?: TRunInputs;
 };
 
-export type TGenerateRunResult = Pick<TRunResult, "runId" | "outputs" | "runStatus">;
+export type TGenerateRunResult = Pick<
+  TRunResult,
+  "runId" | "outputs" | "runStatus"
+>;
 
 export type TFormatGeneratePart = (part: TPart) => string;
 

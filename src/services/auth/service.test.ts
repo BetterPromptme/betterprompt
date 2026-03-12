@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it, mock } from "bun:test";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import {
   getCredits,
   getCurrentUser,
@@ -22,14 +24,18 @@ const createTempDir = async (): Promise<string> => {
 
 afterEach(async () => {
   mock.restore();
-  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+  await Promise.all(
+    tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
+  );
 });
 
 describe("auth core", () => {
   it("resolves auth config path from home directory", () => {
     const configPath = resolveAuthConfigPath(() => "/tmp/demo-home");
 
-    expect(configPath).toBe(path.join("/tmp/demo-home", ".betterprompt", "auth.json"));
+    expect(configPath).toBe(
+      path.join("/tmp/demo-home", ".betterprompt", "auth.json")
+    );
   });
 
   it("writes auth state to auth.json and not legacy config.json", async () => {
@@ -79,8 +85,8 @@ describe("auth core", () => {
       JSON.stringify(
         { apiKey: "old", updatedAt: "2020-01-01T00:00:00.000Z" },
         null,
-        2,
-      ),
+        2
+      )
     );
 
     await saveAuthConfig("new-key", {
@@ -88,7 +94,10 @@ describe("auth core", () => {
       now: new Date("2026-02-25T00:00:00.000Z"),
     });
 
-    const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<string, unknown>;
+    const parsed = JSON.parse(await readFile(configPath, "utf8")) as Record<
+      string,
+      unknown
+    >;
 
     expect(parsed.apiKey).toBe("new-key");
     expect(parsed.updatedAt).toBe("2026-02-25T00:00:00.000Z");
@@ -107,10 +116,16 @@ describe("auth core", () => {
     await mkdir(path.dirname(authConfigPath), { recursive: true });
     await writeFile(
       authConfigPath,
-      JSON.stringify({ apiKey: "  auth-json-key  ", updatedAt: "2026-03-03T00:00:00.000Z" }, null, 2)
+      JSON.stringify(
+        { apiKey: "  auth-json-key  ", updatedAt: "2026-03-03T00:00:00.000Z" },
+        null,
+        2
+      )
     );
 
-    const apiKey = await readApiKeyFromAuthConfig({ configPath: authConfigPath });
+    const apiKey = await readApiKeyFromAuthConfig({
+      configPath: authConfigPath,
+    });
 
     expect(apiKey).toBe("auth-json-key");
   });
@@ -124,7 +139,9 @@ describe("auth core", () => {
       JSON.stringify({ auth: { apiKey: "  legacy-nested-key  " } }, null, 2)
     );
 
-    const apiKey = await readApiKeyFromAuthConfig({ configPath: authConfigPath });
+    const apiKey = await readApiKeyFromAuthConfig({
+      configPath: authConfigPath,
+    });
 
     expect(apiKey).toBe("legacy-nested-key");
   });
@@ -140,7 +157,9 @@ describe("auth core", () => {
       JSON.stringify({ auth: { apiKey: "legacy-config-key" } }, null, 2)
     );
 
-    const apiKey = await readApiKeyFromAuthConfig({ configPath: authConfigPath });
+    const apiKey = await readApiKeyFromAuthConfig({
+      configPath: authConfigPath,
+    });
 
     expect(apiKey).toBe("legacy-config-key");
   });
@@ -174,12 +193,14 @@ describe("auth core", () => {
   });
 
   it("verifies api key by calling GET /me", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ id: "user-1" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ id: "user-1" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     await verifyApiKey("bp_key_123", {
       baseUrl: "https://api.example.com",
@@ -195,12 +216,14 @@ describe("auth core", () => {
   });
 
   it("throws when api key verification endpoint returns an error", async () => {
-    const fetchMock = mock(async (_input: RequestInfo | URL, _init?: RequestInit) => {
-      return new Response(JSON.stringify({ message: "Unauthorized" }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      });
-    });
+    const fetchMock = mock(
+      async (_input: RequestInfo | URL, _init?: RequestInit) => {
+        return new Response(JSON.stringify({ message: "Unauthorized" }), {
+          status: 401,
+          headers: { "content-type": "application/json" },
+        });
+      }
+    );
 
     await expect(
       verifyApiKey("bp_bad_key", {

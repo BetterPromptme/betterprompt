@@ -1,5 +1,5 @@
-import { CLI_META } from "./cli";
 import { AUTH_API_KEY_URL } from "./auth";
+import { CLI_META } from "./cli";
 import { SHARED_FLAGS } from "./shared-flags";
 
 export const API_CONFIG = {

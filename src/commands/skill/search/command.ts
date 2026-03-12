@@ -1,13 +1,16 @@
 import logSymbols from "log-symbols";
-import { SKILL_TYPES, SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+
+import {
+  SKILL_TYPES,
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import type { TSearchFilters } from "../../../types/search";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
+import type { TSearchFilters } from "../../../types/search";
 import type { TSkillCommandDependencies } from "../types";
 
-const buildSearchFilters = (
-  opts: Record<string, unknown>
-): TSearchFilters => {
+const buildSearchFilters = (opts: Record<string, unknown>): TSearchFilters => {
   const filters: TSearchFilters = {};
 
   if (opts.type !== undefined) {

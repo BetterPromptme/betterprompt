@@ -1,7 +1,9 @@
-import { describe, expect, it, mock } from "bun:test";
 import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import { describe, expect, it, mock } from "bun:test";
+
 import type {
   TLogger,
   TLoggerConsole,
@@ -125,7 +127,9 @@ describe("logger core", () => {
       await logger.error("fatal");
 
       expect(consoleLike.log).not.toHaveBeenCalled();
-      expect(consoleLike.error).toHaveBeenCalledWith(expect.stringContaining("fatal"));
+      expect(consoleLike.error).toHaveBeenCalledWith(
+        expect.stringContaining("fatal")
+      );
     } finally {
       await rm(rootDir, { recursive: true, force: true });
     }
@@ -142,9 +146,15 @@ describe("logger core", () => {
 
       await logger.info("bootstrap log files");
 
-      await expect(access(path.join(getLogsDir(rootDir), "cli.log"))).resolves.toBeNull();
-      await expect(access(path.join(getLogsDir(rootDir), "auth.log"))).resolves.toBeNull();
-      await expect(access(path.join(getLogsDir(rootDir), "errors.log"))).resolves.toBeNull();
+      await expect(
+        access(path.join(getLogsDir(rootDir), "cli.log"))
+      ).resolves.toBeNull();
+      await expect(
+        access(path.join(getLogsDir(rootDir), "auth.log"))
+      ).resolves.toBeNull();
+      await expect(
+        access(path.join(getLogsDir(rootDir), "errors.log"))
+      ).resolves.toBeNull();
     } finally {
       await rm(rootDir, { recursive: true, force: true });
     }

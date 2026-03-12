@@ -2,7 +2,7 @@ import { z } from "zod/v4";
 
 export type TTextVariableInputMetadata = {
   [key: string]: unknown;
-  type: INPUT_TYPE.TEXT;
+  type: InputType.TEXT;
   description?: string;
   allowEmpty?: boolean;
   defaultValues?: string[];
@@ -10,7 +10,7 @@ export type TTextVariableInputMetadata = {
 
 export type TSelectVariableInputMetadata = {
   [key: string]: unknown;
-  type: INPUT_TYPE.SELECT;
+  type: InputType.SELECT;
   description?: string;
   /**
    * Is the select input multiple
@@ -50,7 +50,7 @@ export type TInputMetadata = {
   images: TImageInputMetadata[];
 };
 
-export enum INPUT_TYPE {
+export enum InputType {
   TEXT,
   SELECT,
   IMAGE,
@@ -73,7 +73,7 @@ export function generateZodSchema(metadata: TInputMetadata) {
   const variableShape: Record<string, z.ZodType> = {};
 
   for (const [name, varMeta] of Object.entries(metadata.variables)) {
-    if (varMeta.type === INPUT_TYPE.TEXT) {
+    if (varMeta.type === InputType.TEXT) {
       const allowEmpty = varMeta.allowEmpty === true;
       variableShape[name] = allowEmpty ? z.string() : z.string().min(1);
       continue;

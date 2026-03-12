@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Command } from "commander";
+
 import { createProgram } from "../../cli";
 
 type TScope =
@@ -19,15 +20,20 @@ type TExpectedCliContext = {
 type TResolveContext = (flags: Record<string, unknown>) => TExpectedCliContext;
 type TGetCommandContext = (command: Command) => TExpectedCliContext;
 
-const parseGlobalFlags = async (argv: string[]): Promise<Record<string, unknown>> => {
+const parseGlobalFlags = async (
+  argv: string[]
+): Promise<Record<string, unknown>> => {
   const program = createProgram();
   program.exitOverride();
   const probeCommandName = "context-probe";
   const probeCommand = new Command(probeCommandName).action(() => {});
   program.addCommand(probeCommand);
-  await program.parseAsync(["node", "betterprompt", ...argv, probeCommandName], {
-    from: "node",
-  });
+  await program.parseAsync(
+    ["node", "betterprompt", ...argv, probeCommandName],
+    {
+      from: "node",
+    }
+  );
   return program.opts<Record<string, unknown>>();
 };
 
@@ -40,10 +46,13 @@ const loadResolveContext = async (): Promise<TResolveContext> => {
     contextModule === null ||
     !("resolveContext" in contextModule)
   ) {
-    throw new Error("resolveContext export was not found in src/services/context/service.ts");
+    throw new Error(
+      "resolveContext export was not found in src/services/context/service.ts"
+    );
   }
 
-  const resolveContext = (contextModule as { resolveContext: unknown }).resolveContext;
+  const resolveContext = (contextModule as { resolveContext: unknown })
+    .resolveContext;
   if (typeof resolveContext !== "function") {
     throw new Error("resolveContext must be a function");
   }
@@ -60,10 +69,13 @@ const loadGetCommandContext = async (): Promise<TGetCommandContext> => {
     contextModule === null ||
     !("getCommandContext" in contextModule)
   ) {
-    throw new Error("getCommandContext export was not found in src/services/context/service.ts");
+    throw new Error(
+      "getCommandContext export was not found in src/services/context/service.ts"
+    );
   }
 
-  const getCommandContext = (contextModule as { getCommandContext: unknown }).getCommandContext;
+  const getCommandContext = (contextModule as { getCommandContext: unknown })
+    .getCommandContext;
   if (typeof getCommandContext !== "function") {
     throw new Error("getCommandContext must be a function");
   }
@@ -142,7 +154,9 @@ describe("resolveContext", () => {
       "https://registry.example.test",
     ]);
 
-    expect(resolveContext(flags).registry).toBe("https://registry.example.test");
+    expect(resolveContext(flags).registry).toBe(
+      "https://registry.example.test"
+    );
   });
 
   it("sets non-interactive confirmation with --yes", async () => {

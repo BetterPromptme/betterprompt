@@ -1,7 +1,8 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+
 import { SYSTEM_STORAGE } from "../../constants";
 import type { TCliContext } from "../../types/context";
 import type { TResolvedScope, TResolveScope } from "../../types/scope";
@@ -21,7 +22,9 @@ const ensureFile = async (filePath: string, content: string): Promise<void> => {
   }
 };
 
-const initializeProjectScope = async (projectRootDir: string): Promise<void> => {
+const initializeProjectScope = async (
+  projectRootDir: string
+): Promise<void> => {
   await mkdir(projectRootDir, {
     recursive: true,
     mode: SYSTEM_STORAGE.directoryMode,

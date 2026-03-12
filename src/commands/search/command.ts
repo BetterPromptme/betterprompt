@@ -1,8 +1,12 @@
 import logSymbols from "log-symbols";
+
 import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
-import { searchSkills, validateSearchQuery } from "../../services/skills/service";
+import {
+  searchSkills,
+  validateSearchQuery,
+} from "../../services/skills/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TSearchCommandDependencies,
@@ -61,7 +65,9 @@ export const createSearchCommand = (
         return undefined;
       },
       handler: async ({ args, opts }) => {
-        const query = deps.validateQuery(args[SEARCH_COMMAND.arguments.query.name] as string);
+        const query = deps.validateQuery(
+          args[SEARCH_COMMAND.arguments.query.name] as string
+        );
         const filters = buildSearchFilters(opts);
         return deps.search(query, filters);
       },

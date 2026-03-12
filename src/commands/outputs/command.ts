@@ -1,16 +1,19 @@
 import logSymbols from "log-symbols";
+
 import { OUTPUTS_COMMAND, OUTPUTS_MESSAGES } from "../../constants";
+import { createParentCommandFromSpec } from "../../services/command-factory/service";
 import {
   buildOutputsListQuery,
   createDefaultOutputsCommandDependencies,
   fetchOutputRun,
 } from "../../services/outputs/service";
-import { createParentCommandFromSpec } from "../../services/command-factory/service";
-import { createOutputsGetSubcommand } from "./get/command";
-import { formatRunOutputText } from "./get/command";
-import { createOutputsListSubcommand } from "./list/command";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import type { TOutputsCommandDependencies, TOutputsCommandOptions } from "../../types/outputs";
+import type {
+  TOutputsCommandDependencies,
+  TOutputsCommandOptions,
+} from "../../types/outputs";
+import { createOutputsGetSubcommand, formatRunOutputText } from "./get/command";
+import { createOutputsListSubcommand } from "./list/command";
 
 export const createOutputsCommand = (
   deps: TOutputsCommandDependencies = createDefaultOutputsCommandDependencies(),

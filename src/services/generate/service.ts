@@ -1,15 +1,16 @@
 import logSymbols from "log-symbols";
 import ora from "ora";
+
+import type {
+  TExecuteGenerateArgs,
+  TGenerateCommandDependencies,
+} from "../../commands/generate/types";
 import { getApiClient } from "../../services/api/client";
 import { runTaskWithSpinner } from "../error-ux/service";
 import { printResult } from "../output/service";
 import { persistRunOutput } from "../persistence/service";
 import { createRun, parseInputsJson } from "../run/service";
 import { resolveScope } from "../scope/service";
-import type {
-  TExecuteGenerateArgs,
-  TGenerateCommandDependencies,
-} from "../../commands/generate/types";
 import { buildRunPayload, validateGenerateOptions } from "./parsers";
 import { formatPartForTextOutput, isRunResult } from "./presenters";
 
@@ -31,23 +32,24 @@ const readStdin = async (): Promise<string> => {
   });
 };
 
-export const createDefaultGenerateDependencies = (): TGenerateCommandDependencies => ({
-  generate: async (payload) => {
-    const result = await createRun(getApiClient(), payload);
-    return result.data;
-  },
-  readStdin,
-  isStdinTTY: () => process.stdin.isTTY === true,
-  resolveScope,
-  persistRunOutput,
-  printResult: (data, ctx) => printResult(data, ctx),
-  error: (message) => {
-    console.error(message);
-  },
-  setExitCode: (code) => {
-    process.exitCode = code;
-  },
-});
+export const createDefaultGenerateDependencies =
+  (): TGenerateCommandDependencies => ({
+    generate: async (payload) => {
+      const result = await createRun(getApiClient(), payload);
+      return result.data;
+    },
+    readStdin,
+    isStdinTTY: () => process.stdin.isTTY === true,
+    resolveScope,
+    persistRunOutput,
+    printResult: (data, ctx) => printResult(data, ctx),
+    error: (message) => {
+      console.error(message);
+    },
+    setExitCode: (code) => {
+      process.exitCode = code;
+    },
+  });
 
 export const executeGenerate = async ({
   ctx,

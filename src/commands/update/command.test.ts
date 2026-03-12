@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { createUpdateCommand } from "./command";
@@ -128,9 +129,7 @@ describe("update command", () => {
           hasUpdate: true,
         })
       ),
-      performUpdate: mock(async () =>
-        createUpdateResult({ updated: true })
-      ),
+      performUpdate: mock(async () => createUpdateResult({ updated: true })),
     });
     const factory = createFactoryDeps();
 

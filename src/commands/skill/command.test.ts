@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
+
 import { createProgram } from "../../cli";
 import { createSkillCommand } from "./command";
 import { createSkillInfoSubcommand } from "./info/command";
@@ -112,7 +113,9 @@ describe("commands/skill folder tree contract", () => {
     const topLevelSearch = program.commands.find(
       (command) => command.name() === "search"
     );
-    const skill = program.commands.find((command) => command.name() === "skill");
+    const skill = program.commands.find(
+      (command) => command.name() === "skill"
+    );
     const skillSearch = skill?.commands.find(
       (command) => command.name() === "search"
     );

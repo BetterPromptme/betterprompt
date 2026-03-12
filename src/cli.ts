@@ -1,4 +1,6 @@
 import { Command } from "commander";
+
+import { formatHelp } from "./cli/help";
 import { authCommand } from "./commands/auth/command";
 import { configCommand } from "./commands/config/command";
 import { creditsCommand } from "./commands/credits/command";
@@ -14,7 +16,6 @@ import { whoamiCommand } from "./commands/whoami/command";
 import { CLI_MESSAGES, CLI_META } from "./constants";
 import { bootstrapGlobalDirectory } from "./services/bootstrap/service";
 import { installCtrlCHandler } from "./services/error-ux/service";
-import { formatHelp } from "./cli/help";
 
 export const createProgram = (): Command => {
   const program = new Command();

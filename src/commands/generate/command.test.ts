@@ -1,17 +1,19 @@
-import { describe, expect, it, mock } from "bun:test";
 import { existsSync } from "node:fs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+
+import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
-import { createGenerateCommand } from "./command";
+
 import { RunStatus } from "../../enums";
+import { createGenerateCommand } from "./command";
 
 const createDeps = (overrides = {}) =>
   ({
     generate: mock(async () => ({
       runId: "run-123",
       outputs: [],
-      runStatus: RunStatus.Queued,
+      runStatus: RunStatus.QUEUED,
     })),
     readStdin: mock(async () => "{}"),
     resolveScope: mock(async () => ({

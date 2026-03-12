@@ -1,7 +1,10 @@
 import type { TPrintOptions } from "./outputs";
-import type { TPersistRunOutputArgs, TPersistRunOutputResult } from "./persistence";
-import type { TResolveScope } from "./scope";
+import type {
+  TPersistRunOutputArgs,
+  TPersistRunOutputResult,
+} from "./persistence";
 import type { TRunPayload } from "./run";
+import type { TResolveScope } from "./scope";
 
 export type TGenerateOptions = {
   input?: string[];

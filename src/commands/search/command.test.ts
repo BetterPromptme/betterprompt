@@ -1,12 +1,14 @@
-import { Command } from "commander";
-import { describe, expect, it, mock, afterEach } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+
+import { afterEach, describe, expect, it, mock } from "bun:test";
+import { Command } from "commander";
+
 import { createProgram } from "../../cli";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
-import { createSearchCommand } from "./command";
 import { createSkillCommand } from "../skill/command";
+import { createSearchCommand } from "./command";
 
 type TSearchDeps = NonNullable<Parameters<typeof createSearchCommand>[0]>;
 type TSkillDeps = NonNullable<Parameters<typeof createSkillCommand>[0]>;
@@ -33,7 +35,12 @@ const createSkillDeps = (searchDeps: TSearchDeps): TSkillDeps => ({
   installSkill: mock(async () => ({})),
   uninstallSkill: mock(async () => ({})),
   listSkills: mock(async () => []),
-  updateSkill: mock(async () => ({ skillName: "", fromVersion: undefined, toVersion: "", updated: false })),
+  updateSkill: mock(async () => ({
+    skillName: "",
+    fromVersion: undefined,
+    toVersion: "",
+    updated: false,
+  })),
   updateAllSkills: mock(async () => []),
 });
 
@@ -42,7 +49,9 @@ const runSearch = async (
   deps: TSearchDeps,
   factoryDeps: Partial<TCommandFactoryDeps> = createFactoryDeps()
 ) => {
-  const root = new Command().name("betterprompt").option("--json", "Render output as JSON");
+  const root = new Command()
+    .name("betterprompt")
+    .option("--json", "Render output as JSON");
   root.addCommand(createSearchCommand(deps, factoryDeps));
   await root.parseAsync(["node", "betterprompt", ...args]);
 };
@@ -52,7 +61,9 @@ const runProgram = async (
   deps: TSearchDeps,
   factoryDeps: Partial<TCommandFactoryDeps> = createFactoryDeps()
 ) => {
-  const root = new Command().name("betterprompt").option("--json", "Render output as JSON");
+  const root = new Command()
+    .name("betterprompt")
+    .option("--json", "Render output as JSON");
   root.addCommand(createSearchCommand(deps, factoryDeps));
   root.addCommand(createSkillCommand(createSkillDeps(deps)));
   await root.parseAsync(["node", "betterprompt", ...args]);
@@ -121,7 +132,8 @@ describe("search command", () => {
     await runSearch(["--json", "search", "react"], deps, factory);
 
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({ rows: sampleRows });
     expect(ctx.outputFormat).toBe("json");
   });
@@ -138,14 +150,18 @@ describe("search command", () => {
     expect(factory.error).not.toHaveBeenCalled();
     expect(factory.setExitCode).not.toHaveBeenCalled();
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [unknown, { outputFormat: string }];
+    const [data, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
     expect(data).toEqual({ rows: [] });
     expect(ctx.outputFormat).toBe("text");
   });
 
   it("registers canonical skill search subcommand with only --author and --type", () => {
     const skillCommand = createSkillCommand() as unknown as {
-      commands: Array<{ name: () => string; options: Array<{ long?: string }> }>;
+      commands: Array<{
+        name: () => string;
+        options: Array<{ long?: string }>;
+      }>;
     };
 
     const searchSubcommand = skillCommand.commands.find(
@@ -153,19 +169,37 @@ describe("search command", () => {
     );
 
     expect(searchSubcommand).toBeDefined();
-    expect(searchSubcommand?.options.some((option) => option.long === "--type")).toBe(true);
-    expect(searchSubcommand?.options.some((option) => option.long === "--author")).toBe(true);
-    expect(searchSubcommand?.options.some((option) => option.long === "--tag")).toBe(false);
-    expect(searchSubcommand?.options.some((option) => option.long === "--model")).toBe(false);
-    expect(searchSubcommand?.options.some((option) => option.long === "--verified")).toBe(false);
-    expect(searchSubcommand?.options.some((option) => option.long === "--limit")).toBe(false);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--type")
+    ).toBe(true);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--author")
+    ).toBe(true);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--tag")
+    ).toBe(false);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--model")
+    ).toBe(false);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--verified")
+    ).toBe(false);
+    expect(
+      searchSubcommand?.options.some((option) => option.long === "--limit")
+    ).toBe(false);
   });
 
   it("keeps top-level search as alias alongside skill search", () => {
     const program = createProgram();
-    const searchCommand = program.commands.find((command) => command.name() === "search");
-    const skillCommand = program.commands.find((command) => command.name() === "skill");
-    const skillSearch = skillCommand?.commands.find((command) => command.name() === "search");
+    const searchCommand = program.commands.find(
+      (command) => command.name() === "search"
+    );
+    const skillCommand = program.commands.find(
+      (command) => command.name() === "skill"
+    );
+    const skillSearch = skillCommand?.commands.find(
+      (command) => command.name() === "search"
+    );
 
     expect(searchCommand).toBeDefined();
     expect(skillSearch).toBeDefined();
@@ -197,7 +231,9 @@ describe("search command", () => {
 
     expect(deps.search).not.toHaveBeenCalled();
     expect(factory.error).toHaveBeenCalledWith(
-      expect.stringContaining("Search command failed: Search query must be at least 3 characters.")
+      expect.stringContaining(
+        "Search command failed: Search query must be at least 3 characters."
+      )
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });

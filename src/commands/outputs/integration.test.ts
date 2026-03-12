@@ -1,42 +1,48 @@
 import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
-import { PART_TYPE, RunStatus } from "../../enums";
+
+import { PartType, RunStatus } from "../../enums";
 import { createFactoryDeps } from "../../services/command-factory/test-helpers";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { buildOutputsListQuery, createOutputsCommand } from "./command";
 
-type TOutputsCommandDeps = NonNullable<Parameters<typeof createOutputsCommand>[0]>;
-type TListOutputsResult = Awaited<ReturnType<TOutputsCommandDeps["listOutputs"]>>;
+type TOutputsCommandDeps = NonNullable<
+  Parameters<typeof createOutputsCommand>[0]
+>;
+type TListOutputsResult = Awaited<
+  ReturnType<TOutputsCommandDeps["listOutputs"]>
+>;
 type THistoryEntriesResult = Awaited<
   ReturnType<TOutputsCommandDeps["readHistoryEntries"]>
 >;
 
-const createDeps = (overrides: Partial<TOutputsCommandDeps> = {}): TOutputsCommandDeps =>
-  ({
-    resolveScope: mock(async () => ({
-      type: "project" as const,
-      rootDir: "/tmp/.betterprompt",
-    })),
-    fetchRun: mock(async () => ({
-      runId: "run-123",
-      promptVersionId: "skill-version-123",
-      runStatus: RunStatus.Succeeded,
-      createdAt: "2026-03-04T11:00:00.000Z",
-      outputs: [
-        {
-          type: PART_TYPE.TEXT,
-          data: "Generated text output",
-        },
-      ],
-    })),
-    persistRunOutput: mock(async () => ({
-      outputDir: "/tmp/.betterprompt/outputs/run-123",
-      historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
-    })),
-    listOutputs: mock(async () => [] as TListOutputsResult),
-    readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
-    ...overrides,
-  });
+const createDeps = (
+  overrides: Partial<TOutputsCommandDeps> = {}
+): TOutputsCommandDeps => ({
+  resolveScope: mock(async () => ({
+    type: "project" as const,
+    rootDir: "/tmp/.betterprompt",
+  })),
+  fetchRun: mock(async () => ({
+    runId: "run-123",
+    promptVersionId: "skill-version-123",
+    runStatus: RunStatus.SUCCEEDED,
+    createdAt: "2026-03-04T11:00:00.000Z",
+    outputs: [
+      {
+        type: PartType.TEXT,
+        data: "Generated text output",
+      },
+    ],
+  })),
+  persistRunOutput: mock(async () => ({
+    outputDir: "/tmp/.betterprompt/outputs/run-123",
+    historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
+  })),
+  listOutputs: mock(async () => [] as TListOutputsResult),
+  readHistoryEntries: mock(async () => [] as THistoryEntriesResult),
+  ...overrides,
+});
 
 const createRoot = (
   deps: ReturnType<typeof createDeps>,
@@ -84,11 +90,11 @@ describe("outputs command", () => {
       fetchRun: mock(async () => ({
         runId: "run-text",
         promptVersionId: "skill-version-text",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
-            type: PART_TYPE.TEXT,
+            type: PartType.TEXT,
             data: "A plain text artifact",
           },
         ],
@@ -114,7 +120,7 @@ describe("outputs command", () => {
       fetchRun: mock(async () => ({
         runId: "run-empty",
         promptVersionId: "skill-version-empty",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [],
       })),
@@ -136,11 +142,11 @@ describe("outputs command", () => {
       fetchRun: mock(async () => ({
         runId: "run-image",
         promptVersionId: "skill-version-789",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
-            type: PART_TYPE.IMAGE,
+            type: PartType.IMAGE,
             data: "outputs/run-image/image.png",
           },
         ],
@@ -169,11 +175,11 @@ describe("outputs command", () => {
       fetchRun: mock(async () => ({
         runId: "run-video",
         promptVersionId: "skill-version-video",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         createdAt: "2026-03-04T11:00:00.000Z",
         outputs: [
           {
-            type: PART_TYPE.VIDEO,
+            type: PartType.VIDEO,
             data: "outputs/run-video/video.mp4",
           },
         ],
@@ -193,15 +199,13 @@ describe("outputs command", () => {
     await runOutputs(["run-123", "--json"], deps, factory);
 
     expect(factory.printResult).toHaveBeenCalledTimes(1);
-    const [result, ctx] = (factory.printResult as ReturnType<typeof mock>).mock.calls[0] as [
-      Record<string, unknown>,
-      { outputFormat: string },
-    ];
+    const [result, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [Record<string, unknown>, { outputFormat: string }];
 
     expect(ctx.outputFormat).toBe("json");
     expect(result).toMatchObject({
       runId: "run-123",
-      runStatus: RunStatus.Succeeded,
+      runStatus: RunStatus.SUCCEEDED,
     });
   });
 
@@ -300,7 +304,7 @@ describe("outputs list command", () => {
         {
           runId: "run-1",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputPath: "/tmp/outputs/run-1",
         },
@@ -333,10 +337,10 @@ describe("outputs list command", () => {
   });
 
   it.each([
-    RunStatus.Queued,
-    RunStatus.Running,
-    RunStatus.Succeeded,
-    RunStatus.Failed,
+    RunStatus.QUEUED,
+    RunStatus.RUNNING,
+    RunStatus.SUCCEEDED,
+    RunStatus.FAILED,
   ])("forwards --status=%s filter", async (status) => {
     const listOutputs = mock(async () => []);
     const deps = {
@@ -390,7 +394,7 @@ describe("outputs list command", () => {
     await runOutputsList(
       [
         "--status",
-        RunStatus.Succeeded,
+        RunStatus.SUCCEEDED,
         "--limit",
         "10",
         "--since",
@@ -402,7 +406,7 @@ describe("outputs list command", () => {
     );
 
     expect(listOutputs).toHaveBeenCalledWith({
-      status: RunStatus.Succeeded,
+      status: RunStatus.SUCCEEDED,
       limit: 10,
       since: "2026-03-01",
       remote: true,
@@ -414,7 +418,7 @@ describe("outputs list command", () => {
       {
         runId: "run-7",
         skillVersionId: "caption-generator",
-        runStatus: RunStatus.Succeeded,
+        runStatus: RunStatus.SUCCEEDED,
         persistedAt: "2026-03-04T11:00:00.000Z",
         outputPath: "/tmp/outputs/2026/03/output_run-7",
       },
@@ -438,7 +442,7 @@ describe("outputs list command", () => {
         {
           runId: "run-7",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T11:00:00.000Z",
           localOutputPath: "/tmp/outputs/2026/03/output_run-7",
         },
@@ -453,7 +457,7 @@ describe("outputs list command", () => {
         {
           runId: "run-11",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T10:30:00.000Z",
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputPath: "/tmp/local/run-11",
@@ -474,7 +478,7 @@ describe("outputs list command", () => {
         {
           runId: "run-11",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T10:30:00.000Z",
           localOutputPath: "/tmp/local/run-11",
         },
@@ -489,7 +493,7 @@ describe("outputs list command", () => {
         {
           runId: "run-10",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Running,
+          runStatus: RunStatus.RUNNING,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputPath: "/tmp/local/run-10",
         },
@@ -512,7 +516,7 @@ describe("outputs list command", () => {
         {
           runId: "run-local",
           skillVersionId: "caption-generator",
-          runStatus: RunStatus.Succeeded,
+          runStatus: RunStatus.SUCCEEDED,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputDir: "outputs/run-local",
         },
@@ -587,7 +591,7 @@ describe("buildOutputsListQuery", () => {
     expect(
       buildOutputsListQuery({
         remote: true,
-        status: RunStatus.Succeeded,
+        status: RunStatus.SUCCEEDED,
         limit: 10,
         since: "2026-03-01",
       })
