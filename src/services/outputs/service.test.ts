@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
-import { RunStatus } from "../../enums";
+
 import { OUTPUTS_MESSAGES } from "../../constants";
+import { RunStatus } from "../../enums";
 import {
   buildOutputsListQuery,
   createDefaultOutputsCommandDependencies,
@@ -48,8 +49,8 @@ describe("buildOutputsListQuery", () => {
   });
 
   it("includes status when defined", () => {
-    const result = buildOutputsListQuery({ status: RunStatus.Succeeded });
-    expect(result.status).toBe(RunStatus.Succeeded);
+    const result = buildOutputsListQuery({ status: RunStatus.SUCCEEDED });
+    expect(result.status).toBe(RunStatus.SUCCEEDED);
   });
 
   it("omits status when not defined", () => {
@@ -70,12 +71,12 @@ describe("buildOutputsListQuery", () => {
   it("includes combined since, status, and limit in query", () => {
     const result = buildOutputsListQuery({
       since: "2026-03-01",
-      status: RunStatus.Failed,
+      status: RunStatus.FAILED,
       limit: 20,
       remote: true,
     });
     expect(result.since).toBe(new Date("2026-03-01").getTime());
-    expect(result.status).toBe(RunStatus.Failed);
+    expect(result.status).toBe(RunStatus.FAILED);
     expect(result.limit).toBe(20);
   });
 
