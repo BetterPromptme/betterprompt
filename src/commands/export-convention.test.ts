@@ -29,7 +29,14 @@ describe("command export convention", () => {
     const commandFilePath = path.join(COMMANDS_DIR, dir, "command.ts");
 
     it(`${dir}/command.ts exports createXxxCommand and xxxCommand`, async () => {
-      const exports = await import(commandFilePath);
+      let exports: Record<string, unknown>;
+      try {
+        exports = await import(commandFilePath);
+      } catch {
+        throw new Error(
+          `Could not import ${commandFilePath}. Does the directory contain a command.ts?`
+        );
+      }
       const pascal = toPascalCase(dir);
 
       const factoryName = `create${pascal}Command`;
