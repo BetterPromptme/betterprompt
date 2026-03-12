@@ -295,7 +295,7 @@ describe("services/update/service performUpdate (binary)", () => {
     ).rejects.toThrow(UPDATE_MESSAGES.downloadFailed);
   });
 
-  it("throws permission denied message on EACCES", async () => {
+  it("throws permission denied message on EACCES during download/write/rename", async () => {
     const fetchMock = mock(async () => {
       const error = new Error("EACCES") as NodeJS.ErrnoException;
       error.code = "EACCES";
@@ -316,6 +316,88 @@ describe("services/update/service performUpdate (binary)", () => {
         }
       )
     ).rejects.toThrow(UPDATE_MESSAGES.permissionDenied);
+  });
+
+  it("returns updated true when EACCES occurs during symlink after successful rename", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const binaryPath = path.join(tmpDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+
+    // Create a directory at the symlink path to cause EACCES/EEXIST on symlink creation
+    const symlinkPath = path.join(tmpDir, "bp");
+
+    const fetchMock = mock(
+      async () => new Response("new-binary", { status: 200 })
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    // Make symlink dir read-only to cause failure during symlink phase
+    const { mkdir, chmod: chmodFs } = await import("node:fs/promises");
+    await mkdir(symlinkPath);
+    await chmodFs(symlinkPath, 0o000);
+
+    const result = await performUpdate(
+      { targetVersion: "2.0.0" },
+      {
+        detectInstallMethod: () => ({
+          method: "binary",
+          execPath: binaryPath,
+          installDir: tmpDir,
+        }),
+        resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+      }
+    );
+
+    // Binary update succeeded despite symlink failure
+    expect(result.updated).toBe(true);
+
+    // Verify binary was actually replaced
+    const content = await readFile(binaryPath, "utf-8");
+    expect(content).toBe("new-binary");
+
+    // Cleanup: restore permissions so tmpdir can be removed
+    await chmodFs(symlinkPath, 0o755);
+  });
+
+  it("resolves latest version from GitHub when targetVersion is omitted", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const binaryPath = path.join(tmpDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+
+    const fetchMock = mock(async (url: string) => {
+      // First call: GitHub API to resolve latest version
+      if (typeof url === "string" && url.includes("api.github.com")) {
+        return new Response(JSON.stringify({ tag_name: "v5.0.0" }), {
+          status: 200,
+        });
+      }
+      // Second call: download the binary
+      return new Response("latest-binary", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await performUpdate(
+      {},
+      {
+        detectInstallMethod: () => ({
+          method: "binary",
+          execPath: binaryPath,
+          installDir: tmpDir,
+        }),
+        resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+      }
+    );
+
+    expect(result.updated).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    // First call should be to GitHub API
+    expect(fetchMock.mock.calls[0][0]).toBe(UPDATE_BINARY.githubApiUrl);
+
+    // Second call should use the resolved version
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      `${UPDATE_BINARY.githubDownloadBaseUrl}/v5.0.0/betterprompt-5.0.0-darwin-arm64`
+    );
   });
 
   it("cleans up temp file on failure", async () => {
