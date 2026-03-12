@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
+
 import ora from "ora";
+
 import {
   API_CONFIG,
   AUTH_MESSAGES,
