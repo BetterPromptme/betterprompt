@@ -73,6 +73,8 @@ src/
     context.d.ts
     error-ux.d.ts
     *.d.ts
+scripts/
+  release.ts        # release helper (bump + tag from git tags)
 tsconfig.json
 package.json
 ```
@@ -251,6 +253,14 @@ Use Bun commands:
 - `bun run build`: build CLI into `dist/`.
 - `bunx tsc --noEmit`: type-check without emit.
 - `bun run lint`: lint codebase.
+
+Release commands (tag is the single source of truth, not package.json):
+
+- `bun run release:patch`: bump patch version, create + push tag.
+- `bun run release:minor`: bump minor version, create + push tag.
+- `bun run release:major`: bump major version, create + push tag.
+
+The release workflow syncs package.json to the tag version and creates a PR to merge it back to main.
 
 If you add tooling (lint, formatter, test runner), expose it through `package.json` scripts so contributors can run one standard command per task.
 
