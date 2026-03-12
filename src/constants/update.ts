@@ -27,7 +27,6 @@ export const UPDATE_MESSAGES = {
   githubApiFailed: "Failed to query GitHub releases",
   githubMissingTag: "GitHub release missing version tag",
   downloadFailed: "Failed to download binary update",
-  replaceFailed: "Failed to replace binary",
   permissionDenied: "Permission denied. Run with sudo: sudo bp update",
   unsupportedPlatform: "Unsupported platform for binary update",
   unsupportedArch: "Unsupported architecture for binary update",
