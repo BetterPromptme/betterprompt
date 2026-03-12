@@ -33,6 +33,7 @@ export type THttpServer = {
   listen: (port: number, hostname: string, callback: () => void) => void;
   close: (callback?: (err?: Error) => void) => void;
   closeAllConnections: () => void;
+  on: (event: string, listener: (...args: unknown[]) => void) => void;
   address: () => { port: number } | null | string;
 };
 
@@ -66,12 +67,10 @@ export type TOpenBrowserDeps = {
 export type TLoginDependencies = {
   intro: (message: string) => void;
   outro: (message: string) => void;
-  cancel: (message: string) => void;
   registerSignal: (signal: TSignalName, handler: TSignalHandler) => void;
   unregisterSignal: (signal: TSignalName, handler: TSignalHandler) => void;
   verifyApiKey: (apiKey: string) => Promise<void>;
   saveAuthConfig: (apiKey: string) => Promise<string>;
-  resolveAuthConfigPath: () => string;
   startCallbackServer: (
     options?: TCallbackServerOptions
   ) => Promise<TCallbackServer>;
