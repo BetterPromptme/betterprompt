@@ -1,5 +1,6 @@
 import { confirm } from "@clack/prompts";
 import logSymbols from "log-symbols";
+
 import { RESET_COMMAND, RESET_MESSAGES } from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runReset as runResetService } from "../../services/reset/service";
