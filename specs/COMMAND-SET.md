@@ -63,6 +63,27 @@ Notes:
 - `bp auth` with no arguments prompts interactively for an API key
 - `--api-key` allows non-interactive setup (CI, scripts)
 
+### Browser login
+
+```bash
+bp login
+```
+
+Examples:
+
+```bash
+bp login
+```
+
+Notes:
+
+- Opens the browser to `https://betterprompt.me/api-keys` with a callback URL
+- Starts a local HTTP callback server on port 22450–22460
+- Receives the API key via localhost callback and saves credentials
+- Always displays the login URL in the terminal (works even if browser fails to open)
+- Ctrl-C cancels cleanly
+- Uses `@clack/prompts` for interactive UI (spinner, intro/outro, note)
+
 ### Current identity
 
 ```bash
@@ -354,12 +375,12 @@ bp resources \
   [--json]
 ```
 
-| Flag            | Type    | Default | Behavior                                                                      |
-| --------------- | ------- | ------- | ----------------------------------------------------------------------------- |
-| `--remote`      | boolean | `false` | Fetch from remote without updating the local cache.                           |
-| `--sync`        | boolean | `false` | Fetch from remote and save to local cache.                                    |
-| `--models-only` | boolean | `false` | Output only the models list (omit other resource sections).                   |
-| `--json`        | boolean | `false` | Print machine-readable JSON instead of human-friendly output.                 |
+| Flag            | Type    | Default | Behavior                                                      |
+| --------------- | ------- | ------- | ------------------------------------------------------------- |
+| `--remote`      | boolean | `false` | Fetch from remote without updating the local cache.           |
+| `--sync`        | boolean | `false` | Fetch from remote and save to local cache.                    |
+| `--models-only` | boolean | `false` | Output only the models list (omit other resource sections).   |
+| `--json`        | boolean | `false` | Print machine-readable JSON instead of human-friendly output. |
 
 Examples:
 
@@ -455,9 +476,9 @@ All prompt references use the `skill-slug` format (e.g. `seo-blog-writer`). This
 
 `generate` makes the value proposition clear: you're producing an output, not executing code. It also avoids confusion with `npm run`, `docker run`, etc.
 
-### Use `auth` for API key setup
+### Use `auth` for API key setup, `login` for browser auth
 
-`bp auth` is the single entry point for authentication via API key. No subcommands, orgs, or profiles in v1.
+`bp auth` accepts an API key directly (interactive prompt or `--api-key` flag). `bp login` opens the browser for OAuth-style authentication via the BetterPrompt web app. Both save credentials to `auth.json`.
 
 ### Use `outputs`, not `history`
 
@@ -555,7 +576,7 @@ Avoid adding these too early:
 - `bp skill export` / `bp skill rebuild`
 - `--profile` (multi-profile support)
 - `--org` (org/workspace scoping)
-- `bp auth login` / `bp auth logout` (subcommands, browser/device flows)
+- `bp auth login` / `bp auth logout` (subcommands under auth; browser login is handled by `bp login`)
 
 Keep v1 focused on:
 
@@ -570,6 +591,7 @@ Keep v1 focused on:
 
 ```bash
 bp auth
+bp login
 bp whoami
 bp credits              # get current credit balance
 bp update               # update the CLI itself
