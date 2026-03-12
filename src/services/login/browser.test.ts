@@ -56,6 +56,7 @@ describe("openBrowser", () => {
     expect(execFile.mock.calls[0][1]).toEqual([
       "/c",
       "start",
+      "",
       "https://example.com",
     ]);
     expect(result).toBe(true);
