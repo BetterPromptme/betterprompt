@@ -127,7 +127,7 @@ jobs:
 
           # Check if PR already exists (idempotent re-runs)
           BRANCH="release/v$VERSION"
-          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number' 2>/dev/null || true)
+          EXISTING=$(gh pr list --head "$BRANCH" --json number --jq '.[0].number // empty' 2>/dev/null || true)
           if [ -n "$EXISTING" ]; then
             echo "PR #$EXISTING already exists, skipping"
             exit 0
