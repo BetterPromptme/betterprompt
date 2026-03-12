@@ -1,4 +1,5 @@
 import { InvalidArgumentError } from "commander";
+
 import { CONFIG_MESSAGES } from "../../constants";
 import type { TSystemConfigKey } from "./types";
 
