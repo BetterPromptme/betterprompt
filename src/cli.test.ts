@@ -10,6 +10,7 @@ import * as runService from "./services/run/service";
 const expectedTopLevelCommands = [
   "config",
   "auth",
+  "login",
   "whoami",
   "credits",
   "doctor",
