@@ -30,4 +30,6 @@ export const UPDATE_MESSAGES = {
   permissionDenied: "Permission denied. Run with sudo: sudo bp update",
   unsupportedPlatform: "Unsupported platform for binary update",
   unsupportedArch: "Unsupported architecture for binary update",
+  checksumMismatch:
+    "Checksum verification failed — downloaded binary may be corrupted or tampered with",
 } as const;
