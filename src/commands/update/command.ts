@@ -1,4 +1,5 @@
 import logSymbols from "log-symbols";
+
 import { UPDATE_COMMAND, UPDATE_MESSAGES } from "../../constants/update";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../services/error-ux/service";
