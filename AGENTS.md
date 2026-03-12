@@ -42,6 +42,7 @@ src/
     auth/
     credits/
     doctor/
+    login/
     reset/
     resources/
     search/
@@ -55,6 +56,7 @@ src/
     context/
     doctor/
     generate/
+    login/
     outputs/
     resources/
     skills/
@@ -72,6 +74,7 @@ src/
     command-spec.d.ts
     context.d.ts
     error-ux.d.ts
+    login.d.ts
     *.d.ts
 tsconfig.json
 package.json
@@ -134,28 +137,36 @@ export const createCreditsCommand = (
 **Pattern 2 — `customAction`** (escape hatch): For commands that need full Commander control (interactive flows, complex flag inheritance). The factory wires flags/args/help but delegates action registration to the command.
 
 ```typescript
-createCommandFromSpec<TAuthOpts>({
-  name: AUTH_COMMAND.name,
-  description: AUTH_COMMAND.description,
-  customAction: (cmd, deps) => {
-    cmd.action(async (opts, command) => { /* full control */ });
+createCommandFromSpec<TAuthOpts>(
+  {
+    name: AUTH_COMMAND.name,
+    description: AUTH_COMMAND.description,
+    customAction: (cmd, deps) => {
+      cmd.action(async (opts, command) => {
+        /* full control */
+      });
+    },
   },
-}, factoryDeps);
+  factoryDeps
+);
 ```
 
 **Pattern 3 — Parent command** (with subcommands): Uses `createParentCommandFromSpec`. Optionally has its own `handler` (e.g. `outputs` delegates to `get` when called directly).
 
 ```typescript
 export const createSkillCommand = (deps, factoryDeps?) =>
-  createParentCommandFromSpec({
-    name: SKILLS_COMMAND.name,
-    description: SKILLS_COMMAND.description,
-    subcommands: [
-      createSkillInfoSubcommand(deps, factoryDeps),
-      createSkillInstallSubcommand(deps, factoryDeps),
-      // ...
-    ],
-  }, factoryDeps);
+  createParentCommandFromSpec(
+    {
+      name: SKILLS_COMMAND.name,
+      description: SKILLS_COMMAND.description,
+      subcommands: [
+        createSkillInfoSubcommand(deps, factoryDeps),
+        createSkillInstallSubcommand(deps, factoryDeps),
+        // ...
+      ],
+    },
+    factoryDeps
+  );
 ```
 
 ### Export Convention
@@ -172,22 +183,22 @@ export const creditsCommand = createCreditsCommand();
 
 ### Spec Fields Reference
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | `string` | Yes | Command name from constants |
-| `description` | `string` | Yes | Command description from constants |
-| `flags` | `Record<string, TFlagSpec>` | No | Flag definitions from constants |
-| `arguments` | `TArgumentSpec[]` | No | Positional argument definitions |
-| `helpText` | `string` | No | Additional help text shown after default help |
-| `handler` | `TCommandHandler<TOpts>` | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch |
-| `customAction` | `(cmd, deps) => void` | Mutually exclusive with `handler` | Escape hatch for full Commander control |
-| `spinnerMessage` | `string` | No | If set, factory wraps handler in spinner |
-| `errorPrefix` | `string` | No | Prefix for error messages (default: `"Command failed:"`) |
-| `validate` | `TValidateFn<TOpts>` | No | Sync validation; return error string or `undefined` |
-| `formatText` | `(result, ctx) => unknown` | No | Transform result for text output (skipped in JSON mode) |
-| `configureOutput` | `OutputConfiguration` | No | Commander output configuration |
-| `showHelpAfterError` | `boolean` | No | Show help on error |
-| `showSuggestionAfterError` | `boolean` | No | Show did-you-mean suggestions |
+| Field                      | Type                        | Required                               | Description                                              |
+| -------------------------- | --------------------------- | -------------------------------------- | -------------------------------------------------------- |
+| `name`                     | `string`                    | Yes                                    | Command name from constants                              |
+| `description`              | `string`                    | Yes                                    | Command description from constants                       |
+| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                          |
+| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                          |
+| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help            |
+| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch     |
+| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                  |
+| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                 |
+| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`) |
+| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`      |
+| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)  |
+| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                           |
+| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                       |
+| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                            |
 
 ### Constants convention
 
@@ -213,6 +224,7 @@ Key rules:
 - `*_MESSAGES` objects hold user-facing strings (help text, errors, prompts).
 - `*_STORAGE` objects hold file/directory names and modes.
 - `SHARED_FLAGS` in `src/constants/flags.ts` holds flags reused across multiple commands (e.g. `--json`).
+- `CLI_HOSTS` in `src/constants/cli.ts` holds centralized hostnames (`web`, `api`). All URL constants derive from `CLI_HOSTS`.
 - `CLI_META` in `src/constants/cli.ts` holds root program metadata and global flags.
 - When a command has subcommands, declare each subcommand's constant in the same domain file or in its own `constants.ts` inside the command folder.
 - Commands import these constants and pass them to Commander; they never define names/flags/descriptions inline.
