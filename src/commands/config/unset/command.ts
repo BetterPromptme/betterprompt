@@ -1,9 +1,10 @@
 import logSymbols from "log-symbols";
+
 import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { parseConfigKey } from "../utils";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TConfigCommandDependencies, TSystemConfigKey } from "../types";
+import { parseConfigKey } from "../utils";
 
 export const createConfigUnsetSubcommand = (
   deps: TConfigCommandDependencies,
@@ -23,8 +24,7 @@ export const createConfigUnsetSubcommand = (
           parse: parseConfigKey as (v: string) => unknown,
         },
       ],
-      formatText: () =>
-        `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
+      formatText: () => `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
       handler: async ({ args, setExitCode, deps: fd }) => {
         const key = args[configUnset.arguments.key.name] as TSystemConfigKey;
         try {
@@ -37,9 +37,7 @@ export const createConfigUnsetSubcommand = (
           fd.error(
             `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
           );
-          fd.error(
-            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
-          );
+          fd.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
           setExitCode(1);
           return undefined;
         }
