@@ -27,7 +27,8 @@ export const UPDATE_MESSAGES = {
   githubApiFailed: "Failed to query GitHub releases",
   githubMissingTag: "GitHub release missing version tag",
   downloadFailed: "Failed to download binary update",
-  permissionDenied: "Permission denied. Run with sudo: sudo bp update",
+  permissionDenied:
+    "Permission denied. Check directory permissions for ~/.local/share/betterprompt/ and ~/.local/bin/",
   unsupportedPlatform: "Unsupported platform for binary update",
   unsupportedArch: "Unsupported architecture for binary update",
   checksumMismatch:
