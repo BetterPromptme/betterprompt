@@ -1,12 +1,21 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
+
+import { afterEach, describe, expect, it } from "bun:test";
 import { Command } from "commander";
+
+import { createProgram } from "../../cli";
 import type { TCliContext } from "../../types/context";
 import type { TResolveScope } from "../../types/scope";
-import { createProgram } from "../../cli";
 import { resolveContext } from "../context/service";
 
 const tempDirs: string[] = [];
@@ -17,7 +26,10 @@ const createTempDir = async (): Promise<string> => {
   return dir;
 };
 
-const withCwd = async (nextCwd: string, run: () => Promise<void>): Promise<void> => {
+const withCwd = async (
+  nextCwd: string,
+  run: () => Promise<void>
+): Promise<void> => {
   const previousCwd = process.cwd();
   process.chdir(nextCwd);
   try {
@@ -36,7 +48,9 @@ const loadResolveScope = async (): Promise<TResolveScope> => {
     scopeModule === null ||
     !("resolveScope" in scopeModule)
   ) {
-    throw new Error("resolveScope export was not found in src/services/scope/service.ts");
+    throw new Error(
+      "resolveScope export was not found in src/services/scope/service.ts"
+    );
   }
 
   const resolveScope = (scopeModule as { resolveScope: unknown }).resolveScope;
@@ -60,7 +74,9 @@ const pathExists = async (targetPath: string): Promise<boolean> => {
   }
 };
 
-const parseGlobalFlags = async (argv: string[]): Promise<Record<string, unknown>> => {
+const parseGlobalFlags = async (
+  argv: string[]
+): Promise<Record<string, unknown>> => {
   const program = createProgram();
   program.exitOverride();
   const probeCommand = new Command("scope-probe").action(() => {});
@@ -118,7 +134,9 @@ describe("resolveScope", () => {
     await mkdir(customDir, { recursive: true });
 
     const resolved = await Promise.resolve(
-      resolveScope(resolveContext({ dir: customDir, project: true, global: true }))
+      resolveScope(
+        resolveContext({ dir: customDir, project: true, global: true })
+      )
     );
 
     expect(resolved).toEqual({
@@ -174,10 +192,18 @@ describe("resolveScope", () => {
         rootDir: projectLocalDir,
       });
 
-      await expect(pathExists(path.join(projectLocalDir, "skills"))).resolves.toBe(true);
-      await expect(pathExists(path.join(projectLocalDir, "outputs"))).resolves.toBe(true);
-      await expect(pathExists(path.join(projectLocalDir, "logs"))).resolves.toBe(true);
-      await expect(pathExists(path.join(projectLocalDir, "tmp"))).resolves.toBe(true);
+      await expect(
+        pathExists(path.join(projectLocalDir, "skills"))
+      ).resolves.toBe(true);
+      await expect(
+        pathExists(path.join(projectLocalDir, "outputs"))
+      ).resolves.toBe(true);
+      await expect(
+        pathExists(path.join(projectLocalDir, "logs"))
+      ).resolves.toBe(true);
+      await expect(pathExists(path.join(projectLocalDir, "tmp"))).resolves.toBe(
+        true
+      );
       await expect(pathExists(projectConfigPath)).resolves.toBe(true);
 
       const configRaw = await readFile(projectConfigPath, "utf8");
@@ -235,14 +261,14 @@ describe("resolveScope", () => {
           rootDir: path.join(process.cwd(), ".betterprompt"),
         });
 
-        await expect(pathExists(path.join(projectDir, ".betterprompt", "skills"))).resolves.toBe(
-          true
-        );
+        await expect(
+          pathExists(path.join(projectDir, ".betterprompt", "skills"))
+        ).resolves.toBe(true);
       });
 
-      await expect(pathExists(path.join(process.env.HOME, ".betterprompt"))).resolves.toBe(
-        false
-      );
+      await expect(
+        pathExists(path.join(process.env.HOME, ".betterprompt"))
+      ).resolves.toBe(false);
     } finally {
       if (previousHome === undefined) {
         delete process.env.HOME;
