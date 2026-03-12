@@ -1,5 +1,5 @@
 export * from "./run-status";
-export enum PART_TYPE {
+export enum PartType {
   TEXT = "text",
   IMAGE = "image",
   ERROR = "error",
