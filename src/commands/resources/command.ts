@@ -77,7 +77,7 @@ export const createResourcesCommand = (
       errorPrefix: `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix}`,
       validate: ({ opts }) => {
         if (opts.remote && opts.sync) {
-          return `${logSymbols.error} ${RESOURCES_MESSAGES.failedPrefix} ${RESOURCES_MESSAGES.remoteSyncMutuallyExclusive}`;
+          return RESOURCES_MESSAGES.remoteSyncMutuallyExclusive;
         }
         return undefined;
       },
