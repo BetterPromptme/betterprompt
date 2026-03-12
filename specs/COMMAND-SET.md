@@ -387,11 +387,13 @@ Notes:
 bp update [--json]
 ```
 
-### Uninstall the CLI
+### Reset CLI local data
 
 ```bash
-bp uninstall [--yes] [--json]
+bp reset [--yes] [--json]
 ```
+
+Removes the `~/.betterprompt` directory (config, auth, skills, outputs, logs). Prompts for confirmation unless `--yes` is passed.
 
 ---
 
@@ -461,9 +463,9 @@ All prompt references use the `skill-slug` format (e.g. `seo-blog-writer`). This
 
 Keeps the focus on what users care about: retrieving their generated content, not browsing a log.
 
-### `bp update` and `bp uninstall` are for the CLI itself
+### `bp update` is for the CLI itself, `bp reset` clears local data
 
-These top-level commands manage the BetterPrompt CLI package, not skills. Skill management uses `bp skill update` and `bp skill uninstall`.
+`bp update` manages the BetterPrompt CLI package, not skills. Skill management uses `bp skill update` and `bp skill uninstall`. `bp reset` removes the `~/.betterprompt` directory to clear all local data.
 
 ---
 
@@ -571,7 +573,7 @@ bp auth
 bp whoami
 bp credits              # get current credit balance
 bp update               # update the CLI itself
-bp uninstall            # uninstall the CLI itself
+bp reset                # reset CLI local data (~/.betterprompt)
 bp skill search         # alias: `bp search`
 bp skill install
 bp skill uninstall
