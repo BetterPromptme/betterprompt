@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+
 import { CONFIG_MESSAGES } from "../../../constants";
 import { createFactoryDeps } from "../../../services/command-factory/test-helpers";
-import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSystemConfigKey } from "../../../types";
+import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import { createConfigCommand } from "../command";
 
 type TConfigDeps = NonNullable<Parameters<typeof createConfigCommand>[0]>;
@@ -56,7 +57,11 @@ describe("config set subcommand", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps, factory);
+    await runConfig(
+      ["set", "apiBaseUrl", "https://betterprompt.me/api"],
+      deps,
+      factory
+    );
 
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.setValue).toHaveBeenCalledWith(
@@ -116,7 +121,11 @@ describe("config set subcommand", () => {
     });
     const factory = createFactoryDeps();
 
-    await runConfig(["set", "apiBaseUrl", "https://betterprompt.me/api"], deps, factory);
+    await runConfig(
+      ["set", "apiBaseUrl", "https://betterprompt.me/api"],
+      deps,
+      factory
+    );
 
     expect(factory.error).toHaveBeenLastCalledWith(
       `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
