@@ -48,6 +48,8 @@ export const createSkillUpdateSubcommand = (
           ...(opts.force !== undefined && { force: opts.force }),
         };
 
+        // Two distinct spinner messages depending on --all, so the factory's
+        // single spinnerMessage field isn't used; we drive the spinner manually.
         if (skillName !== undefined) {
           return runTaskWithSpinner({
             message: "Updating skill...",
