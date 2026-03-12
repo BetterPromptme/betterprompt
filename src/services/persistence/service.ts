@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PART_TYPE } from "../../enums";
+
+import { PartType } from "../../enums";
 import type {
   THistoryEntry,
   TPersistRunOutputArgs,
@@ -126,7 +127,7 @@ export const shouldPersistRunOutput = ({
     return true;
   }
 
-  return outputs.some((output) => output.type !== PART_TYPE.TEXT);
+  return outputs.some((output) => output.type !== PartType.TEXT);
 };
 
 export const persistRunOutput = async (
