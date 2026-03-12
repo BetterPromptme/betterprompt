@@ -5,7 +5,7 @@ const type = Bun.argv[2];
 
 if (!type || !["patch", "minor", "major"].includes(type)) {
   console.error(USAGE);
-  process.exit(1);
+  process.exit(0);
 }
 
 // Fetch latest tags from remote
