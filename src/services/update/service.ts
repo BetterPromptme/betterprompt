@@ -1,13 +1,21 @@
 import { spawn } from "node:child_process";
+import { chmod, rename, symlink, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import packageJson from "../../../package.json";
+import { UPDATE_BINARY, UPDATE_MESSAGES } from "../../constants/update";
 import type {
   TCheckForUpdateOptions,
   TCheckForUpdateResult,
+  TGitHubRelease,
+  TInstallMethodInfo,
   TPerformUpdateOptions,
   TPerformUpdateResult,
+  TPlatformInfo,
 } from "../../types/update";
 import { isCommandAvailable } from "../../utils/command";
+import { detectInstallMethod } from "../../utils/install-method";
+import { resolvePlatform } from "../../utils/platform";
 
 const DEFAULT_REGISTRY = "https://registry.npmjs.org";
 
@@ -35,30 +43,65 @@ const PM_NPM: TPackageManagerInfo = {
 export const detectPackageManager = (): TPackageManagerInfo => {
   if (isCommandAvailable("bun")) return PM_BUN;
   if (isCommandAvailable("npm")) return PM_NPM;
-  throw new Error(
-    "No supported package manager found. Please install bun or npm."
-  );
+  throw new Error(UPDATE_MESSAGES.noPackageManager);
 };
 
 const normalizeRegistry = (registry: string | undefined): string =>
   (registry ?? DEFAULT_REGISTRY).replace(/\/+$/, "");
 
-export const checkForUpdate = async (
-  options: TCheckForUpdateOptions = {}
+type TCheckForUpdateDeps = {
+  detectInstallMethod: () => TInstallMethodInfo;
+};
+
+const defaultCheckDeps: TCheckForUpdateDeps = {
+  detectInstallMethod,
+};
+
+const checkFromGitHub = async (
+  currentVersion: string
 ): Promise<TCheckForUpdateResult> => {
-  const currentVersion = String(packageJson.version);
+  const response = await fetch(UPDATE_BINARY.githubApiUrl, {
+    headers: { Accept: "application/vnd.github.v3+json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`${UPDATE_MESSAGES.githubApiFailed} (${response.status})`);
+  }
+
+  const release = (await response.json()) as TGitHubRelease;
+  const tagName = release.tag_name;
+
+  if (typeof tagName !== "string" || tagName.trim().length === 0) {
+    throw new Error(UPDATE_MESSAGES.githubMissingTag);
+  }
+
+  const latestVersion = tagName.replace(/^v/, "");
+
+  return {
+    currentVersion,
+    latestVersion,
+    hasUpdate: latestVersion !== currentVersion,
+  };
+};
+
+const checkFromRegistry = async (
+  currentVersion: string,
+  registry: string
+): Promise<TCheckForUpdateResult> => {
   const packageName = encodeURIComponent(String(packageJson.name));
-  const registry = normalizeRegistry(options.registry);
   const response = await fetch(`${registry}/${packageName}`);
 
   if (!response.ok) {
-    throw new Error(`Failed to query registry (${response.status})`);
+    throw new Error(
+      `${UPDATE_MESSAGES.registryQueryFailed} (${response.status})`
+    );
   }
 
   const metadata = (await response.json()) as TNpmMetadata;
   const latestVersion = metadata["dist-tags"]?.latest;
+
   if (typeof latestVersion !== "string" || latestVersion.trim().length === 0) {
-    throw new Error("Registry response missing latest version");
+    throw new Error(UPDATE_MESSAGES.registryMissingVersion);
   }
 
   return {
@@ -68,8 +111,87 @@ export const checkForUpdate = async (
   };
 };
 
-export const performUpdate = async (
-  options: TPerformUpdateOptions = {}
+export const checkForUpdate = async (
+  options: TCheckForUpdateOptions = {},
+  deps: TCheckForUpdateDeps = defaultCheckDeps
+): Promise<TCheckForUpdateResult> => {
+  const currentVersion = String(packageJson.version);
+  const installInfo = deps.detectInstallMethod();
+
+  if (installInfo.method === "binary") {
+    return checkFromGitHub(currentVersion);
+  }
+
+  const registry = normalizeRegistry(options.registry);
+  return checkFromRegistry(currentVersion, registry);
+};
+
+type TPerformUpdateDeps = {
+  detectInstallMethod: () => TInstallMethodInfo;
+  resolvePlatform: () => TPlatformInfo;
+};
+
+const defaultPerformDeps: TPerformUpdateDeps = {
+  detectInstallMethod,
+  resolvePlatform,
+};
+
+const performBinaryUpdate = async (
+  targetVersion: string | undefined,
+  installInfo: TInstallMethodInfo,
+  platform: TPlatformInfo
+): Promise<TPerformUpdateResult> => {
+  const version = targetVersion ?? String(packageJson.version);
+  const fileName = `${UPDATE_BINARY.binaryName}-${version}-${platform.os}-${platform.arch}`;
+  const downloadUrl = `${UPDATE_BINARY.githubDownloadBaseUrl}/v${version}/${fileName}`;
+  const tempPath = path.join(
+    installInfo.installDir,
+    `.${UPDATE_BINARY.binaryName}.update.tmp`
+  );
+
+  try {
+    const response = await fetch(downloadUrl, { redirect: "follow" });
+
+    if (!response.ok) {
+      throw new Error(`${UPDATE_MESSAGES.downloadFailed} (${response.status})`);
+    }
+
+    const buffer = new Uint8Array(await response.arrayBuffer());
+    await writeFile(tempPath, buffer);
+    await chmod(tempPath, 0o755);
+    await rename(tempPath, installInfo.execPath);
+
+    const symlinkPath = path.join(
+      installInfo.installDir,
+      UPDATE_BINARY.symlinkName
+    );
+
+    try {
+      await unlink(symlinkPath);
+    } catch (error: unknown) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+
+    await symlink(installInfo.execPath, symlinkPath);
+
+    return { updated: true };
+  } catch (error: unknown) {
+    const errno = (error as NodeJS.ErrnoException).code;
+    if (errno === "EACCES") {
+      throw new Error(UPDATE_MESSAGES.permissionDenied);
+    }
+    throw error;
+  } finally {
+    try {
+      await unlink(tempPath);
+    } catch {
+      // temp file may already be renamed or not exist
+    }
+  }
+};
+
+const performPackageManagerUpdate = async (
+  options: TPerformUpdateOptions
 ): Promise<TPerformUpdateResult> => {
   const packageName = String(packageJson.name);
   const target = options.targetVersion ? `@${options.targetVersion}` : "";
@@ -100,4 +222,18 @@ export const performUpdate = async (
   });
 
   return { updated: true };
+};
+
+export const performUpdate = async (
+  options: TPerformUpdateOptions = {},
+  deps: TPerformUpdateDeps = defaultPerformDeps
+): Promise<TPerformUpdateResult> => {
+  const installInfo = deps.detectInstallMethod();
+
+  if (installInfo.method === "binary") {
+    const platform = deps.resolvePlatform();
+    return performBinaryUpdate(options.targetVersion, installInfo, platform);
+  }
+
+  return performPackageManagerUpdate(options);
 };
