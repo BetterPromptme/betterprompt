@@ -1,5 +1,5 @@
 export type {
+  TResourceModel,
   TResourcesData,
   TResourcesDependencies,
-  TResourceModel,
 } from "../../types/resources";
