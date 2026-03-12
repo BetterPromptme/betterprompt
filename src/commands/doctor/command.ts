@@ -1,4 +1,5 @@
 import logSymbols from "log-symbols";
+
 import { DOCTOR_COMMAND, DOCTOR_MESSAGES } from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runDoctorChecks } from "../../services/doctor/service";
