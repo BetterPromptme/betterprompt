@@ -25,7 +25,7 @@ export const createConfigUnsetSubcommand = (
       ],
       formatText: () =>
         `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
-      handler: async ({ args, setExitCode, deps: factoryDeps }) => {
+      handler: async ({ args, setExitCode, deps: fd }) => {
         const key = args[configUnset.arguments.key.name] as TSystemConfigKey;
         try {
           await deps.unsetValue(key);
@@ -34,10 +34,10 @@ export const createConfigUnsetSubcommand = (
           const fallbackPath = deps.resolveConfigPath(key);
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          factoryDeps.error(
+          fd.error(
             `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
           );
-          factoryDeps.error(
+          fd.error(
             `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
           );
           setExitCode(1);
