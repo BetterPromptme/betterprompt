@@ -118,7 +118,7 @@ jobs:
           # Check if main already has this version
           git checkout main
           git pull origin main
-          PKG_VERSION=$(jq -r .version package.json)
+          PKG_VERSION=$(git show main:package.json | jq -r .version)
           if [ "$PKG_VERSION" = "$VERSION" ]; then
             echo "package.json already at $VERSION, skipping PR"
             exit 0
