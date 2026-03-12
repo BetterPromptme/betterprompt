@@ -1,9 +1,14 @@
 import logSymbols from "log-symbols";
+
 import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { parseConfigKey } from "../utils";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
-import type { TConfigCommandDependencies, TConfigSubcommandOpts, TSystemConfigKey } from "../types";
+import type {
+  TConfigCommandDependencies,
+  TConfigSubcommandOpts,
+  TSystemConfigKey,
+} from "../types";
+import { parseConfigKey } from "../utils";
 
 export const createConfigSetSubcommand = (
   deps: TConfigCommandDependencies,
@@ -28,15 +33,16 @@ export const createConfigSetSubcommand = (
         },
       ],
       errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
-      formatText: () =>
-        `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
+      formatText: () => `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
       handler: async ({ args, deps: fd, setExitCode }) => {
         const key = args[configSet.arguments.key.name] as TSystemConfigKey;
         const value = args[configSet.arguments.value.name] as string;
 
         try {
           if (key === "apiKey") {
-            const spinner = fd.createSpinner(CONFIG_MESSAGES.verifyingApiKey).start();
+            const spinner = fd
+              .createSpinner(CONFIG_MESSAGES.verifyingApiKey)
+              .start();
             try {
               await deps.verifyApiKey(value);
               spinner.succeed(CONFIG_MESSAGES.verifiedApiKey);
@@ -55,9 +61,7 @@ export const createConfigSetSubcommand = (
           fd.error(
             `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
           );
-          fd.error(
-            `${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`
-          );
+          fd.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
           setExitCode(1);
           return undefined;
         }
