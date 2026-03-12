@@ -84,7 +84,7 @@ describe("executeLogin", () => {
     expect(deps.openBrowser).toHaveBeenCalledWith(expectedUrl);
     expect(spinner.stop).toHaveBeenCalledWith(LOGIN_MESSAGES.browserPrompt);
     expect(deps.note).toHaveBeenCalledWith(
-      LOGIN_MESSAGES.loginPrompt(expectedUrl),
+      [expectedUrl, "", LOGIN_MESSAGES.loginPromptSuffix].join("\n"),
       LOGIN_MESSAGES.linkInstructions
     );
     expect(server.waitForCallback).toHaveBeenCalledTimes(1);
@@ -105,7 +105,7 @@ describe("executeLogin", () => {
 
     const expectedUrl = buildLoginUrl(server.port, server.state);
     expect(deps.note).toHaveBeenCalledWith(
-      LOGIN_MESSAGES.loginPrompt(expectedUrl),
+      [expectedUrl, "", LOGIN_MESSAGES.loginPromptSuffix].join("\n"),
       LOGIN_MESSAGES.linkInstructions
     );
     expect(deps.verifyApiKey).toHaveBeenCalledWith("test_key_123");
