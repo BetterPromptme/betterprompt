@@ -8,6 +8,7 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
 import {
   API_CONFIG,
   SYSTEM_CONFIG,
@@ -20,7 +21,7 @@ import type {
   TSystemConfigKey,
 } from "../../types/config";
 
-type JsonObject = Record<string, unknown>;
+type TJsonObject = Record<string, unknown>;
 
 let systemConfigCache: Promise<TSystemConfig> | undefined;
 let loadedSystemConfig: TSystemConfig | undefined;
@@ -34,11 +35,11 @@ export const resolveSystemConfigPath = (
     SYSTEM_STORAGE.fileName
   );
 
-const isObjectRecord = (value: unknown): value is JsonObject =>
+const isObjectRecord = (value: unknown): value is TJsonObject =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const sanitizeConfig = (
-  value: JsonObject
+  value: TJsonObject
 ): {
   config: TSystemConfig;
   changed: boolean;
@@ -81,7 +82,7 @@ const sanitizeConfig = (
 
 const readExistingConfig = async (
   configPath: string
-): Promise<JsonObject | undefined> => {
+): Promise<TJsonObject | undefined> => {
   try {
     const raw = await readFile(configPath, "utf8");
     const parsed: unknown = JSON.parse(raw);
