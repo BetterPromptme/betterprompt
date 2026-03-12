@@ -8,13 +8,14 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
 import { API_CONFIG, AUTH_MESSAGES, AUTH_STORAGE } from "../../constants";
-import type { TAuthConfig, TAuthDependencies } from "../../types/auth";
 import type { TFetchLike } from "../../types/api";
 import type { TApiResponse } from "../../types/api";
+import type { TAuthConfig, TAuthDependencies } from "../../types/auth";
 import type { TReadAuthOptions, TSaveAuthOptions } from "../../types/auth";
-import type { TCreditBalance } from "../../types/credits";
 import type { TCliContext } from "../../types/context";
+import type { TCreditBalance } from "../../types/credits";
 import type { TUserIdentity } from "../../types/whoami";
 import { loadOrInitConfig, resolveSystemConfigPath } from "../config/service";
 import { createErrorFormatter, runTaskWithSpinner } from "../error-ux/service";
@@ -69,7 +70,9 @@ export const verifyApiKey = async (
   const normalizedApiKey = normalizeApiKey(apiKey);
   const fetchClient: TFetchLike = options.fetch ?? fetch;
   const baseUrl =
-    options.baseUrl ?? (await loadOrInitConfig()).apiBaseUrl ?? API_CONFIG.baseUrl;
+    options.baseUrl ??
+    (await loadOrInitConfig()).apiBaseUrl ??
+    API_CONFIG.baseUrl;
   const requestUrl = new URL(
     "me",
     baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`
@@ -270,8 +273,7 @@ export const executeAuth = async (
     deps.outro(`${AUTH_MESSAGES.successPrefix} ${configPath}`);
   } catch (error) {
     const fallbackPath = deps.resolveAuthConfigPath();
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     deps.error(formatError(AUTH_MESSAGES.failedPrefix, errorMessage));
     deps.error(`${AUTH_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
     deps.setExitCode(1);
