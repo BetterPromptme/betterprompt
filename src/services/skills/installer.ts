@@ -7,9 +7,8 @@ import {
   writeFile,
 } from "node:fs/promises";
 import path from "node:path";
-import { getApiClient } from "../api/client";
-import { resolveScope } from "../scope/service";
-import {
+
+import type {
   TInstallApiClient,
   TInstallSkillOptions,
   TInstallSkillResult,
@@ -30,8 +29,11 @@ import type {
   TSkillUpdateOptions,
 } from "../../types/skills";
 import { generateZodSchema } from "../../utils/schema";
+import { getApiClient } from "../api/client";
+import { resolveScope } from "../scope/service";
+import type { TSkillSearchRow } from "./service";
+import { getSkillByName } from "./service";
 import { validateSkillName } from "./skill-name";
-import { getSkillByName, TSkillSearchRow } from "./service";
 
 type TSkillManifest = Omit<TSkillSearchRow, "skillId" | "inputMetadata">;
 
