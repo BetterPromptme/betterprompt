@@ -19,6 +19,7 @@ import {
 import { openBrowser } from "../../services/login/browser";
 import { startCallbackServer } from "../../services/login/callback-server";
 import { executeLogin } from "../../services/login/service";
+import { waitForKeypress } from "../../services/login/wait-for-keypress";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TLoginDependencies } from "../../types/login";
 
@@ -36,11 +37,13 @@ const defaultDeps: TLoginDependencies = {
   spinner: spinner(),
   note,
   error: (message) => log.error(message),
+  message: (message) => log.message(message),
   setExitCode: (code) => {
     process.exitCode = code;
   },
   text,
   isCancel,
+  waitForKeypress: (signal?) => waitForKeypress(undefined, signal),
 };
 
 export const createLoginCommand = (
