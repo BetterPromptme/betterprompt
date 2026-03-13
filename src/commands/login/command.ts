@@ -4,6 +4,10 @@ import { LOGIN_COMMAND } from "../../constants";
 import { saveAuthConfig, verifyApiKey } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
+import {
+  pauseGlobalSigint,
+  resumeGlobalSigint,
+} from "../../services/error-ux/handle";
 import { openBrowser } from "../../services/login/browser";
 import { startCallbackServer } from "../../services/login/callback-server";
 import { executeLogin } from "../../services/login/service";
@@ -15,6 +19,8 @@ const defaultDeps: TLoginDependencies = {
   outro,
   registerSignal: (signal, handler) => process.on(signal, handler),
   unregisterSignal: (signal, handler) => process.off(signal, handler),
+  pauseGlobalSigint,
+  resumeGlobalSigint,
   verifyApiKey,
   saveAuthConfig,
   startCallbackServer,

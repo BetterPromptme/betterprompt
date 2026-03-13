@@ -29,3 +29,9 @@ export type TInstallCtrlCHandlerOptions = {
   setExitCode: (code: number) => void;
   log: (message: string) => void;
 };
+
+export type TCtrlCHandle = {
+  uninstall: () => void;
+  pause: () => void;
+  resume: () => void;
+};

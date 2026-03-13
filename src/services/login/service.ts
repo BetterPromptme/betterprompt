@@ -1,7 +1,7 @@
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
 import type { TCallbackServer, TLoginDependencies } from "../../types/login";
-import { createErrorFormatter } from "../error-ux/service";
+import { createErrorFormatter, CTRL_C_EXIT_CODE } from "../error-ux/service";
 
 export const buildLoginUrl = (port: number, state: string): string => {
   const params = new URLSearchParams();
@@ -40,19 +40,27 @@ export const executeLogin = async (
     const cancelPromise = new Promise<never>((_, reject) => {
       cancelReject = reject;
     });
+    let sigintRegistered = false;
+    const safeUnregister = () => {
+      if (!sigintRegistered) return;
+      sigintRegistered = false;
+      deps.unregisterSignal("SIGINT", onSigint);
+    };
     const onSigint = () => {
       canceled = true;
       s.cancel(LOGIN_MESSAGES.cancelMessage);
-      deps.setExitCode(1);
+      deps.setExitCode(CTRL_C_EXIT_CODE);
       server!.shutdown();
       server = null;
-      deps.unregisterSignal("SIGINT", onSigint);
+      safeUnregister();
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
     };
-    deps.registerSignal("SIGINT", onSigint);
     const callbackPromise = server.waitForCallback();
     callbackPromise.catch(() => {});
     try {
+      deps.pauseGlobalSigint();
+      deps.registerSignal("SIGINT", onSigint);
+      sigintRegistered = true;
       const result = await Promise.race([callbackPromise, cancelPromise]);
       apiKey = result.apiKey;
       s.stop();
@@ -62,7 +70,8 @@ export const executeLogin = async (
       }
       throw error;
     } finally {
-      deps.unregisterSignal("SIGINT", onSigint);
+      safeUnregister();
+      deps.resumeGlobalSigint();
     }
 
     s.start(LOGIN_MESSAGES.verifyKeyText);
