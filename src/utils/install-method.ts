@@ -21,11 +21,9 @@ export const detectInstallMethod = (
     : "package-manager";
 
   const installDir = path.dirname(execPath);
-  const versionsSplit = installDir.split("/versions/");
-  const binDir =
-    versionsSplit.length > 1
-      ? path.resolve(versionsSplit[0], "../../bin")
-      : installDir;
+  const versionedPattern = /^(.+\/betterprompt)\/versions\/[^/]+$/;
+  const match = installDir.match(versionedPattern);
+  const binDir = match ? path.resolve(match[1], "../../bin") : installDir;
 
   return {
     method,
