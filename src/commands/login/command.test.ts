@@ -44,6 +44,8 @@ const createDeps = (
   note: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
+  text: mock(() => new Promise<string | symbol>(() => {})),
+  isCancel: mock(() => false),
   ...overrides,
 });
 
