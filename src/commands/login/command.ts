@@ -21,7 +21,6 @@ const defaultDeps: TLoginDependencies = {
   openBrowser,
   spinner: spinner(),
   note,
-  log: (message) => log.info(message),
   error: (message) => log.error(message),
   setExitCode: (code) => {
     process.exitCode = code;
