@@ -440,6 +440,7 @@ describe("executeLogin", () => {
     await executeLogin(mockCtx, deps);
 
     expect(deps.error).not.toHaveBeenCalled();
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
   });
 
