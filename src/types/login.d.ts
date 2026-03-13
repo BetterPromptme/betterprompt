@@ -88,4 +88,6 @@ export type TLoginDependencies = {
     placeholder?: string;
   }) => Promise<TPromptResult>;
   isCancel: (value: unknown) => boolean;
+  waitForKeypress: (signal?: AbortSignal) => Promise<"enter" | "cancel">;
+  message: (text: string) => void;
 };
