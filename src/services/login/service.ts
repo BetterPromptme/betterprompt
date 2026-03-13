@@ -58,6 +58,7 @@ export const executeLogin = async (
 
     const callbackPromise = server.waitForCallback();
     callbackPromise.catch(() => {});
+    const serverState = server.state;
 
     const abortController = new AbortController();
     const keypressPromise = deps.waitForKeypress(abortController.signal);
@@ -65,6 +66,16 @@ export const executeLogin = async (
 
     deps.message(LOGIN_MESSAGES.pasteHint);
     s.start(LOGIN_MESSAGES.waitingForCallback);
+    let spinnerActive = true;
+
+    const gracefulCancel = () => {
+      canceled = true;
+      s.cancel(LOGIN_MESSAGES.cancelMessage);
+      spinnerActive = false;
+      deps.setExitCode(CTRL_C_EXIT_CODE);
+      server?.shutdown();
+      server = null;
+    };
 
     try {
       deps.pauseGlobalSigint();
@@ -88,15 +99,18 @@ export const executeLogin = async (
         // Server won Phase 1 — abort keypress, done
         abortController.abort();
         s.stop();
+        spinnerActive = false;
         apiKey = phase1Result.apiKey;
       } else if (
         phase1Result.source === "keypress" &&
         phase1Result.key === "cancel"
       ) {
+        gracefulCancel();
         throw new Error(LOGIN_MESSAGES.cancelMessage);
       } else {
         // Enter pressed — transition to Phase 2
         s.stop();
+        spinnerActive = false;
 
         const textPromise = deps.text({
           message: LOGIN_MESSAGES.pastePrompt,
@@ -110,9 +124,10 @@ export const executeLogin = async (
           })),
           textPromise.then((value) => {
             if (deps.isCancel(value)) {
+              canceled = true;
               throw new Error(LOGIN_MESSAGES.cancelMessage);
             }
-            const parsed = parseCallbackUrl(value as string, server!.state);
+            const parsed = parseCallbackUrl(value as string, serverState);
             return { source: "paste" as const, apiKey: parsed.apiKey };
           }),
           cancelPromise,
@@ -121,7 +136,7 @@ export const executeLogin = async (
         apiKey = phase2Result.apiKey;
       }
     } catch (error) {
-      if (!canceled) {
+      if (!canceled && spinnerActive) {
         s.error();
       }
       throw error;
