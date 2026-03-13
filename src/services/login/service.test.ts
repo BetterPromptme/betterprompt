@@ -7,6 +7,7 @@ import type {
   TLoginDependencies,
   TLoginSpinner,
 } from "../../types/login";
+import { CTRL_C_EXIT_CODE } from "../error-ux/service";
 import { buildLoginUrl, executeLogin } from "./service";
 
 const mockCtx: TCliContext = {
@@ -42,6 +43,8 @@ const makeDeps = (
   outro: mock(() => {}),
   registerSignal: mock(() => {}),
   unregisterSignal: mock(() => {}),
+  pauseGlobalSigint: mock(() => {}),
+  resumeGlobalSigint: mock(() => {}),
   verifyApiKey: mock(() => Promise.resolve()),
   saveAuthConfig: mock(() => Promise.resolve("/home/.betterprompt/auth.json")),
   startCallbackServer: mock(() => Promise.resolve(makeServer())),
@@ -187,7 +190,7 @@ describe("executeLogin", () => {
 
     // Verify synchronous work completed immediately (before await)
     expect(spinner.cancel).toHaveBeenCalledWith(LOGIN_MESSAGES.cancelMessage);
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
     expect(shutdown).toHaveBeenCalled();
     expect(deps.unregisterSignal).toHaveBeenCalled();
 
@@ -196,6 +199,77 @@ describe("executeLogin", () => {
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.saveAuthConfig).not.toHaveBeenCalled();
     expect(deps.error).not.toHaveBeenCalled();
+  });
+
+  it("Ctrl+C during wait — pauseGlobalSigint called before registerSignal and resumeGlobalSigint called after unregisterSignal", async () => {
+    const callOrder: string[] = [];
+    let sigintHandler: (() => void) | null = null;
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      pauseGlobalSigint: mock(() => {
+        callOrder.push("pauseGlobalSigint");
+      }),
+      resumeGlobalSigint: mock(() => {
+        callOrder.push("resumeGlobalSigint");
+      }),
+      registerSignal: mock((_signal, handler) => {
+        callOrder.push("registerSignal");
+        sigintHandler = handler;
+      }),
+      unregisterSignal: mock((_signal, _handler) => {
+        callOrder.push("unregisterSignal");
+      }),
+    });
+
+    const loginPromise = executeLogin(mockCtx, deps);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    sigintHandler!();
+    await loginPromise;
+
+    expect(deps.pauseGlobalSigint).toHaveBeenCalledTimes(1);
+    expect(deps.resumeGlobalSigint).toHaveBeenCalledTimes(1);
+
+    // Verify ordering: pause before register, unregister before resume
+    const pauseIdx = callOrder.indexOf("pauseGlobalSigint");
+    const registerIdx = callOrder.indexOf("registerSignal");
+    const unregisterIdx = callOrder.indexOf("unregisterSignal");
+    const resumeIdx = callOrder.indexOf("resumeGlobalSigint");
+    expect(pauseIdx).toBeLessThan(registerIdx);
+    expect(unregisterIdx).toBeLessThan(resumeIdx);
+  });
+
+  it("success flow — pauseGlobalSigint called before registerSignal, resumeGlobalSigint called after unregisterSignal", async () => {
+    const callOrder: string[] = [];
+    const deps = makeDeps({
+      pauseGlobalSigint: mock(() => {
+        callOrder.push("pauseGlobalSigint");
+      }),
+      resumeGlobalSigint: mock(() => {
+        callOrder.push("resumeGlobalSigint");
+      }),
+      registerSignal: mock((_signal, _handler) => {
+        callOrder.push("registerSignal");
+      }),
+      unregisterSignal: mock((_signal, _handler) => {
+        callOrder.push("unregisterSignal");
+      }),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.pauseGlobalSigint).toHaveBeenCalledTimes(1);
+    expect(deps.resumeGlobalSigint).toHaveBeenCalledTimes(1);
+
+    const pauseIdx = callOrder.indexOf("pauseGlobalSigint");
+    const registerIdx = callOrder.indexOf("registerSignal");
+    const unregisterIdx = callOrder.indexOf("unregisterSignal");
+    const resumeIdx = callOrder.indexOf("resumeGlobalSigint");
+    expect(pauseIdx).toBeLessThan(registerIdx);
+    expect(unregisterIdx).toBeLessThan(resumeIdx);
   });
 
   it("shutdown is called even when multiple invalid requests precede a valid one", async () => {
