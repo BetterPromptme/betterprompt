@@ -45,6 +45,7 @@ export const executeLogin = async (
       s.cancel(LOGIN_MESSAGES.cancelMessage);
       deps.setExitCode(1);
       server!.shutdown();
+      server = null;
       deps.unregisterSignal("SIGINT", onSigint);
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
     };
