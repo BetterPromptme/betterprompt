@@ -228,12 +228,20 @@ betterprompt reset [--yes] [--json]                      # reset ~/.betterprompt
 
 Run these steps in order and stop when the user's goal is satisfied:
 
-1. **Search** — `betterprompt skill search "<task or capability>"`
-2. **Inspect** — `betterprompt skill info <skill-slug>`
-3. **Validate** from skillmd — confirm: Prompt Version ID, required inputs (`textInputs`, `imageInputs`), image count constraints, allowed `--model`, allowed `--options` values
-4. **Execute** — `betterprompt generate <skillVersionId> [input flags]`
+1. **Search** — `betterprompt skill search ...`
+2. **Inspect** — `betterprompt skill info <slug> --json`
+3. **Fetch resources** — `betterprompt resources --models-only --json`
+4. **Validate** from `skillmd`
+5. **Present execution choices**:
 
-Do not skip step 2 or 3 before step 4. If step 2 fails due to transient error, retry once.
+- required inputs in the skill.md
+- default model
+- default model's options
+- other supported models
+
+6. **Execute** only after required inputs are present
+
+Do not skip any steps. If any step fails due to transient error, retry once.
 
 ### Channel Display Rules
 
@@ -275,13 +283,38 @@ Present each skill as **one message** — do not split a single skill across mul
 - If sample output is text → quote block (`> <sample text>` or platform equivalent)
 - If no sample output → include "No sample output available." in the item message
 
-#### Skill Details (info)
+#### Skill Details (info) / Execution Choices
 
 When presenting skill info from `betterprompt skill info`:
 
 - **Title + description** as a header or bold line
-- **Required inputs** as a list: name, type, constraints (e.g. "imageInputs: 1–3 images")
-- **Available models** as a compact comma-separated list or tag format
+- **Required inputs**
+  - List of text inputs: name, description, is required. E.g:
+
+    ```markdown
+    Inputs:
+
+    - story_theme (required): The story theme
+    - character_role (required): The character role
+    ```
+
+  - List of image inputs: name, description, is required. E.g:
+
+    ```markdown
+    ** Exactly 1 ** image(s)
+
+    - image 1 (required): The character reference image
+    ```
+
+- **Default model and their available options** E.g:
+
+  ```markdown
+  - Default model: gemini-3.1-flash-image-preview (default)
+  - Available options: aspectRatio: 1:1 (default) / 16:9 / 9:16, resolution: 1024x1024 / 2048x2048
+  ```
+
+- **Other supported models** as a model list. E.g: gpt-image-1, dall-e-3, ...
+
 - **Sample output** rendered inline (image or quoted text per platform rules)
 - Keep it to one message; use the platform's rich formatting (embeds, cards, blocks) to structure sections visually
 
