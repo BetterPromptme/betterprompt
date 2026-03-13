@@ -4,6 +4,7 @@ export type TInstallMethodInfo = {
   method: TInstallMethod;
   execPath: string;
   installDir: string;
+  binDir: string;
 };
 
 export type TGitHubRelease = {

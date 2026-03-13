@@ -19,11 +19,7 @@ npm install -g betterprompt
 curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
 ```
 
-Or specify a custom install directory:
-
-```bash
-INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
-```
+Binary is installed to `~/.local/share/betterprompt/versions/<version>/betterprompt` with symlinks (`betterprompt`, `bp`) in `~/.local/bin/`.
 
 ### Verify install
 

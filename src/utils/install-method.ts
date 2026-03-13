@@ -20,9 +20,15 @@ export const detectInstallMethod = (
     ? "binary"
     : "package-manager";
 
+  const installDir = path.dirname(execPath);
+  const versionedPattern = /^(.+\/betterprompt)\/versions\/[^/]+$/;
+  const match = installDir.match(versionedPattern);
+  const binDir = match ? path.resolve(match[1], "../../bin") : installDir;
+
   return {
     method,
     execPath,
-    installDir: path.dirname(execPath),
+    installDir,
+    binDir,
   };
 };

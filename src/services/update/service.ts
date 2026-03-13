@@ -1,5 +1,14 @@
 import { spawn } from "node:child_process";
-import { chmod, rename, symlink, unlink, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+  symlink,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 import packageJson from "../../../package.json";
@@ -149,13 +158,22 @@ const performBinaryUpdate = async (
 
   const fileName = `${UPDATE_BINARY.binaryName}-${version}-${platform.os}-${platform.arch}`;
   const downloadUrl = `${UPDATE_BINARY.githubDownloadBaseUrl}/v${version}/${fileName}`;
+
+  // Compute new version dir as sibling of current version dir
+  const newVersionDir = path.join(
+    path.dirname(installInfo.installDir),
+    version
+  );
+  const newBinaryPath = path.join(newVersionDir, UPDATE_BINARY.binaryName);
   const tempPath = path.join(
-    installInfo.installDir,
+    newVersionDir,
     `.${UPDATE_BINARY.binaryName}.update.tmp`
   );
 
-  // Phase 1: download + replace binary — EACCES here means "run with sudo"
+  // Phase 1: download + install binary into new version dir
   try {
+    await mkdir(newVersionDir, { recursive: true });
+
     const response = await fetch(downloadUrl, { redirect: "follow" });
 
     if (!response.ok) {
@@ -183,7 +201,7 @@ const performBinaryUpdate = async (
 
     await writeFile(tempPath, buffer);
     await chmod(tempPath, 0o755);
-    await rename(tempPath, installInfo.execPath);
+    await rename(tempPath, newBinaryPath);
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code === "EACCES") {
       throw new Error(UPDATE_MESSAGES.permissionDenied);
@@ -197,20 +215,38 @@ const performBinaryUpdate = async (
     }
   }
 
-  // Phase 2: recreate symlink — best-effort, binary is already updated
-  const symlinkPath = path.join(
-    installInfo.installDir,
-    UPDATE_BINARY.symlinkName
-  );
-  try {
+  // Phase 2: recreate symlinks in binDir — best-effort, binary is already installed
+  const recreateSymlink = async (name: string) => {
+    const linkPath = path.join(installInfo.binDir, name);
     try {
-      await unlink(symlinkPath);
+      await unlink(linkPath);
     } catch (error: unknown) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    await symlink(installInfo.execPath, symlinkPath);
+    await symlink(newBinaryPath, linkPath);
+  };
+
+  try {
+    await recreateSymlink(UPDATE_BINARY.binaryName);
+    await recreateSymlink(UPDATE_BINARY.symlinkName);
   } catch {
     // Symlink recreation failed but binary update succeeded — not fatal
+  }
+
+  // Phase 3: clean up old version directories — best-effort
+  const versionsDir = path.dirname(newVersionDir);
+  try {
+    const entries = await readdir(versionsDir);
+    for (const entry of entries) {
+      if (entry !== version) {
+        await rm(path.join(versionsDir, entry), {
+          recursive: true,
+          force: true,
+        });
+      }
+    }
+  } catch {
+    // Cleanup failed — not fatal, old versions just take up disk space
   }
 
   return { updated: true };
