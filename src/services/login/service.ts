@@ -55,33 +55,71 @@ export const executeLogin = async (
       safeUnregister();
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
     };
+
     const callbackPromise = server.waitForCallback();
     callbackPromise.catch(() => {});
-    const textPromise = deps.text({
-      message: LOGIN_MESSAGES.pastePrompt,
-    });
-    textPromise.catch(() => {});
+
+    const abortController = new AbortController();
+    const keypressPromise = deps.waitForKeypress(abortController.signal);
+    keypressPromise.catch(() => {});
+
+    deps.message(LOGIN_MESSAGES.pasteHint);
     s.start(LOGIN_MESSAGES.waitingForCallback);
+
     try {
       deps.pauseGlobalSigint();
       deps.registerSignal("SIGINT", onSigint);
       sigintRegistered = true;
-      const result = await Promise.race([
+
+      // Phase 1: Race server callback vs keypress vs cancel
+      const phase1Result = await Promise.race([
         callbackPromise.then((r) => ({
           source: "server" as const,
           apiKey: r.apiKey,
         })),
-        textPromise.then((value) => {
-          if (deps.isCancel(value)) {
-            throw new Error(LOGIN_MESSAGES.cancelMessage);
-          }
-          const parsed = parseCallbackUrl(value as string, server!.state);
-          return { source: "paste" as const, apiKey: parsed.apiKey };
-        }),
+        keypressPromise.then((key) => ({
+          source: "keypress" as const,
+          key,
+        })),
         cancelPromise,
       ]);
-      s.stop();
-      apiKey = result.apiKey;
+
+      if (phase1Result.source === "server") {
+        // Server won Phase 1 — abort keypress, done
+        abortController.abort();
+        s.stop();
+        apiKey = phase1Result.apiKey;
+      } else if (
+        phase1Result.source === "keypress" &&
+        phase1Result.key === "cancel"
+      ) {
+        throw new Error(LOGIN_MESSAGES.cancelMessage);
+      } else {
+        // Enter pressed — transition to Phase 2
+        s.stop();
+
+        const textPromise = deps.text({
+          message: LOGIN_MESSAGES.pastePrompt,
+        });
+        textPromise.catch(() => {});
+
+        const phase2Result = await Promise.race([
+          callbackPromise.then((r) => ({
+            source: "server" as const,
+            apiKey: r.apiKey,
+          })),
+          textPromise.then((value) => {
+            if (deps.isCancel(value)) {
+              throw new Error(LOGIN_MESSAGES.cancelMessage);
+            }
+            const parsed = parseCallbackUrl(value as string, server!.state);
+            return { source: "paste" as const, apiKey: parsed.apiKey };
+          }),
+          cancelPromise,
+        ]);
+
+        apiKey = phase2Result.apiKey;
+      }
     } catch (error) {
       if (!canceled) {
         s.error();
