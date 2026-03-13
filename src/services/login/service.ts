@@ -55,9 +55,16 @@ export const executeLogin = async (
     const keypressPromise = deps.waitForKeypress(abortController.signal);
     keypressPromise.catch(() => {});
 
+    deps.message(LOGIN_MESSAGES.pasteHint);
+    s.start(LOGIN_MESSAGES.waitingForCallback);
+    let spinnerActive = true;
+
     const onSigint = () => {
       canceled = true;
-      s.cancel(LOGIN_MESSAGES.cancelMessage);
+      if (spinnerActive) {
+        s.cancel(LOGIN_MESSAGES.cancelMessage);
+        spinnerActive = false;
+      }
       deps.setExitCode(CTRL_C_EXIT_CODE);
       abortController.abort();
       server!.shutdown();
@@ -65,10 +72,6 @@ export const executeLogin = async (
       safeUnregister();
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
     };
-
-    deps.message(LOGIN_MESSAGES.pasteHint);
-    s.start(LOGIN_MESSAGES.waitingForCallback);
-    let spinnerActive = true;
 
     const gracefulCancel = () => {
       canceled = true;
