@@ -48,7 +48,6 @@ const makeDeps = (
   openBrowser: mock(() => Promise.resolve(true)),
   spinner: makeSpinner(),
   note: mock(() => {}),
-  log: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
   ...overrides,
