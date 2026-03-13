@@ -46,15 +46,6 @@ export const executeLogin = async (
       sigintRegistered = false;
       deps.unregisterSignal("SIGINT", onSigint);
     };
-    const onSigint = () => {
-      canceled = true;
-      s.cancel(LOGIN_MESSAGES.cancelMessage);
-      deps.setExitCode(CTRL_C_EXIT_CODE);
-      server!.shutdown();
-      server = null;
-      safeUnregister();
-      cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
-    };
 
     const callbackPromise = server.waitForCallback();
     callbackPromise.catch(() => {});
@@ -63,6 +54,17 @@ export const executeLogin = async (
     const abortController = new AbortController();
     const keypressPromise = deps.waitForKeypress(abortController.signal);
     keypressPromise.catch(() => {});
+
+    const onSigint = () => {
+      canceled = true;
+      s.cancel(LOGIN_MESSAGES.cancelMessage);
+      deps.setExitCode(CTRL_C_EXIT_CODE);
+      abortController.abort();
+      server!.shutdown();
+      server = null;
+      safeUnregister();
+      cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
+    };
 
     deps.message(LOGIN_MESSAGES.pasteHint);
     s.start(LOGIN_MESSAGES.waitingForCallback);
@@ -125,6 +127,7 @@ export const executeLogin = async (
           textPromise.then((value) => {
             if (deps.isCancel(value)) {
               canceled = true;
+              deps.setExitCode(CTRL_C_EXIT_CODE);
               throw new Error(LOGIN_MESSAGES.cancelMessage);
             }
             const parsed = parseCallbackUrl(value as string, serverState);
