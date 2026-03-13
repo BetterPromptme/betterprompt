@@ -46,6 +46,8 @@ const createDeps = (
   setExitCode: mock(() => {}),
   text: mock(() => new Promise<string | symbol>(() => {})),
   isCancel: mock(() => false),
+  waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
+  message: mock(() => {}),
   ...overrides,
 });
 
