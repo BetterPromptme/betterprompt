@@ -140,6 +140,7 @@ add_to_path() {
   echo "Added ~/.local/bin to PATH in ${RC_FILE}"
 }
 
+RC_FILE=""
 add_to_path
 
 echo ""
