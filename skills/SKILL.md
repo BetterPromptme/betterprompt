@@ -19,6 +19,11 @@ yarn global add betterprompt
 pnpm add -g betterprompt
 ```
 
+```sh
+# Binary release (macOS / Linux, no Node.js required)
+curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
+```
+
 Verify installation:
 
 ```sh
@@ -28,14 +33,10 @@ betterprompt --help
 
 ## Configuration
 
-Authenticate with your API key from https://betterprompt.me/api-keys:
+Authenticate via browser:
 
 ```sh
-# Interactive (prompts for key)
-betterprompt auth
-
-# Non-interactive
-betterprompt auth --api-key <key>
+betterprompt login
 ```
 
 Manage settings:
@@ -50,10 +51,9 @@ betterprompt config unset <key>   # remove a config value
 Diagnostics and identity:
 
 ```sh
-betterprompt doctor               # check setup
-betterprompt doctor --fix         # auto-fix issues
-betterprompt whoami               # show current user
-betterprompt credits              # show credit balance
+betterprompt doctor [--fix] [--json]   # check setup; --fix to auto-fix issues
+betterprompt whoami [--json]           # show current user
+betterprompt credits [--json]          # show credit balance
 ```
 
 ## Skill Discovery
@@ -186,6 +186,8 @@ These flags work on most commands:
 --verbose       enable verbose output
 --no-color      disable ANSI colors
 --yes           answer yes to all confirmations
+-h, --help      show help for any command
+-V, --version   show CLI version
 ```
 
 ## Top-Level Search
@@ -216,8 +218,8 @@ Note: `--remote` and `--sync` are mutually exclusive.
 ## CLI Maintenance
 
 ```sh
-betterprompt update                                      # check for CLI updates and install
-betterprompt reset                                       # reset ~/.betterprompt directory (prompts for confirmation)
+betterprompt update [--json]                             # check for CLI updates and install
+betterprompt reset [--yes] [--json]                      # reset ~/.betterprompt directory (prompts for confirmation)
 ```
 
 ## OpenClaw Agent Integration
