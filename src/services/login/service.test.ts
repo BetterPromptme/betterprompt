@@ -344,19 +344,25 @@ describe("executeLogin", () => {
     expect(deps.verifyApiKey).toHaveBeenCalledWith("pasted_key");
   });
 
-  it("Phase 1: keypress 'cancel' — error path", async () => {
+  it("Phase 1: keypress 'cancel' — graceful cancel like SIGINT", async () => {
+    const spinner = makeSpinner();
+    const shutdown = mock(() => {});
     const server = makeServer({
       waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+      shutdown,
     });
     const deps = makeDeps({
       startCallbackServer: mock(() => Promise.resolve(server)),
       waitForKeypress: mock(() => Promise.resolve("cancel" as const)),
+      spinner,
     });
 
     await executeLogin(mockCtx, deps);
 
-    expect(deps.error).toHaveBeenCalledTimes(1);
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(spinner.cancel).toHaveBeenCalledWith(LOGIN_MESSAGES.cancelMessage);
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
+    expect(shutdown).toHaveBeenCalled();
+    expect(deps.error).not.toHaveBeenCalled();
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
   });
 
@@ -419,7 +425,7 @@ describe("executeLogin", () => {
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
   });
 
-  it("Phase 2: text canceled — error", async () => {
+  it("Phase 2: text canceled — graceful cancel, no error message", async () => {
     const cancelSymbol = Symbol("cancel");
     const server = makeServer({
       waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
@@ -433,9 +439,27 @@ describe("executeLogin", () => {
 
     await executeLogin(mockCtx, deps);
 
-    expect(deps.error).toHaveBeenCalledTimes(1);
-    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.error).not.toHaveBeenCalled();
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("Phase 2: error does not call s.error() on already-stopped spinner", async () => {
+    const spinner = makeSpinner();
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => Promise.resolve("not-a-url")),
+      spinner,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    // Spinner was stopped when entering Phase 2, so s.error() should NOT be called
+    expect(spinner.error).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledTimes(1);
   });
 
   it("Phase 2: paste with state mismatch — error handling", async () => {
