@@ -77,7 +77,6 @@ export type TLoginDependencies = {
   openBrowser: (url: string) => Promise<boolean>;
   spinner: TLoginSpinner;
   note: (message: string, title?: string) => void;
-  log: (message: string) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
 };
