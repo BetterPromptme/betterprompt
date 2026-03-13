@@ -1,5 +1,6 @@
 import {
   mkdtemp,
+  readdir,
   readFile,
   readlink,
   stat,
@@ -542,6 +543,54 @@ describe("services/update/service performUpdate (binary)", () => {
     expect(bpLink).toBe(newBinaryPath);
     const betterpromptLink = await readlink(path.join(binDir, "betterprompt"));
     expect(betterpromptLink).toBe(newBinaryPath);
+  });
+
+  it("cleans up old version directories after successful update", async () => {
+    const tmpDir = await mkdtemp(path.join(os.tmpdir(), "bp-update-test-"));
+    const { mkdir } = await import("node:fs/promises");
+    const versionsDir = path.join(tmpDir, "versions");
+    const oldVersionDir = path.join(versionsDir, "1.0.0");
+    // Create a stale version dir to simulate leftover from prior update
+    const staleVersionDir = path.join(versionsDir, "0.9.0");
+    await mkdir(oldVersionDir, { recursive: true });
+    await mkdir(staleVersionDir, { recursive: true });
+    const binaryPath = path.join(oldVersionDir, "betterprompt");
+    await writeFile(binaryPath, "old-binary");
+    await writeFile(path.join(staleVersionDir, "betterprompt"), "stale-binary");
+
+    const binDir = path.join(tmpDir, "bin");
+    await mkdir(binDir, { recursive: true });
+
+    const fetchMock = mock(async (url: string) => {
+      if (typeof url === "string" && url.endsWith(".sha256")) {
+        return new Response("Not Found", { status: 404 });
+      }
+      return new Response("new-binary", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const result = await performUpdate(
+      { targetVersion: "2.0.0" },
+      {
+        detectInstallMethod: () => ({
+          method: "binary",
+          execPath: binaryPath,
+          installDir: oldVersionDir,
+          binDir,
+        }),
+        resolvePlatform: () => ({ os: "darwin", arch: "arm64" }),
+      }
+    );
+
+    expect(result.updated).toBe(true);
+
+    // Only the new version directory should remain
+    const remaining = await readdir(versionsDir);
+    expect(remaining).toEqual(["2.0.0"]);
+
+    // Old and stale version dirs should be gone
+    await expect(stat(oldVersionDir)).rejects.toThrow();
+    await expect(stat(staleVersionDir)).rejects.toThrow();
   });
 });
 

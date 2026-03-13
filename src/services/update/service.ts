@@ -2,7 +2,9 @@ import { spawn } from "node:child_process";
 import {
   chmod,
   mkdir,
+  readdir,
   rename,
+  rm,
   symlink,
   unlink,
   writeFile,
@@ -229,6 +231,22 @@ const performBinaryUpdate = async (
     await recreateSymlink(UPDATE_BINARY.symlinkName);
   } catch {
     // Symlink recreation failed but binary update succeeded — not fatal
+  }
+
+  // Phase 3: clean up old version directories — best-effort
+  const versionsDir = path.dirname(newVersionDir);
+  try {
+    const entries = await readdir(versionsDir);
+    for (const entry of entries) {
+      if (entry !== version) {
+        await rm(path.join(versionsDir, entry), {
+          recursive: true,
+          force: true,
+        });
+      }
+    }
+  } catch {
+    // Cleanup failed — not fatal, old versions just take up disk space
   }
 
   return { updated: true };
