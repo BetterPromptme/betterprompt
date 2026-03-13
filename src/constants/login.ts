@@ -40,4 +40,7 @@ export const LOGIN_MESSAGES = {
   cancelMessage: "Login canceled.",
   failedPrefix: "Login failed:",
   failedNoChangesPrefix: "No changes were saved to",
+  pastePrompt: "Paste the callback URL here: ",
+  pasteInvalidUrl:
+    "Invalid callback URL. Please paste the full URL from your browser.",
 } as const;
