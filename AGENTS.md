@@ -42,6 +42,7 @@ src/
     auth/
     credits/
     doctor/
+    login/
     reset/
     resources/
     search/
@@ -55,6 +56,7 @@ src/
     context/
     doctor/
     generate/
+    login/
     outputs/
     resources/
     skills/
@@ -72,6 +74,7 @@ src/
     command-spec.d.ts
     context.d.ts
     error-ux.d.ts
+    login.d.ts
     *.d.ts
 tsconfig.json
 package.json
@@ -221,6 +224,7 @@ Key rules:
 - `*_MESSAGES` objects hold user-facing strings (help text, errors, prompts).
 - `*_STORAGE` objects hold file/directory names and modes.
 - `SHARED_FLAGS` in `src/constants/flags.ts` holds flags reused across multiple commands (e.g. `--json`).
+- `CLI_HOSTS` in `src/constants/cli.ts` holds centralized hostnames (`web`, `api`). All URL constants derive from `CLI_HOSTS`.
 - `CLI_META` in `src/constants/cli.ts` holds root program metadata and global flags.
 - When a command has subcommands, declare each subcommand's constant in the same domain file or in its own `constants.ts` inside the command folder.
 - Commands import these constants and pass them to Commander; they never define names/flags/descriptions inline.

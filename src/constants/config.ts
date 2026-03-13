@@ -1,9 +1,9 @@
 import { AUTH_API_KEY_URL } from "./auth";
-import { CLI_META } from "./cli";
+import { CLI_HOSTS, CLI_META } from "./cli";
 import { SHARED_FLAGS } from "./shared-flags";
 
 export const API_CONFIG = {
-  baseUrl: "https://api.betterprompt.me/v1",
+  baseUrl: `${CLI_HOSTS.api}/v1`,
   timeoutMs: 5 * 60 * 1000, // 5 min
   authHeader: "authorization",
   authScheme: "Bearer",

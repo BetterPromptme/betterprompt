@@ -1,4 +1,6 @@
-export const AUTH_API_KEY_URL = "https://betterprompt.me/api-keys";
+import { CLI_HOSTS } from "./cli";
+
+export const AUTH_API_KEY_URL = `${CLI_HOSTS.web}/api-keys`;
 
 const AUTH_API_KEY_FLAG = {
   flag: "--api-key <key>",

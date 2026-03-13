@@ -119,6 +119,7 @@ export default [
       "src/cli.ts",
       "src/services/output/service.ts",
       "src/commands/auth/command.ts",
+      "src/commands/login/command.ts",
     ],
     rules: {
       "no-console": "off",
