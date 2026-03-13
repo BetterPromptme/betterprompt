@@ -2,6 +2,7 @@ import { Chalk } from "chalk";
 import logSymbols from "log-symbols";
 
 import type {
+  TCtrlCHandle,
   TErrorFormatterOptions,
   TFormatErrorMessage,
   TInstallCtrlCHandlerOptions,
@@ -10,7 +11,7 @@ import type {
 } from "../../types/error-ux";
 
 const INTERRUPT_MESSAGE = "Interrupted (Ctrl+C). Exiting gracefully.";
-const CTRL_C_EXIT_CODE = 130;
+export const CTRL_C_EXIT_CODE = 130;
 
 const createChalk = (color: boolean) => new Chalk({ level: color ? 1 : 0 });
 
@@ -40,8 +41,11 @@ export const runTaskWithSpinner = async <TResult>(
 
 export const installCtrlCHandler = (
   options: TInstallCtrlCHandlerOptions
-): (() => void) => {
+): TCtrlCHandle => {
+  let paused = false;
+
   const handler: TSignalHandler = () => {
+    if (paused) return;
     options.cleanup();
     options.setExitCode(CTRL_C_EXIT_CODE);
     options.log(INTERRUPT_MESSAGE);
@@ -49,7 +53,15 @@ export const installCtrlCHandler = (
 
   options.register("SIGINT", handler);
 
-  return () => {
-    options.unregister("SIGINT", handler);
+  return {
+    uninstall: () => {
+      options.unregister("SIGINT", handler);
+    },
+    pause: () => {
+      paused = true;
+    },
+    resume: () => {
+      paused = false;
+    },
   };
 };
