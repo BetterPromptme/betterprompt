@@ -1,4 +1,12 @@
-import { intro, log, note, outro, spinner } from "@clack/prompts";
+import {
+  intro,
+  isCancel,
+  log,
+  note,
+  outro,
+  spinner,
+  text,
+} from "@clack/prompts";
 
 import { LOGIN_COMMAND } from "../../constants";
 import { saveAuthConfig, verifyApiKey } from "../../services/auth/service";
@@ -31,6 +39,8 @@ const defaultDeps: TLoginDependencies = {
   setExitCode: (code) => {
     process.exitCode = code;
   },
+  text,
+  isCancel,
 };
 
 export const createLoginCommand = (
