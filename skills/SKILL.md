@@ -10,13 +10,13 @@ BetterPrompt CLI (`betterprompt` / `bp`) lets you discover, install, and run reu
 ## Installation
 
 ```sh
-npm install -g betterprompt
+npm install -g betterprompt@latest
 # or
-bun install -g betterprompt
+bun install -g betterprompt@latest
 # or
-yarn global add betterprompt
+yarn global add betterprompt@latest
 # or
-pnpm add -g betterprompt
+pnpm add -g betterprompt@latest
 ```
 
 ```sh
