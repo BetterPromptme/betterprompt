@@ -69,6 +69,8 @@ export type TLoginDependencies = {
   outro: (message: string) => void;
   registerSignal: (signal: TSignalName, handler: TSignalHandler) => void;
   unregisterSignal: (signal: TSignalName, handler: TSignalHandler) => void;
+  pauseGlobalSigint: () => void;
+  resumeGlobalSigint: () => void;
   verifyApiKey: (apiKey: string) => Promise<void>;
   saveAuthConfig: (apiKey: string) => Promise<string>;
   startCallbackServer: (
