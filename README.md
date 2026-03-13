@@ -24,8 +24,8 @@ Binary is installed to `~/.local/share/betterprompt/versions/<version>/betterpro
 ### Verify install
 
 ```bash
-bp --version
-bp --help
+betterprompt --version
+betterprompt --help
 ```
 
 ## Quick Start
@@ -33,31 +33,29 @@ bp --help
 1. Authenticate:
 
 ```bash
-bp auth
-# or non-interactive
-bp auth --api-key bp_sk_abc123
+betterprompt login
 ```
 
 2. Discover a skill:
 
 ```bash
-bp search "seo blog"
+betterprompt search "seo blog"
 # or
-bp skill search "seo blog"
+betterprompt skill search "seo blog"
 ```
 
 3. Inspect and install:
 
 ```bash
-bp skill info seo-blog-writer
-bp skill install seo-blog-writer --project
+betterprompt skill info seo-blog-writer
+betterprompt skill install seo-blog-writer --project
 ```
 
 4. Get the skill version ID and generate output:
 
 ```bash
-bp skill list --json
-bp generate <skillVersionId> \
+betterprompt skill list --json
+betterprompt generate <skillVersionId> \
   --input topic="best ai prompt tools" \
   --input audience="marketers"
 ```
@@ -65,7 +63,7 @@ bp generate <skillVersionId> \
 5. Review outputs:
 
 ```bash
-bp outputs list --limit 20
+betterprompt outputs list --limit 20
 ```
 
 ## Global Flags
@@ -91,13 +89,12 @@ These are available on the root command and inherited by subcommands.
 ### Auth and Account
 
 ```bash
-bp auth [--api-key <key>]
-bp whoami [--json]
-bp credits [--json]
+betterprompt login
+betterprompt whoami [--json]
+betterprompt credits [--json]
 ```
 
-- `bp auth` with no flags prompts interactively for an API key.
-- `--api-key` allows non-interactive setup (CI, scripts).
+- `betterprompt login` opens a browser-based callback flow to authenticate.
 - Get an API key at: https://betterprompt.me/api-keys
 
 ### Skill Discovery and Management
@@ -105,40 +102,40 @@ bp credits [--json]
 #### Search
 
 ```bash
-bp search <query> [--type <image|video|text>] [--author <author>] [--json]
-bp skill search <query> [--type <image|video|text>] [--author <author>] [--json]
+betterprompt search <query> [--type <image|video|text>] [--author <author>] [--json]
+betterprompt skill search <query> [--type <image|video|text>] [--author <author>] [--json]
 ```
 
-`bp search` is a top-level alias for `bp skill search`.
+`betterprompt search` is a top-level alias for `betterprompt skill search`.
 
 #### Info
 
 ```bash
-bp skill info <skill-slug> [--json]
+betterprompt skill info <skill-slug> [--json]
 ```
 
 #### Install
 
 ```bash
-bp skill install <skill-slug> [--overwrite] [--json]
+betterprompt skill install <skill-slug> [--overwrite] [--json]
 ```
 
 #### Uninstall
 
 ```bash
-bp skill uninstall <skill-slug> [--json]
+betterprompt skill uninstall <skill-slug> [--json]
 ```
 
 #### List
 
 ```bash
-bp skill list [--json]
+betterprompt skill list [--json]
 ```
 
 #### Update
 
 ```bash
-bp skill update [skill-slug] [--force] [--all] [--json]
+betterprompt skill update [skill-slug] [--force] [--all] [--json]
 ```
 
 - Provide a skill slug to update a single skill, or pass `--all` to update all installed skills in scope.
@@ -147,20 +144,20 @@ bp skill update [skill-slug] [--force] [--all] [--json]
 Examples:
 
 ```bash
-bp skill search "product photos" --type image
-bp skill info seo-blog-writer
-bp skill install seo-blog-writer --project
-bp skill list --project
-bp skill update --all --project
-bp skill update seo-blog-writer --force
+betterprompt skill search "product photos" --type image
+betterprompt skill info seo-blog-writer
+betterprompt skill install seo-blog-writer --project
+betterprompt skill list --project
+betterprompt skill update --all --project
+betterprompt skill update seo-blog-writer --force
 ```
 
 ### Generate
 
-Generate output from an installed skill. Get the `<skillVersionId>` via `bp skill list --json` or `bp skill info <skill-slug> --json`.
+Generate output from an installed skill. Get the `<skillVersionId>` via `betterprompt skill list --json` or `betterprompt skill info <skill-slug> --json`.
 
 ```bash
-bp generate <skillVersionId> \
+betterprompt generate <skillVersionId> \
   [--input <key=value>]... \
   [--image-input-url <url>]... \
   [--image-input-base64 <base64>]... \
@@ -187,18 +184,18 @@ Input precedence: `--input` / image flags > `--stdin` > prompt defaults. Or use 
 Examples:
 
 ```bash
-bp generate skill-version-123 \
+betterprompt generate skill-version-123 \
   --input topic="best ai prompt tools" \
   --input audience="marketers"
 
-bp generate skill-version-123 \
+betterprompt generate skill-version-123 \
   --image-input-url "https://example.com/reference.png" \
   --options '{"reasoningEffort":"high"}'
 
-bp generate skill-version-123 \
+betterprompt generate skill-version-123 \
   --input-payload '{"textInputs":{"topic":"ai"}}'
 
-cat input.json | bp generate skill-version-123 --stdin --json
+cat input.json | betterprompt generate skill-version-123 --stdin --json
 ```
 
 ### Outputs
@@ -206,7 +203,7 @@ cat input.json | bp generate skill-version-123 --stdin --json
 #### Fetch outputs from a run
 
 ```bash
-bp outputs <run-id> [--sync] [--remote] [--json]
+betterprompt outputs <run-id> [--sync] [--remote] [--json]
 ```
 
 | Flag       | Description                       |
@@ -218,7 +215,7 @@ bp outputs <run-id> [--sync] [--remote] [--json]
 #### List recent runs
 
 ```bash
-bp outputs list [--remote] [--status <status>] [--limit <n>] [--since <date>] [--json]
+betterprompt outputs list [--remote] [--status <status>] [--limit <n>] [--since <date>] [--json]
 ```
 
 | Flag                | Description                                                   |
@@ -232,10 +229,10 @@ bp outputs list [--remote] [--status <status>] [--limit <n>] [--since <date>] [-
 Examples:
 
 ```bash
-bp outputs list --limit 20
-bp outputs list --since 2026-02-01 --remote
-bp outputs output_abc123 --sync
-bp outputs output_abc123 --remote
+betterprompt outputs list --limit 20
+betterprompt outputs list --since 2026-02-01 --remote
+betterprompt outputs output_abc123 --sync
+betterprompt outputs output_abc123 --remote
 ```
 
 ### Resources
@@ -243,7 +240,7 @@ bp outputs output_abc123 --remote
 Show available models and run options. Results are cached locally and auto-synced when the server signals an update.
 
 ```bash
-bp resources [--remote] [--sync] [--models-only] [--json]
+betterprompt resources [--remote] [--sync] [--models-only] [--json]
 ```
 
 | Flag            | Description                                    |
@@ -258,11 +255,11 @@ bp resources [--remote] [--sync] [--models-only] [--json]
 Examples:
 
 ```bash
-bp resources                  # read from local cache (fetches on first run)
-bp resources --models-only    # list available models only
-bp resources --sync           # fetch from remote and update local cache
-bp resources --remote         # fetch from remote, do not update local cache
-bp resources --json
+betterprompt resources                  # read from local cache (fetches on first run)
+betterprompt resources --models-only    # list available models only
+betterprompt resources --sync           # fetch from remote and update local cache
+betterprompt resources --remote         # fetch from remote, do not update local cache
+betterprompt resources --json
 ```
 
 ### Config
@@ -270,24 +267,24 @@ bp resources --json
 Read and update BetterPrompt config values. Supported keys: `apiKey`, `apiBaseUrl`.
 
 ```bash
-bp config get [key] [--json]
-bp config set <key> <value>
-bp config unset <key>
+betterprompt config get [key] [--json]
+betterprompt config set <key> <value>
+betterprompt config unset <key>
 ```
 
 Examples:
 
 ```bash
-bp config get
-bp config get apiBaseUrl --json
-bp config set apiKey bp_live_123
-bp config unset apiKey
+betterprompt config get
+betterprompt config get apiBaseUrl --json
+betterprompt config set apiKey bp_live_123
+betterprompt config unset apiKey
 ```
 
 ### Diagnostics
 
 ```bash
-bp doctor [--fix] [--json]
+betterprompt doctor [--fix] [--json]
 ```
 
 Checks auth state, registry reachability, install directories, and write permissions. Use `--fix` to attempt automatic remediation.
@@ -295,12 +292,12 @@ Checks auth state, registry reachability, install directories, and write permiss
 ### CLI Lifecycle
 
 ```bash
-bp update [--json]
-bp reset [--yes] [--json]
+betterprompt update [--json]
+betterprompt reset [--yes] [--json]
 ```
 
-- `bp update` checks for CLI updates and installs when available.
-- `bp reset` removes the `~/.betterprompt` directory (config, auth, skills, outputs, logs). Prompts for confirmation unless `--yes` is passed.
+- `betterprompt update` checks for CLI updates and installs when available.
+- `betterprompt reset` removes the `~/.betterprompt` directory (config, auth, skills, outputs, logs). Prompts for confirmation unless `--yes` is passed.
 
 ## Directory Layout
 
@@ -350,6 +347,6 @@ Project-local state overrides global state when both exist.
 
 ## Notes
 
-- `bp search` is an alias for `bp skill search`.
+- `betterprompt search` is an alias for `betterprompt skill search`.
 - `--project`, `--global`, and `--dir` control installation and working scope.
 - Use `--json` for machine-readable output in scripts and CI.
