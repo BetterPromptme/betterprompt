@@ -53,6 +53,8 @@ const makeDeps = (
   note: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
+  text: mock(() => new Promise<string | symbol>(() => {})),
+  isCancel: mock(() => false),
   ...overrides,
 });
 
@@ -283,5 +285,103 @@ describe("executeLogin", () => {
 
     expect(shutdown).toHaveBeenCalledTimes(1);
     expect(deps.verifyApiKey).toHaveBeenCalled();
+  });
+
+  it("paste wins race — verifyApiKey receives parsed key", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      text: mock(() =>
+        Promise.resolve(
+          `http://localhost:3000/callback?api_key=pasted_key_789&state=${server.state}`
+        )
+      ),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("pasted_key_789");
+    expect(deps.saveAuthConfig).toHaveBeenCalledWith("pasted_key_789");
+    expect(deps.outro).toHaveBeenCalledTimes(1);
+  });
+
+  it("server wins race — text prompt does not block", async () => {
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("test_key_123");
+  });
+
+  it("paste with invalid URL — error handling", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      text: mock(() => Promise.resolve("not-a-url")),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("paste with state mismatch — error handling", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      text: mock(() =>
+        Promise.resolve(
+          "http://localhost:3000/callback?api_key=key_456&state=wrong_state"
+        )
+      ),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("text prompt returns cancel symbol — treated as cancellation", async () => {
+    const cancelSymbol = Symbol("cancel");
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      text: mock(() => Promise.resolve(cancelSymbol)),
+      isCancel: mock((value: unknown) => value === cancelSymbol),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("text called with correct message", async () => {
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.text).toHaveBeenCalledWith({
+      message: LOGIN_MESSAGES.pastePrompt,
+    });
   });
 });
