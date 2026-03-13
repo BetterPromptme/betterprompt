@@ -127,19 +127,27 @@ export const executeLogin = async (
             source: "server" as const,
             apiKey: r.apiKey,
           })),
-          textPromise.then((value) => {
-            if (deps.isCancel(value)) {
-              canceled = true;
-              deps.setExitCode(CTRL_C_EXIT_CODE);
-              throw new Error(LOGIN_MESSAGES.cancelMessage);
-            }
-            const parsed = parseCallbackUrl(value as string, serverState);
-            return { source: "paste" as const, apiKey: parsed.apiKey };
-          }),
+          textPromise.then((value) => ({
+            source: "paste" as const,
+            value,
+          })),
           cancelPromise,
         ]);
 
-        apiKey = phase2Result.apiKey;
+        if (phase2Result.source === "paste") {
+          if (deps.isCancel(phase2Result.value)) {
+            canceled = true;
+            deps.setExitCode(CTRL_C_EXIT_CODE);
+            throw new Error(LOGIN_MESSAGES.cancelMessage);
+          }
+          const parsed = parseCallbackUrl(
+            phase2Result.value as string,
+            serverState
+          );
+          apiKey = parsed.apiKey;
+        } else {
+          apiKey = phase2Result.apiKey;
+        }
       }
     } catch (error) {
       if (!canceled && spinnerActive) {
