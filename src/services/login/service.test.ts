@@ -205,6 +205,34 @@ describe("executeLogin", () => {
     expect(deps.error).not.toHaveBeenCalled();
   });
 
+  it("SIGINT during Phase 2 — s.cancel() not called on already-stopped spinner", async () => {
+    let sigintHandler: (() => void) | null = null;
+    const spinner = makeSpinner();
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      spinner,
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => new Promise<string | symbol>(() => {})),
+      registerSignal: mock((_signal, handler) => {
+        sigintHandler = handler;
+      }),
+    });
+
+    const loginPromise = executeLogin(mockCtx, deps);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Phase 2 is active — spinner already stopped
+    sigintHandler!();
+    await loginPromise;
+
+    expect(spinner.cancel).not.toHaveBeenCalled();
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
+    expect(deps.error).not.toHaveBeenCalled();
+  });
+
   it("Ctrl+C during wait — pauseGlobalSigint called before registerSignal and resumeGlobalSigint called after unregisterSignal", async () => {
     const callOrder: string[] = [];
     let sigintHandler: (() => void) | null = null;
