@@ -117,22 +117,7 @@ add_to_path() {
       ;;
     fish)
       FISH_CONFIG="$HOME/.config/fish/config.fish"
-      if [ -f "$FISH_CONFIG" ] && grep -q '.local/bin' "$FISH_CONFIG"; then
-        return
-      fi
-      mkdir -p "$(dirname "$FISH_CONFIG")"
-      echo 'fish_add_path "$HOME/.local/bin"' >> "$FISH_CONFIG"
-      echo "Added ~/.local/bin to PATH in ${FISH_CONFIG}"
-      return
-      ;;
-    *)
-      echo "Add ~/.local/bin to your PATH manually."
-      return
-      ;;
-  esac
-
-  # For bash/zsh
-  if [ -f "$RC_FILE" ] && grep -q '.local/bin' "$RC_FILE"; then
+      if [ -f "$FISH_CONFIG" ] && grep -q '\.local/bin' "$FISH_CONFIG"; then
     return
   fi
   echo "" >> "$RC_FILE"
