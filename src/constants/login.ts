@@ -1,3 +1,5 @@
+import logSymbols from "log-symbols";
+
 import { CLI_HOSTS } from "./cli";
 
 const LOGIN_URL_BASE = `${CLI_HOSTS.web}/api-keys`;
@@ -40,6 +42,7 @@ export const LOGIN_MESSAGES = {
   cancelMessage: "Login canceled.",
   failedPrefix: "Login failed:",
   failedNoChangesPrefix: "No changes were saved to",
+  pasteHint: `${logSymbols.info} Press Enter to paste the callback URL manually`,
   pastePrompt: "Paste the callback URL here: ",
   pasteInvalidUrl:
     "Invalid callback URL. Please paste the full URL from your browser.",
