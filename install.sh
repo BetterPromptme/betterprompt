@@ -117,7 +117,7 @@ add_to_path() {
       ;;
     fish)
       FISH_CONFIG="$HOME/.config/fish/config.fish"
-      if [ -f "$FISH_CONFIG" ] && grep -q '\.local/bin' "$FISH_CONFIG"; then
+      if [ -f "$FISH_CONFIG" ] && grep -v '^ *#' "$FISH_CONFIG" | grep -q '\.local/bin'; then
         return
       fi
       mkdir -p "$(dirname "$FISH_CONFIG")"
@@ -132,7 +132,7 @@ add_to_path() {
   esac
 
   # For bash/zsh
-  if [ -f "$RC_FILE" ] && grep -q '\.local/bin' "$RC_FILE"; then
+  if [ -f "$RC_FILE" ] && grep -v '^ *#' "$RC_FILE" | grep -q '\.local/bin'; then
     return
   fi
   echo "" >> "$RC_FILE"
