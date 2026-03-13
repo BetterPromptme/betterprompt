@@ -81,7 +81,7 @@ Notes:
 - Starts a local HTTP callback server on port 22450–22460
 - Receives the API key via localhost callback and saves credentials
 - Always displays the login URL in the terminal (works even if browser fails to open)
-- Ctrl-C cancels cleanly
+- Ctrl-C cancels cleanly — the login command pauses the global SIGINT handler before registering its own, and resumes it after cleanup (see `src/services/error-ux/handle.ts` for the singleton). Exit code on cancel is `130` (POSIX standard).
 - Uses `@clack/prompts` for interactive UI (spinner, intro/outro, note)
 
 ### Current identity
