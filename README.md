@@ -13,19 +13,22 @@ BetterPrompt CLI helps you discover skills, install them, generate outputs, and 
 npm install -g betterprompt
 ```
 
-### From binary release (macOS / Linux)
+### From binary release (macOS / Linux, no Node.js required)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/BetterPromptme/betterprompt/main/install.sh | bash
 ```
-
-Binary is installed to `~/.local/share/betterprompt/versions/<version>/betterprompt` with symlinks (`betterprompt`, `bp`) in `~/.local/bin/`.
 
 ### Verify install
 
 ```bash
 betterprompt --version
 betterprompt --help
+
+# or
+
+bp --version
+bp --help
 ```
 
 ## Quick Start
