@@ -6,6 +6,7 @@ import { configCommand } from "./commands/config/command";
 import { creditsCommand } from "./commands/credits/command";
 import { doctorCommand } from "./commands/doctor/command";
 import { generateCommand } from "./commands/generate/command";
+import { loginCommand } from "./commands/login/command";
 import { outputsCommand } from "./commands/outputs/command";
 import { resetCommand } from "./commands/reset/command";
 import { resourcesCommand } from "./commands/resources/command";
@@ -42,6 +43,7 @@ export const createProgram = (): Command => {
 
   program.addCommand(configCommand);
   program.addCommand(authCommand);
+  program.addCommand(loginCommand);
   program.addCommand(whoamiCommand);
   program.addCommand(creditsCommand);
   program.addCommand(doctorCommand);

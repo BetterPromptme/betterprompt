@@ -4,6 +4,7 @@ export * from "./config";
 export * from "./credits";
 export * from "./doctor";
 export * from "./generate";
+export * from "./login";
 export * from "./outputs";
 export * from "./reset";
 export * from "./resources";
