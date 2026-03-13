@@ -82,7 +82,7 @@ describe("error ux", () => {
     });
     const unregister = mock(() => {});
 
-    const uninstall = installCtrlCHandler({
+    const handle = installCtrlCHandler({
       register,
       unregister,
       cleanup,
@@ -99,7 +99,64 @@ describe("error ux", () => {
       "Interrupted (Ctrl+C). Exiting gracefully."
     );
 
-    uninstall();
+    handle.uninstall();
     expect(unregister).toHaveBeenCalledWith("SIGINT", registeredHandler);
+  });
+
+  it("Ctrl+C handler is silent when paused", () => {
+    const cleanup = mock(() => {});
+    const setExitCode = mock(() => {});
+    const log = mock(() => {});
+
+    let registeredHandler: (() => void) | undefined;
+    const register = mock((_signal: "SIGINT", handler: () => void) => {
+      registeredHandler = handler;
+    });
+    const unregister = mock(() => {});
+
+    const handle = installCtrlCHandler({
+      register,
+      unregister,
+      cleanup,
+      setExitCode,
+      log,
+    });
+
+    handle.pause();
+    registeredHandler?.();
+
+    expect(cleanup).not.toHaveBeenCalled();
+    expect(setExitCode).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("Ctrl+C handler resumes after resume()", () => {
+    const cleanup = mock(() => {});
+    const setExitCode = mock(() => {});
+    const log = mock(() => {});
+
+    let registeredHandler: (() => void) | undefined;
+    const register = mock((_signal: "SIGINT", handler: () => void) => {
+      registeredHandler = handler;
+    });
+    const unregister = mock(() => {});
+
+    const handle = installCtrlCHandler({
+      register,
+      unregister,
+      cleanup,
+      setExitCode,
+      log,
+    });
+
+    handle.pause();
+    handle.resume();
+    registeredHandler?.();
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(setExitCode).toHaveBeenCalledWith(130);
+    expect(log).toHaveBeenCalledWith(
+      "Interrupted (Ctrl+C). Exiting gracefully."
+    );
   });
 });
