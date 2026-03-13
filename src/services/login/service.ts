@@ -2,6 +2,7 @@ import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
 import type { TCallbackServer, TLoginDependencies } from "../../types/login";
 import { createErrorFormatter, CTRL_C_EXIT_CODE } from "../error-ux/service";
+import { parseCallbackUrl } from "./parse-callback-url";
 
 export const buildLoginUrl = (port: number, state: string): string => {
   const params = new URLSearchParams();
@@ -34,7 +35,6 @@ export const executeLogin = async (
       LOGIN_MESSAGES.linkInstructions
     );
 
-    s.start(LOGIN_MESSAGES.waitingForCallback);
     let apiKey: string;
     let cancelReject: ((error: Error) => void) | null = null;
     const cancelPromise = new Promise<never>((_, reject) => {
@@ -57,13 +57,31 @@ export const executeLogin = async (
     };
     const callbackPromise = server.waitForCallback();
     callbackPromise.catch(() => {});
+    const textPromise = deps.text({
+      message: LOGIN_MESSAGES.pastePrompt,
+    });
+    textPromise.catch(() => {});
+    s.start(LOGIN_MESSAGES.waitingForCallback);
     try {
       deps.pauseGlobalSigint();
       deps.registerSignal("SIGINT", onSigint);
       sigintRegistered = true;
-      const result = await Promise.race([callbackPromise, cancelPromise]);
-      apiKey = result.apiKey;
+      const result = await Promise.race([
+        callbackPromise.then((r) => ({
+          source: "server" as const,
+          apiKey: r.apiKey,
+        })),
+        textPromise.then((value) => {
+          if (deps.isCancel(value)) {
+            throw new Error(LOGIN_MESSAGES.cancelMessage);
+          }
+          const parsed = parseCallbackUrl(value as string, server!.state);
+          return { source: "paste" as const, apiKey: parsed.apiKey };
+        }),
+        cancelPromise,
+      ]);
       s.stop();
+      apiKey = result.apiKey;
     } catch (error) {
       if (!canceled) {
         s.error();
