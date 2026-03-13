@@ -65,6 +65,15 @@ describe("utils/install-method", () => {
     });
   });
 
+  it("falls back to installDir when path contains /versions/ outside expected structure", () => {
+    const result = detectInstallMethod({
+      getExecPath: () =>
+        "/home/user/my-versions/betterprompt/1.0.0/betterprompt",
+    });
+
+    expect(result.binDir).toBe("/home/user/my-versions/betterprompt/1.0.0");
+  });
+
   it("uses process.execPath by default", () => {
     const result = detectInstallMethod();
 
