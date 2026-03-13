@@ -16,6 +16,7 @@ import { updateCommand } from "./commands/update/command";
 import { whoamiCommand } from "./commands/whoami/command";
 import { CLI_MESSAGES, CLI_META } from "./constants";
 import { bootstrapGlobalDirectory } from "./services/bootstrap/service";
+import { setGlobalCtrlCHandle } from "./services/error-ux/handle";
 import { installCtrlCHandler } from "./services/error-ux/service";
 
 export const createProgram = (): Command => {
@@ -59,7 +60,7 @@ export const createProgram = (): Command => {
 };
 
 export const runProgram = async (argv = process.argv): Promise<void> => {
-  const uninstallCtrlCHandler = installCtrlCHandler({
+  const ctrlCHandle = installCtrlCHandler({
     register: (signal, handler) => process.on(signal, handler),
     unregister: (signal, handler) => process.off(signal, handler),
     cleanup: () => {},
@@ -70,13 +71,14 @@ export const runProgram = async (argv = process.argv): Promise<void> => {
       console.error(message);
     },
   });
+  setGlobalCtrlCHandle(ctrlCHandle);
 
   try {
     await bootstrapGlobalDirectory();
     const program = createProgram();
     await program.parseAsync(argv);
   } finally {
-    uninstallCtrlCHandler();
+    ctrlCHandle.uninstall();
   }
 };
 
