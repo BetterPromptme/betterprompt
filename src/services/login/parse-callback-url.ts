@@ -12,6 +12,9 @@ export const parseCallbackUrl = (
   }
 
   const state = url.searchParams.get(LOGIN_CALLBACK.queryParams.state);
+  if (state === null) {
+    throw new Error(LOGIN_MESSAGES.pasteInvalidUrl);
+  }
   if (state !== expectedState) {
     throw new Error(LOGIN_MESSAGES.stateMismatch);
   }
