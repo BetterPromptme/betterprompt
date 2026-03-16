@@ -69,7 +69,7 @@ export const executeLogin = async (
       }
       deps.setExitCode(CTRL_C_EXIT_CODE);
       abortController.abort();
-      server!.shutdown();
+      server?.shutdown();
       server = null;
       safeUnregister();
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
@@ -77,8 +77,10 @@ export const executeLogin = async (
 
     const gracefulCancel = () => {
       canceled = true;
-      s.cancel(LOGIN_MESSAGES.cancelMessage);
-      spinnerActive = false;
+      if (spinnerActive) {
+        s.cancel(LOGIN_MESSAGES.cancelMessage);
+        spinnerActive = false;
+      }
       deps.setExitCode(CTRL_C_EXIT_CODE);
       server?.shutdown();
       server = null;
