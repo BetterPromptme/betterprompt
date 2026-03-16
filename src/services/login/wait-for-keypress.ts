@@ -35,7 +35,10 @@ export const waitForKeypress = (
     stdin.setRawMode(true);
     stdin.resume();
 
+    let cleanedUp = false;
     const cleanup = () => {
+      if (cleanedUp) return;
+      cleanedUp = true;
       stdin.removeListener("data", onData);
       stdin.setRawMode(previousRaw);
       stdin.pause();
