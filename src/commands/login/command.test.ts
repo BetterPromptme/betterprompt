@@ -45,7 +45,7 @@ const createDeps = (
   error: mock(() => {}),
   setExitCode: mock(() => {}),
   text: mock(() => new Promise<string | symbol>(() => {})),
-  isCancel: mock(() => false),
+  isCancel: mock(() => false) as unknown as (value: unknown) => value is symbol,
   waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
   message: mock(() => {}),
   isTTY: true,
