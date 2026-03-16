@@ -48,6 +48,7 @@ const createDeps = (
   isCancel: mock(() => false),
   waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
   message: mock(() => {}),
+  isTTY: true,
   ...overrides,
 });
 
