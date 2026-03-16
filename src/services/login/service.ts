@@ -55,7 +55,9 @@ export const executeLogin = async (
     const keypressPromise = deps.waitForKeypress(abortController.signal);
     keypressPromise.catch(() => {});
 
-    deps.message(LOGIN_MESSAGES.pasteHint);
+    if (deps.isTTY) {
+      deps.message(LOGIN_MESSAGES.pasteHint);
+    }
     s.start(LOGIN_MESSAGES.waitingForCallback);
     let spinnerActive = true;
 
