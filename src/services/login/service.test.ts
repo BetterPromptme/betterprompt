@@ -57,6 +57,7 @@ const makeDeps = (
   isCancel: mock(() => false),
   waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
   message: mock(() => {}),
+  isTTY: true,
   ...overrides,
 });
 
@@ -348,6 +349,18 @@ describe("executeLogin", () => {
       (call: unknown[]) => call[0] === LOGIN_MESSAGES.waitingForCallback
     );
     expect(waitingCall).toBeDefined();
+  });
+
+  it("Phase 1: pasteHint not displayed in non-TTY environments", async () => {
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      isTTY: false,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.message).not.toHaveBeenCalled();
   });
 
   it("Phase 1: Enter → transitions to Phase 2, text() called", async () => {
