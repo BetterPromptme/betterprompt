@@ -1,3 +1,5 @@
+import logSymbols from "log-symbols";
+
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
 import type { TCallbackServer, TLoginDependencies } from "../../types/login";
@@ -56,7 +58,7 @@ export const executeLogin = async (
     keypressPromise.catch(() => {});
 
     if (deps.isTTY) {
-      deps.message(LOGIN_MESSAGES.pasteHint);
+      deps.message(`${logSymbols.info} ${LOGIN_MESSAGES.pasteHint}`);
     }
     s.start(LOGIN_MESSAGES.waitingForCallback);
     let spinnerActive = true;
