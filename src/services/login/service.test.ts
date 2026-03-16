@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+import logSymbols from "log-symbols";
 
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
@@ -342,7 +343,9 @@ describe("executeLogin", () => {
 
     await executeLogin(mockCtx, deps);
 
-    expect(deps.message).toHaveBeenCalledWith(LOGIN_MESSAGES.pasteHint);
+    expect(deps.message).toHaveBeenCalledWith(
+      `${logSymbols.info} ${LOGIN_MESSAGES.pasteHint}`
+    );
     // Spinner only shows the waiting message, not the hint
     const startCalls = (spinner.start as ReturnType<typeof mock>).mock.calls;
     const waitingCall = startCalls.find(
