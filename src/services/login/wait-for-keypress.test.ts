@@ -145,6 +145,33 @@ describe("waitForKeypress", () => {
     expect(stdin.removeListener).toHaveBeenCalledWith("data", listener);
   });
 
+  it("abort after resolution does not double-cleanup stdin", async () => {
+    stdin = makeStdin();
+    let listener: ((data: Buffer) => void) | null = null;
+    stdin.once = mock((_event: string, cb: (data: Buffer) => void) => {
+      listener = cb;
+    });
+
+    const controller = new AbortController();
+    const promise = waitForKeypress({ stdin }, controller.signal);
+
+    // Resolve via Enter
+    listener!(Buffer.from([0x0d]));
+    await promise;
+
+    // Reset call counts after first cleanup
+    (stdin.setRawMode as ReturnType<typeof mock>).mockClear();
+    (stdin.pause as ReturnType<typeof mock>).mockClear();
+
+    // Abort fires after promise already resolved
+    controller.abort();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // cleanup() should be a no-op — no second setRawMode/pause call
+    expect(stdin.setRawMode).not.toHaveBeenCalled();
+    expect(stdin.pause).not.toHaveBeenCalled();
+  });
+
   it("other keys are ignored — re-listens for next key", async () => {
     stdin = makeStdin();
     const listeners: Array<(data: Buffer) => void> = [];
