@@ -144,10 +144,7 @@ export const executeLogin = async (
             deps.setExitCode(CTRL_C_EXIT_CODE);
             throw new Error(LOGIN_MESSAGES.cancelMessage);
           }
-          const parsed = parseCallbackUrl(
-            phase2Result.value as string,
-            serverState
-          );
+          const parsed = parseCallbackUrl(phase2Result.value, serverState);
           apiKey = parsed.apiKey;
         } else {
           apiKey = phase2Result.apiKey;
