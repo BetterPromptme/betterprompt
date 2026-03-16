@@ -44,6 +44,7 @@ const defaultDeps: TLoginDependencies = {
   text,
   isCancel,
   waitForKeypress: (signal?) => waitForKeypress(undefined, signal),
+  isTTY: !!process.stdin.isTTY,
 };
 
 export const createLoginCommand = (
