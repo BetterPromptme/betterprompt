@@ -17,6 +17,13 @@ describe("parseCallbackUrl", () => {
     expect(result).toEqual({ apiKey: "key_456" });
   });
 
+  it("throws pasteInvalidUrl when state param is missing", () => {
+    const url = `http://localhost:22450/callback?api_key=key_456`;
+    expect(() => parseCallbackUrl(url, expectedState)).toThrow(
+      LOGIN_MESSAGES.pasteInvalidUrl
+    );
+  });
+
   it("throws stateMismatch when state does not match", () => {
     const url = `http://localhost:22450/callback?api_key=key_456&state=wrong`;
     expect(() => parseCallbackUrl(url, expectedState)).toThrow(
