@@ -54,7 +54,7 @@ const makeDeps = (
   error: mock(() => {}),
   setExitCode: mock(() => {}),
   text: mock(() => new Promise<string | symbol>(() => {})),
-  isCancel: mock(() => false),
+  isCancel: mock(() => false) as unknown as (value: unknown) => value is symbol,
   waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
   message: mock(() => {}),
   isTTY: true,
@@ -475,7 +475,9 @@ describe("executeLogin", () => {
       startCallbackServer: mock(() => Promise.resolve(server)),
       waitForKeypress: mock(() => Promise.resolve("enter" as const)),
       text: mock(() => Promise.resolve(cancelSymbol)),
-      isCancel: mock((value: unknown) => value === cancelSymbol),
+      isCancel: mock((value: unknown) => value === cancelSymbol) as unknown as (
+        value: unknown
+      ) => value is symbol,
     });
 
     await executeLogin(mockCtx, deps);
