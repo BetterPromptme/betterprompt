@@ -1,7 +1,10 @@
+import logSymbols from "log-symbols";
+
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
 import type { TCallbackServer, TLoginDependencies } from "../../types/login";
 import { createErrorFormatter, CTRL_C_EXIT_CODE } from "../error-ux/service";
+import { parseCallbackUrl } from "./parse-callback-url";
 
 export const buildLoginUrl = (port: number, state: string): string => {
   const params = new URLSearchParams();
@@ -34,7 +37,6 @@ export const executeLogin = async (
       LOGIN_MESSAGES.linkInstructions
     );
 
-    s.start(LOGIN_MESSAGES.waitingForCallback);
     let apiKey: string;
     let cancelReject: ((error: Error) => void) | null = null;
     const cancelPromise = new Promise<never>((_, reject) => {
@@ -46,26 +48,112 @@ export const executeLogin = async (
       sigintRegistered = false;
       deps.unregisterSignal("SIGINT", onSigint);
     };
+
+    const callbackPromise = server.waitForCallback();
+    callbackPromise.catch(() => {});
+    const serverState = server.state;
+
+    const abortController = new AbortController();
+    const keypressPromise = deps.waitForKeypress(abortController.signal);
+    keypressPromise.catch(() => {});
+
+    if (deps.isTTY) {
+      deps.message(`${logSymbols.info} ${LOGIN_MESSAGES.pasteHint}`);
+    }
+    s.start(LOGIN_MESSAGES.waitingForCallback);
+    let spinnerActive = true;
+
     const onSigint = () => {
       canceled = true;
-      s.cancel(LOGIN_MESSAGES.cancelMessage);
+      if (spinnerActive) {
+        s.cancel(LOGIN_MESSAGES.cancelMessage);
+        spinnerActive = false;
+      }
       deps.setExitCode(CTRL_C_EXIT_CODE);
-      server!.shutdown();
+      abortController.abort();
+      server?.shutdown();
       server = null;
       safeUnregister();
       cancelReject?.(new Error(LOGIN_MESSAGES.cancelMessage));
     };
-    const callbackPromise = server.waitForCallback();
-    callbackPromise.catch(() => {});
+
+    const gracefulCancel = () => {
+      canceled = true;
+      if (spinnerActive) {
+        s.cancel(LOGIN_MESSAGES.cancelMessage);
+        spinnerActive = false;
+      }
+      deps.setExitCode(CTRL_C_EXIT_CODE);
+      server?.shutdown();
+      server = null;
+    };
+
     try {
       deps.pauseGlobalSigint();
       deps.registerSignal("SIGINT", onSigint);
       sigintRegistered = true;
-      const result = await Promise.race([callbackPromise, cancelPromise]);
-      apiKey = result.apiKey;
-      s.stop();
+
+      // Phase 1: Race server callback vs keypress vs cancel
+      const phase1Result = await Promise.race([
+        callbackPromise.then((r) => ({
+          source: "server" as const,
+          apiKey: r.apiKey,
+        })),
+        keypressPromise.then((key) => ({
+          source: "keypress" as const,
+          key,
+        })),
+        cancelPromise,
+      ]);
+
+      if (phase1Result.source === "server") {
+        // Server won Phase 1 — abort keypress, done
+        abortController.abort();
+        s.stop();
+        spinnerActive = false;
+        apiKey = phase1Result.apiKey;
+      } else if (
+        phase1Result.source === "keypress" &&
+        phase1Result.key === "cancel"
+      ) {
+        gracefulCancel();
+        throw new Error(LOGIN_MESSAGES.cancelMessage);
+      } else {
+        // Enter pressed — transition to Phase 2
+        s.stop();
+        spinnerActive = false;
+
+        const textPromise = deps.text({
+          message: LOGIN_MESSAGES.pastePrompt,
+        });
+        textPromise.catch(() => {});
+
+        const phase2Result = await Promise.race([
+          callbackPromise.then((r) => ({
+            source: "server" as const,
+            apiKey: r.apiKey,
+          })),
+          textPromise.then((value) => ({
+            source: "paste" as const,
+            value,
+          })),
+          cancelPromise,
+        ]);
+
+        if (phase2Result.source === "paste") {
+          if (deps.isCancel(phase2Result.value)) {
+            canceled = true;
+            deps.setExitCode(CTRL_C_EXIT_CODE);
+            throw new Error(LOGIN_MESSAGES.cancelMessage);
+          }
+          const parsed = parseCallbackUrl(phase2Result.value, serverState);
+          apiKey = parsed.apiKey;
+        } else {
+          apiKey = phase2Result.apiKey;
+        }
+      }
     } catch (error) {
-      if (!canceled) {
+      if (!canceled && spinnerActive) {
         s.error();
       }
       throw error;

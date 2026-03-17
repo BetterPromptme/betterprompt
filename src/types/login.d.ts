@@ -64,6 +64,8 @@ export type TOpenBrowserDeps = {
   ) => void;
 };
 
+export type TPromptResult = string | symbol;
+
 export type TLoginDependencies = {
   intro: (message: string) => void;
   outro: (message: string) => void;
@@ -81,4 +83,12 @@ export type TLoginDependencies = {
   note: (message: string, title?: string) => void;
   error: (message: string) => void;
   setExitCode: (code: number) => void;
+  text: (opts: {
+    message: string;
+    placeholder?: string;
+  }) => Promise<TPromptResult>;
+  isCancel: (value: unknown) => value is symbol;
+  waitForKeypress: (signal?: AbortSignal) => Promise<"enter" | "cancel">;
+  message: (text: string) => void;
+  isTTY: boolean;
 };

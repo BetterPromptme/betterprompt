@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
+import logSymbols from "log-symbols";
 
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
 import type { TCliContext } from "../../types/context";
@@ -53,6 +54,11 @@ const makeDeps = (
   note: mock(() => {}),
   error: mock(() => {}),
   setExitCode: mock(() => {}),
+  text: mock(() => new Promise<string | symbol>(() => {})),
+  isCancel: mock(() => false) as unknown as (value: unknown) => value is symbol,
+  waitForKeypress: mock(() => new Promise<"enter" | "cancel">(() => {})),
+  message: mock(() => {}),
+  isTTY: true,
   ...overrides,
 });
 
@@ -166,7 +172,7 @@ describe("executeLogin", () => {
     expect(shutdown).toHaveBeenCalledTimes(1);
   });
 
-  it("Ctrl+C during wait — cancel and cleanup happen synchronously in handler", async () => {
+  it("Ctrl+C during Phase 1 — cancel and cleanup happen synchronously in handler", async () => {
     let sigintHandler: (() => void) | null = null;
     const shutdown = mock(() => {});
     const spinner = makeSpinner();
@@ -198,6 +204,34 @@ describe("executeLogin", () => {
 
     expect(deps.verifyApiKey).not.toHaveBeenCalled();
     expect(deps.saveAuthConfig).not.toHaveBeenCalled();
+    expect(deps.error).not.toHaveBeenCalled();
+  });
+
+  it("SIGINT during Phase 2 — s.cancel() not called on already-stopped spinner", async () => {
+    let sigintHandler: (() => void) | null = null;
+    const spinner = makeSpinner();
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      spinner,
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => new Promise<string | symbol>(() => {})),
+      registerSignal: mock((_signal, handler) => {
+        sigintHandler = handler;
+      }),
+    });
+
+    const loginPromise = executeLogin(mockCtx, deps);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    // Phase 2 is active — spinner already stopped
+    sigintHandler!();
+    await loginPromise;
+
+    expect(spinner.cancel).not.toHaveBeenCalled();
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
     expect(deps.error).not.toHaveBeenCalled();
   });
 
@@ -283,5 +317,216 @@ describe("executeLogin", () => {
 
     expect(shutdown).toHaveBeenCalledTimes(1);
     expect(deps.verifyApiKey).toHaveBeenCalled();
+  });
+
+  // --- Phase 1 tests ---
+
+  it("Phase 1: server wins — keypress aborted, text never called", async () => {
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("test_key_123");
+    expect(deps.text).not.toHaveBeenCalled();
+  });
+
+  it("Phase 1: hint displayed above spinner", async () => {
+    const spinner = makeSpinner();
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      spinner,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.message).toHaveBeenCalledWith(
+      `${logSymbols.info} ${LOGIN_MESSAGES.pasteHint}`
+    );
+    // Spinner only shows the waiting message, not the hint
+    const startCalls = (spinner.start as ReturnType<typeof mock>).mock.calls;
+    const waitingCall = startCalls.find(
+      (call: unknown[]) => call[0] === LOGIN_MESSAGES.waitingForCallback
+    );
+    expect(waitingCall).toBeDefined();
+  });
+
+  it("Phase 1: pasteHint not displayed in non-TTY environments", async () => {
+    const server = makeServer();
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      isTTY: false,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.message).not.toHaveBeenCalled();
+  });
+
+  it("Phase 1: Enter → transitions to Phase 2, text() called", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() =>
+        Promise.resolve(
+          `http://localhost:3000/callback?api_key=pasted_key&state=${server.state}`
+        )
+      ),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.text).toHaveBeenCalledWith({
+      message: LOGIN_MESSAGES.pastePrompt,
+    });
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("pasted_key");
+  });
+
+  it("Phase 1: keypress 'cancel' — graceful cancel like SIGINT", async () => {
+    const spinner = makeSpinner();
+    const shutdown = mock(() => {});
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+      shutdown,
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("cancel" as const)),
+      spinner,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(spinner.cancel).toHaveBeenCalledWith(LOGIN_MESSAGES.cancelMessage);
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
+    expect(shutdown).toHaveBeenCalled();
+    expect(deps.error).not.toHaveBeenCalled();
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  // --- Phase 2 tests ---
+
+  it("Phase 2: paste wins — verify with parsed key", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() =>
+        Promise.resolve(
+          `http://localhost:3000/callback?api_key=pasted_key_789&state=${server.state}`
+        )
+      ),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("pasted_key_789");
+    expect(deps.saveAuthConfig).toHaveBeenCalledWith("pasted_key_789");
+    expect(deps.outro).toHaveBeenCalledTimes(1);
+  });
+
+  it("Phase 2: server wins during paste — verify with server key", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() =>
+        Promise.resolve({ apiKey: "server_key_456" })
+      ),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      // text never resolves — server wins
+      text: mock(() => new Promise<string | symbol>(() => {})),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.verifyApiKey).toHaveBeenCalledWith("server_key_456");
+    expect(deps.saveAuthConfig).toHaveBeenCalledWith("server_key_456");
+  });
+
+  it("Phase 2: invalid URL — error", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => Promise.resolve("not-a-url")),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("Phase 2: text canceled — graceful cancel, no error message", async () => {
+    const cancelSymbol = Symbol("cancel");
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => Promise.resolve(cancelSymbol)),
+      isCancel: mock((value: unknown) => value === cancelSymbol) as unknown as (
+        value: unknown
+      ) => value is symbol,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).not.toHaveBeenCalled();
+    expect(deps.setExitCode).toHaveBeenCalledWith(CTRL_C_EXIT_CODE);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
+  });
+
+  it("Phase 2: error does not call s.error() on already-stopped spinner", async () => {
+    const spinner = makeSpinner();
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() => Promise.resolve("not-a-url")),
+      spinner,
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    // Spinner was stopped when entering Phase 2, so s.error() should NOT be called
+    expect(spinner.error).not.toHaveBeenCalled();
+    expect(deps.error).toHaveBeenCalledTimes(1);
+  });
+
+  it("Phase 2: paste with state mismatch — error handling", async () => {
+    const server = makeServer({
+      waitForCallback: mock(() => new Promise<{ apiKey: string }>(() => {})),
+    });
+    const deps = makeDeps({
+      startCallbackServer: mock(() => Promise.resolve(server)),
+      waitForKeypress: mock(() => Promise.resolve("enter" as const)),
+      text: mock(() =>
+        Promise.resolve(
+          "http://localhost:3000/callback?api_key=key_456&state=wrong_state"
+        )
+      ),
+    });
+
+    await executeLogin(mockCtx, deps);
+
+    expect(deps.error).toHaveBeenCalledTimes(1);
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.verifyApiKey).not.toHaveBeenCalled();
   });
 });
