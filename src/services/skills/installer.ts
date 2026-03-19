@@ -35,6 +35,14 @@ import type { TSkillSearchRow } from "./service";
 import { getSkillByName } from "./service";
 import { validateSkillName } from "./skill-name";
 
+const fetchSkillmd = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch SKILL.md from ${url}: ${response.status}`);
+  }
+  return response.text();
+};
+
 type TSkillManifest = Omit<TSkillSearchRow, "skillId" | "inputMetadata">;
 
 const exists = async (targetPath: string): Promise<boolean> => {
@@ -90,7 +98,8 @@ const installSkillCore = async (
   }
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
-  const { skillmd, inputMetadata, ...manifest } = response;
+  const { skillmdUrl, inputMetadata, ...manifest } = response;
+  const skillmd = await fetchSkillmd(skillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   if (isAlreadyInstalled) {
@@ -100,7 +109,7 @@ const installSkillCore = async (
   await mkdir(skillDir, { recursive: true });
   await writeJsonFile(path.join(skillDir, "manifest.json"), manifest);
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
-  await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd ?? "");
+  await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
 
   return {
     skillName: normalizedSkillName,
@@ -196,7 +205,7 @@ const updateSkillCore = async (
   }
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
-  const { skillmd, inputMetadata, ...latestManifest } = response;
+  const { skillmdUrl, inputMetadata, ...latestManifest } = response;
 
   const toVersion =
     typeof latestManifest.skillVersionId === "string"
@@ -212,13 +221,14 @@ const updateSkillCore = async (
     };
   }
 
+  const skillmd = await fetchSkillmd(skillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   await rm(skillDir, { recursive: true, force: true });
   await mkdir(skillDir, { recursive: true });
   await writeJsonFile(path.join(skillDir, "manifest.json"), latestManifest);
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
-  await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd ?? "");
+  await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
 
   return {
     skillName: normalizedSkillName,
