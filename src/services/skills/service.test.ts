@@ -122,7 +122,8 @@ describe("getSkillByName", () => {
       author: null,
       sample: { inputs: null, outputs: null },
       inputMetadata: { variables: {}, images: [] },
-      skillmd: "# React Hooks\n...",
+      skillmdUrl:
+        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
     };
 
     const apiClient = {
@@ -148,7 +149,8 @@ describe("getSkillByName", () => {
       author: null,
       sample: { inputs: null, outputs: null },
       inputMetadata: { variables: {}, images: [] },
-      skillmd: "# React Hooks\n...",
+      skillmdUrl:
+        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
     };
 
     const apiClient = {

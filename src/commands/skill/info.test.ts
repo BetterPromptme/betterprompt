@@ -15,7 +15,8 @@ const createDeps = (overrides: Partial<TSkillsDeps> = {}): TSkillsDeps => ({
     title: "React Hooks",
     description: "A guide to React hooks",
     name: "react-hooks",
-    skillmd: "# React Hooks",
+    skillmdUrl:
+      "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
   })),
   installSkill: mock(async () => ({
     skillName: "react-hooks",
@@ -76,7 +77,8 @@ describe("skills command", () => {
       title: "React Hooks",
       description: "A guide to React hooks",
       name: "react-hooks",
-      skillmd: "# React Hooks",
+      skillmdUrl:
+        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
     });
     expect(ctx.outputFormat).toBe("text");
   });
@@ -96,7 +98,8 @@ describe("skills command", () => {
       title: "React Hooks",
       description: "A guide to React hooks",
       name: "react-hooks",
-      skillmd: "# React Hooks",
+      skillmdUrl:
+        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
     });
     expect(ctx.outputFormat).toBe("json");
   });

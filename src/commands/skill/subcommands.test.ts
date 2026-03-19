@@ -74,7 +74,8 @@ const createDeps = (
     title: "React Hooks",
     description: "A guide to React hooks",
     name: "react-hooks",
-    skillmd: "# React Hooks",
+    skillmdUrl:
+      "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
   })),
   validateQuery: mock((query: string) => query.trim()),
   search: mock(async () => ({
