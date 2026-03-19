@@ -25,7 +25,7 @@ export type TSkillSearchRow = {
   inputMetadata: TInputMetadata;
 };
 
-export type TSkillDetail = TSkillSearchRow & { skillmd: string };
+export type TSkillDetail = TSkillSearchRow & { skillmdUrl: string };
 
 export type TSkillCommandDependencies = {
   getSkill: (skillName: string) => Promise<unknown>;
