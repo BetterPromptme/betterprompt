@@ -60,6 +60,7 @@ src/
     outputs/
     resources/
     skills/
+    telemetry/
     run/
     scope/
     bootstrap/
@@ -75,6 +76,7 @@ src/
     context.d.ts
     error-ux.d.ts
     login.d.ts
+    telemetry.d.ts
     *.d.ts
 tsconfig.json
 package.json
@@ -235,6 +237,9 @@ Current files:
 - `README.md`: CLI usage and behavior docs.
 - `install.sh`: standalone binary installer (macOS/Linux) via GitHub Releases.
 - `specs/DIRECTORY-LAYOUT.md`: canonical `~/.betterprompt` and project-local directory layout spec.
+- `specs/COMMAND-SET.md`: canonical CLI command syntax, flags, and examples.
+
+**Specs maintenance:** When making changes that affect the CLI surface (commands, flags, config keys, directory layout), the agent MUST update the corresponding files in `specs/` to keep them in sync with the implementation.
 
 ## `~/.betterprompt` Directory Layout
 
