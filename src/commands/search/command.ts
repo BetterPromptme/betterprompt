@@ -1,12 +1,18 @@
 import logSymbols from "log-symbols";
 
-import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../../constants";
+import {
+  SEARCH_COMMAND,
+  SEARCH_MESSAGES,
+  SKILL_TYPES,
+  TELEMETRY_EVENTS,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import {
   searchSkills,
   validateSearchQuery,
 } from "../../services/skills/service";
+import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TSearchCommandDependencies,
@@ -69,7 +75,13 @@ export const createSearchCommand = (
           args[SEARCH_COMMAND.arguments.query.name] as string
         );
         const filters = buildSearchFilters(opts);
-        return deps.search(query, filters);
+        const result = await deps.search(query, filters);
+        void track({
+          event: TELEMETRY_EVENTS.search,
+          query,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        });
+        return result;
       },
     },
     factoryDeps

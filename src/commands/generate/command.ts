@@ -1,4 +1,8 @@
-import { GENERATE_COMMAND, GENERATE_MESSAGES } from "../../constants";
+import {
+  GENERATE_COMMAND,
+  GENERATE_MESSAGES,
+  TELEMETRY_EVENTS,
+} from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
 import { buildGenerateOptions } from "../../services/generate/parsers";
@@ -6,6 +10,7 @@ import {
   createDefaultGenerateDependencies,
   executeGenerate,
 } from "../../services/generate/service";
+import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TGenerateCommandDependencies,
@@ -79,7 +84,19 @@ export const createGenerateCommand = (
                 helpText: cmd.helpInformation(),
                 deps,
               });
+              void track({
+                event: TELEMETRY_EVENTS.generate,
+                skillSlug: skillVersionId,
+                model: opts.model as string | undefined,
+                success: true,
+              });
             } catch (error) {
+              void track({
+                event: TELEMETRY_EVENTS.generate,
+                skillSlug: skillVersionId,
+                model: opts.model as string | undefined,
+                success: false,
+              });
               const message =
                 error instanceof Error ? error.message : String(error);
               deps.error(message);

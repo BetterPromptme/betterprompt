@@ -4,8 +4,10 @@ import {
   SKILL_TYPES,
   SKILLS_COMMAND,
   SKILLS_MESSAGES,
+  TELEMETRY_EVENTS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
+import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSearchFilters } from "../../../types/search";
 import type { TSkillCommandDependencies } from "../types";
@@ -58,7 +60,13 @@ export const createSkillSearchSubcommand = (
         ] as string;
         const normalizedQuery = deps.validateQuery(query);
         const filters = buildSearchFilters(opts);
-        return deps.search(normalizedQuery, filters);
+        const result = await deps.search(normalizedQuery, filters);
+        void track({
+          event: TELEMETRY_EVENTS.skillSearch,
+          query: normalizedQuery,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        });
+        return result;
       },
     },
     factoryDeps
