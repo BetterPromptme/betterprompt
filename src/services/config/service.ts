@@ -62,10 +62,12 @@ const sanitizeConfig = (
     changed = true;
   }
 
+  const telemetry =
+    typeof value.telemetry === "boolean" ? value.telemetry : undefined;
+
   if (
     "default_output_format" in value ||
     "cache_ttl_seconds" in value ||
-    "telemetry" in value ||
     "skillsDir" in value ||
     "skills_dir" in value
   ) {
@@ -75,6 +77,7 @@ const sanitizeConfig = (
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
+    ...(telemetry !== undefined && { telemetry }),
   };
 
   return { config, changed };
@@ -190,6 +193,11 @@ export const getSystemConfigValue = async (
   if (key === "apiBaseUrl") {
     return config.apiBaseUrl;
   }
+  if (key === "telemetry") {
+    return config.telemetry === undefined
+      ? undefined
+      : String(config.telemetry);
+  }
   return undefined;
 };
 
@@ -213,6 +221,15 @@ export const setSystemConfigValue = async (
     nextConfig.apiBaseUrl = normalizeApiBaseUrl(value);
   }
 
+  if (key === "telemetry") {
+    if (value !== "true" && value !== "false") {
+      throw new Error(
+        `Invalid value "${value}" for telemetry. Expected "true" or "false".`
+      );
+    }
+    nextConfig.telemetry = value === "true";
+  }
+
   await writeSystemConfig(configPath, nextConfig);
   loadedSystemConfig = nextConfig;
   return configPath;
@@ -227,15 +244,29 @@ export const unsetSystemConfigValue = async (
       `Cannot unset "${key}" via system config. API keys are stored in auth.json.`
     );
   }
-  if (key !== "apiBaseUrl") {
+  if (key !== "apiBaseUrl" && key !== "telemetry") {
     throw new Error(
-      `Cannot unset "${key}" via system config. Only "apiBaseUrl" can be unset.`
+      `Cannot unset "${key}" via system config. Only "apiBaseUrl" and "telemetry" can be unset.`
     );
   }
 
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
   const existing = await loadOrInitConfig({ ...options, configPath });
+
+  if (key === "telemetry") {
+    if (existing.telemetry === undefined) {
+      throw new Error(`${key} is not set in config.json.`);
+    }
+    const nextConfig: TSystemConfig = {
+      version: existing.version,
+      ...(existing.apiBaseUrl && { apiBaseUrl: existing.apiBaseUrl }),
+    };
+    await writeSystemConfig(configPath, nextConfig);
+    loadedSystemConfig = nextConfig;
+    return configPath;
+  }
+
   const currentValue = existing.apiBaseUrl;
 
   if (
@@ -248,6 +279,7 @@ export const unsetSystemConfigValue = async (
 
   const nextConfig: TSystemConfig = {
     version: existing.version,
+    ...(existing.telemetry !== undefined && { telemetry: existing.telemetry }),
   };
 
   await writeSystemConfig(configPath, nextConfig);
