@@ -43,7 +43,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "[key]",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
       },
       flags: {
@@ -56,7 +56,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "<key>",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
         value: {
           name: "<value>",
@@ -73,7 +73,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "<key>",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
       },
       flags: {
@@ -92,9 +92,11 @@ Examples:
   $ betterprompt config set apiKey bp_live_123
   $ betterprompt config get apiBaseUrl
   $ betterprompt config set apiBaseUrl https://betterprompt.me/api
+  $ betterprompt config get telemetry
+  $ betterprompt config set telemetry false
 `,
   invalidKeyError: (key: string) =>
-    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl.`,
+    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl, telemetry.`,
   missingValueError: (key: string) => `${key} is not set in config.json.`,
   savedSuccess: "Config updated successfully.",
   failedPrefix: "Config command failed:",
