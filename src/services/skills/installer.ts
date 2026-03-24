@@ -43,7 +43,7 @@ const fetchSkillmd = async (url: string): Promise<string> => {
   return response.text();
 };
 
-type TSkillManifest = Omit<TSkillSearchRow, "skillId" | "inputMetadata">;
+type TSkillManifest = Omit<TSkillSearchRow, "skillId">;
 
 const exists = async (targetPath: string): Promise<boolean> => {
   try {
@@ -98,8 +98,8 @@ const installSkillCore = async (
   }
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
-  const { skillmdUrl, inputMetadata, ...manifest } = response;
-  const skillmd = await fetchSkillmd(skillmdUrl);
+  const { inputMetadata, ...manifest } = response;
+  const skillmd = await fetchSkillmd(manifest.metadata.skillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   if (isAlreadyInstalled) {
@@ -163,9 +163,9 @@ const listSkillsCore = async (
       skills.push({
         name: entry.name,
         title: typeof manifest.title === "string" ? manifest.title : undefined,
-        version:
-          typeof manifest.skillVersionId === "string"
-            ? manifest.skillVersionId
+        skillmdUrl:
+          typeof manifest.metadata?.skillmdUrl === "string"
+            ? manifest.metadata.skillmdUrl
             : undefined,
       });
     } catch {
@@ -197,19 +197,19 @@ const updateSkillCore = async (
     const raw = await readFile(path.join(skillDir, "manifest.json"), "utf8");
     const manifest = JSON.parse(raw) as TSkillManifest;
     fromVersion =
-      typeof manifest.skillVersionId === "string"
-        ? manifest.skillVersionId
+      typeof manifest.latestPromptVersionId === "string"
+        ? manifest.latestPromptVersionId
         : undefined;
   } catch {
     fromVersion = undefined;
   }
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
-  const { skillmdUrl, inputMetadata, ...latestManifest } = response;
+  const { inputMetadata, ...latestManifest } = response;
 
   const toVersion =
-    typeof latestManifest.skillVersionId === "string"
-      ? latestManifest.skillVersionId
+    typeof latestManifest.latestPromptVersionId === "string"
+      ? latestManifest.latestPromptVersionId
       : "latest";
 
   if (fromVersion === toVersion && !options.force) {
@@ -221,7 +221,7 @@ const updateSkillCore = async (
     };
   }
 
-  const skillmd = await fetchSkillmd(skillmdUrl);
+  const skillmd = await fetchSkillmd(latestManifest.metadata.skillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   await rm(skillDir, { recursive: true, force: true });
