@@ -79,26 +79,26 @@ betterprompt skill info <skill-slug> --json
 Run a skill to generate output:
 
 ```sh
-betterprompt generate <skillVersionId> [input flags] [--model <model>] [--options <json>] [--json]
+betterprompt generate <skill-slug> [input flags] [--model <model>] [--options <json>] [--json]
 ```
 
 Input methods (use the one that matches the skill's input contract):
 
 ```sh
 # Key-value pairs (repeatable)
-betterprompt generate <skillVersionId> --input key=value --input key2=value2
+betterprompt generate <skill-slug> --input key=value --input key2=value2
 
 # Image via URL
-betterprompt generate <skillVersionId> --image-input-url <url>
+betterprompt generate <skill-slug> --image-input-url <url>
 
 # Image via base64
-betterprompt generate <skillVersionId> --image-input-base64 <base64string>
+betterprompt generate <skill-slug> --image-input-base64 <base64string>
 
 # JSON payload (all inputs as a single JSON object)
-betterprompt generate <skillVersionId> --input-payload '{"key": "value"}'
+betterprompt generate <skill-slug> --input-payload '{"key": "value"}'
 
 # Stdin pipe
-echo "input text" | betterprompt generate <skillVersionId> --stdin
+echo "input text" | betterprompt generate <skill-slug> --stdin
 ```
 
 Flags:
@@ -366,16 +366,16 @@ Run all `betterprompt` commands via the **Bash tool**. Use `--json` where possib
 
 ```sh
 betterprompt skill search "<user task>" --json        # find candidates
-betterprompt skill info <skill-slug> --json           # inspect inputs, output type, skillVersionId
+betterprompt skill info <skill-slug> --json           # inspect inputs, output type
 ```
 
 ### Generation Workflow
 
-1. Read `betterprompt skill info <skill-slug> --json` output to confirm: `skillVersionId`, required inputs, output type
+1. Read `betterprompt skill info <skill-slug> --json` output to confirm: required inputs, output type
 2. Build the generate command from the skill's input contract:
 
 ```sh
-betterprompt generate <skillVersionId> --input key=value --json
+betterprompt generate <skill-slug> --input key=value --json
 ```
 
 3. Capture `runId` from the JSON response for async output retrieval:
@@ -393,7 +393,7 @@ betterprompt outputs list --json                      # list past outputs
 
 ### Rules
 
-- Always call `betterprompt skill info` before `betterprompt generate` — never guess `skillVersionId` or input names
+- Always call `betterprompt skill info` before `betterprompt generate` — never guess input names
 - Use `--json` for all commands where structured parsing is needed
 - For `--input-payload` or `--options`, build JSON via a variable or temp file; never concatenate raw user input into shell strings
 - On error, retry once if the failure looks transient; otherwise surface the error message directly

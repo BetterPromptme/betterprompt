@@ -214,7 +214,7 @@ This is the core command for running prompts and producing outputs.
 ### Generate output from a prompt
 
 ```bash
-bp generate <skillVersionId> \
+bp generate <skill-slug> \
   [--input <key=value> ...] \
   [--input-payload <json>] \
   [--image-input-url <url> ...] \
@@ -228,7 +228,7 @@ bp generate <skillVersionId> \
 Examples:
 
 ```bash
-bp generate skill-version-123 \
+bp generate seo-blog-writer \
   --input-payload '{"textInputs":{"topic":"best ai prompt tools"}}' \
   --input topic="best ai prompt tools" \
   --input audience="marketers" \
@@ -237,13 +237,13 @@ bp generate skill-version-123 \
   --image-input-base64 "<base64-image-data>" \
   --options '{"reasoningEffort":"high","quality":"hd"}'
 
-cat input.json | bp generate skill-version-123 --stdin --json
+cat input.json | bp generate seo-blog-writer --stdin --json
 ```
 
 Notes:
 
-- `<skillVersionId>` is required for `generate`.
-- Internally, `createRun` still sends this value using the payload key `promptVersionId`.
+- `<skill-slug>` is required for `generate`. The skill must be installed locally.
+- Internally, the CLI resolves the slug to a `promptVersionId` from the installed skill's manifest and sends it to the API.
 - `--options <json>` accepts a JSON object and maps to the `runOptions` payload field.
 - `--input-payload <json>` accepts a JSON object shaped like `TRunInputs` and maps to `inputs`.
 - `--input-payload` is mutually exclusive with `--input`, `--image-input-url`, `--image-input-base64`, and `--stdin`.
