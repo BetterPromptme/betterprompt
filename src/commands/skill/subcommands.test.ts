@@ -25,7 +25,7 @@ type TSkillListOptions = {
 type TSkillSummary = {
   name: string;
   title?: string;
-  version?: string;
+  skillmdUrl?: string;
 };
 
 type TSkillUpdateResult = {

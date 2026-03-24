@@ -20,6 +20,7 @@ const createDeps = (overrides = {}) =>
       type: "project" as const,
       rootDir: "/tmp/.betterprompt",
     })),
+    resolvePromptVersionId: mock(() => Promise.resolve("skill-version-123")),
     persistRunOutput: mock(async () => ({
       outputDir: "/tmp/.betterprompt/outputs/2026/03/run-123",
       historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
