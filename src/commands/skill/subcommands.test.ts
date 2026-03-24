@@ -680,12 +680,10 @@ describe("skill update command", () => {
     const [updateData, updateCtx] = (
       factory.printResult as ReturnType<typeof mock>
     ).mock.calls[0] as [unknown, { outputFormat: string }];
-    expect(updateData).toEqual({
-      skillName: "react-hooks",
-      updated: true,
-      from: "c776916",
-      to: "a1b2c3d",
-    });
+    expect(updateData).toContain("react-hooks");
+    expect(updateData).toContain("updated");
+    expect(updateData).toContain("c776916");
+    expect(updateData).toContain("a1b2c3d");
     expect(updateCtx.outputFormat).toBe("text");
   });
 
@@ -706,10 +704,8 @@ describe("skill update command", () => {
     expect(factory.printResult).toHaveBeenCalled();
     const [noopData] = (factory.printResult as ReturnType<typeof mock>).mock
       .calls[0] as [unknown, { outputFormat: string }];
-    expect(noopData).toEqual({
-      skillName: "react-hooks",
-      updated: false,
-    });
+    expect(noopData).toContain("react-hooks");
+    expect(noopData).toContain("up to date");
   });
 
   it("forwards --force flag to updateSkill", async () => {
