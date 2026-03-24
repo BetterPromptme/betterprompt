@@ -37,7 +37,7 @@ export type TListSkillsOptions = {
 export type TSkillSummary = {
   name: string;
   title?: string;
-  version?: string;
+  skillmdUrl?: string;
 };
 
 export type TListSkillsResult = TSkillSummary[];

@@ -19,13 +19,15 @@ export type TSkillSearchRow = {
     outputs: unknown;
   };
   skillId: string;
-  skillVersionId: string;
+  latestPromptVersionId: string;
+  metadata: { skillmdUrl: string };
   title: string;
   name: string;
-  inputMetadata: TInputMetadata;
 };
 
-export type TSkillDetail = TSkillSearchRow & { skillmdUrl: string };
+export type TSkillDetail = TSkillSearchRow & {
+  inputMetadata: TInputMetadata;
+};
 
 export type TSkillCommandDependencies = {
   getSkill: (skillName: string) => Promise<unknown>;
