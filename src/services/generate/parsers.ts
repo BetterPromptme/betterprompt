@@ -116,7 +116,7 @@ export const buildGenerateOptions = (
 });
 
 export const buildRunPayload = ({
-  skillVersionId,
+  promptVersionId,
   options,
   stdinInputs,
 }: TBuildRunPayloadArgs): TRunPayload => {
@@ -125,7 +125,7 @@ export const buildRunPayload = ({
   const inputs = mergeRunInputs(sourceInputs, options);
 
   return {
-    promptVersionId: skillVersionId,
+    promptVersionId,
     inputs,
     ...(options.model !== undefined && { runModel: options.model }),
     ...(runOptions !== undefined && { runOptions }),

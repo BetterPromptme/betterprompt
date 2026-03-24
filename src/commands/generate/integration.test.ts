@@ -19,6 +19,7 @@ const createDeps = (overrides = {}) =>
       type: "project" as const,
       rootDir: "/tmp/.betterprompt",
     })),
+    resolvePromptVersionId: mock(() => Promise.resolve("skill-version-123")),
     persistRunOutput: mock(async () => ({
       outputDir: "/tmp/.betterprompt/outputs/2026/03/run-123",
       historyFilePath: "/tmp/.betterprompt/outputs/history.jsonl",
@@ -63,15 +64,14 @@ const getGenerateInvocation = (deps: ReturnType<typeof createDeps>) => {
 };
 
 describe("generate command", () => {
-  it("includes help hints for finding skillVersionId", () => {
+  it("includes skill-slug argument in help and does not reference skillVersionId", () => {
     const deps = createDeps();
     const command = createGenerateCommand(deps);
     const help = command.helpInformation();
     const normalizedHelp = help.replace(/\s+/g, " ");
 
-    expect(normalizedHelp).toContain("Get <skillVersionId> via");
-    expect(normalizedHelp).toContain("bp skill list");
-    expect(normalizedHelp).toContain("bp skill info <skill-slug>");
+    expect(normalizedHelp).not.toContain("skillVersionId");
+    expect(normalizedHelp).toContain("skill-slug");
   });
 
   it("does not expose the removed --interactive flag in help", () => {
@@ -102,10 +102,10 @@ describe("generate command", () => {
     expect(formatted).toBe(message);
   });
 
-  it("accepts <skillVersionId> argument", async () => {
+  it("accepts <skill-slug> argument and resolves to promptVersionId", async () => {
     const deps = createDeps();
 
-    await runGenerate(["skill-version-123"], deps);
+    await runGenerate(["seo-blog-writer"], deps);
 
     const invocation = getGenerateInvocation(deps);
     expect(invocation).toMatchObject({
@@ -492,7 +492,7 @@ describe("generate command", () => {
       expect.objectContaining({
         scope: { type: "project", rootDir: "/tmp/.betterprompt" },
         runId: "run-123",
-        skillVersionId: "skill-version-123",
+        skillSlug: "skill-version-123",
         request: {
           promptVersionId: "skill-version-123",
           inputs: { textInputs: {} },
@@ -593,7 +593,6 @@ describe("generate command", () => {
 
     await runGenerate(["skill-version-123"], deps);
 
-    expect(deps.resolveScope).not.toHaveBeenCalled();
     expect(deps.persistRunOutput).not.toHaveBeenCalled();
   });
 

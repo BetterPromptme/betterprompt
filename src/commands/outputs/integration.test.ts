@@ -160,7 +160,7 @@ describe("outputs command", () => {
       expect.objectContaining({
         scope: { type: "project", rootDir: "/tmp/.betterprompt" },
         runId: "run-image",
-        skillVersionId: "skill-version-789",
+        skillSlug: "skill-version-789",
       })
     );
     expect(deps.persistRunOutput).toHaveBeenCalledWith(
@@ -303,7 +303,7 @@ describe("outputs list command", () => {
       readHistoryEntries: mock(async () => [
         {
           runId: "run-1",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.SUCCEEDED,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputPath: "/tmp/outputs/run-1",
@@ -417,7 +417,7 @@ describe("outputs list command", () => {
     const readHistoryEntries = mock(async () => [
       {
         runId: "run-7",
-        skillVersionId: "caption-generator",
+        skillSlug: "caption-generator",
         runStatus: RunStatus.SUCCEEDED,
         persistedAt: "2026-03-04T11:00:00.000Z",
         outputPath: "/tmp/outputs/2026/03/output_run-7",
@@ -441,7 +441,7 @@ describe("outputs list command", () => {
       rows: [
         {
           runId: "run-7",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T11:00:00.000Z",
           localOutputPath: "/tmp/outputs/2026/03/output_run-7",
@@ -456,7 +456,7 @@ describe("outputs list command", () => {
       readHistoryEntries: mock(async () => [
         {
           runId: "run-11",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T10:30:00.000Z",
           persistedAt: "2026-03-04T11:00:00.000Z",
@@ -477,7 +477,7 @@ describe("outputs list command", () => {
       rows: [
         {
           runId: "run-11",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.SUCCEEDED,
           createdAt: "2026-03-04T10:30:00.000Z",
           localOutputPath: "/tmp/local/run-11",
@@ -492,7 +492,7 @@ describe("outputs list command", () => {
       readHistoryEntries: mock(async () => [
         {
           runId: "run-10",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.RUNNING,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputPath: "/tmp/local/run-10",
@@ -504,7 +504,7 @@ describe("outputs list command", () => {
     await runOutputsList([], deps, factory);
 
     expect(factory.printResult).toHaveBeenCalledWith(
-      expect.stringMatching(/RUN ID\s+SKILL VERSION ID\s+STATUS\s+CREATED AT/i),
+      expect.stringMatching(/RUN ID\s+SKILL\s+STATUS\s+CREATED AT/i),
       expect.objectContaining({ outputFormat: "text" })
     );
   });
@@ -515,7 +515,7 @@ describe("outputs list command", () => {
       readHistoryEntries: mock(async () => [
         {
           runId: "run-local",
-          skillVersionId: "caption-generator",
+          skillSlug: "caption-generator",
           runStatus: RunStatus.SUCCEEDED,
           persistedAt: "2026-03-04T11:00:00.000Z",
           outputDir: "outputs/run-local",

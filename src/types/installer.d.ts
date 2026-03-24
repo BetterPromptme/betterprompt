@@ -37,7 +37,7 @@ export type TListSkillsOptions = {
 export type TSkillSummary = {
   name: string;
   title?: string;
-  version?: string;
+  skillmdUrl?: string;
 };
 
 export type TListSkillsResult = TSkillSummary[];
@@ -50,9 +50,9 @@ export type TUpdateSkillOptions = {
 
 export type TUpdateSkillResult = {
   skillName: string;
-  fromVersion: string | undefined;
-  toVersion: string;
   updated: boolean;
+  from?: string;
+  to?: string;
 };
 
 export type TUpdateAllSkillsOptions = {

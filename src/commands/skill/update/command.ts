@@ -4,8 +4,27 @@ import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
+import type { TUpdateSkillResult } from "../../../types/installer";
 import type { TSkillCommandDependencies } from "../types";
 import type { TSkillUpdateCommandOptions } from "./types";
+
+const formatUpdateResult = (result: TUpdateSkillResult): string => {
+  if (!result.updated) {
+    return `${logSymbols.success} ${result.skillName} — up to date`;
+  }
+  const sha =
+    result.from && result.to ? ` (${result.from} → ${result.to})` : "";
+  return `${logSymbols.success} ${result.skillName} — updated${sha}`;
+};
+
+const formatUpdateResults = (
+  results: TUpdateSkillResult | TUpdateSkillResult[]
+): string => {
+  if (Array.isArray(results)) {
+    return results.map(formatUpdateResult).join("\n");
+  }
+  return formatUpdateResult(results);
+};
 
 export const createSkillUpdateSubcommand = (
   deps: TSkillCommandDependencies,
@@ -28,6 +47,10 @@ export const createSkillUpdateSubcommand = (
         json: SKILLS_COMMAND.subcommands.update.flags.json,
       },
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      formatText: (result) =>
+        formatUpdateResults(
+          result as TUpdateSkillResult | TUpdateSkillResult[]
+        ),
       validate: ({ opts, args }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name

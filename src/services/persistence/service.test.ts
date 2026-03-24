@@ -35,9 +35,9 @@ const createPersistArgs = (rootDir: string): TPersistRunOutputArgs => ({
   },
   now: new Date("2026-03-04T12:00:00.000Z"),
   runId: "run_abc123",
-  skillVersionId: "skill-version-123",
+  skillSlug: "skill-version-123",
   request: {
-    skillVersionId: "skill-version-123",
+    skillSlug: "skill-version-123",
     input: ["topic=agentic-ai"],
     model: "gpt-5",
     saveRun: true,
@@ -115,13 +115,13 @@ describe("persistRunOutput", () => {
 
     expect(first).toMatchObject({
       runId: "run_abc123",
-      skillVersionId: "skill-version-123",
+      skillSlug: "skill-version-123",
       createdAt: "2026-03-04T11:59:00.000Z",
       outputDir: path.join("outputs", "run_abc123"),
     });
     expect(latest).toMatchObject({
       runId: "run_def456",
-      skillVersionId: "skill-version-123",
+      skillSlug: "skill-version-123",
       createdAt: "2026-03-04T12:00:00.000Z",
       outputDir: path.join("outputs", "run_def456"),
     });

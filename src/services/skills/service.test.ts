@@ -34,13 +34,13 @@ describe("skills core", () => {
     const rows = [
       {
         skillId: "abc123",
-        skillVersionId: "1.0.0",
+        latestPromptVersionId: "1.0.0",
         title: "React Hooks",
         description: "A guide to React hooks",
         name: "react-hooks",
         author: null,
         sample: { inputs: null, outputs: null },
-        inputMetadata: { variables: {}, images: [] },
+        metadata: { skillmdUrl: "https://example.com/SKILL.md" },
       },
     ];
 
@@ -115,15 +115,17 @@ describe("getSkillByName", () => {
   it("calls api client get with the skill name", async () => {
     const skillDetail = {
       skillId: "abc123",
-      skillVersionId: "1.0.0",
+      latestPromptVersionId: "1.0.0",
       title: "React Hooks",
       description: "A guide to React hooks",
       name: "react-hooks",
       author: null,
       sample: { inputs: null, outputs: null },
       inputMetadata: { variables: {}, images: [] },
-      skillmdUrl:
-        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
+      metadata: {
+        skillmdUrl:
+          "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
+      },
     };
 
     const apiClient = {
@@ -142,15 +144,17 @@ describe("getSkillByName", () => {
   it("trims surrounding whitespace from skill name before api request", async () => {
     const skillDetail = {
       skillId: "abc123",
-      skillVersionId: "1.0.0",
+      latestPromptVersionId: "1.0.0",
       title: "React Hooks",
       description: "A guide to React hooks",
       name: "react-hooks",
       author: null,
       sample: { inputs: null, outputs: null },
       inputMetadata: { variables: {}, images: [] },
-      skillmdUrl:
-        "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
+      metadata: {
+        skillmdUrl:
+          "https://raw.githubusercontent.com/org/repo/abc123/skills/react-hooks/SKILL.md",
+      },
     };
 
     const apiClient = {

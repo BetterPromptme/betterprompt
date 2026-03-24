@@ -97,7 +97,7 @@ export const createDefaultOutputsCommandDependencies =
       return (
         response.data?.rows.map((row) => ({
           runId: row.runId,
-          skillVersionId: row.promptVersionId,
+          skillSlug: row.promptVersionId,
           runStatus: row.runStatus,
           createdAt: row.createdAt,
         })) ?? []
@@ -167,10 +167,9 @@ const localHistoryEntryToRow = (
 
   return {
     runId: entry.runId,
-    skillVersionId:
-      typeof entry.skillVersionId === "string" &&
-      entry.skillVersionId.length > 0
-        ? entry.skillVersionId
+    skillSlug:
+      typeof entry.skillSlug === "string" && entry.skillSlug.length > 0
+        ? entry.skillSlug
         : "-",
     runStatus,
     createdAt:
@@ -262,10 +261,10 @@ const padCell = (value: string, width: number): string =>
   value.length >= width ? value : value.padEnd(width, " ");
 
 export const formatTable = (rows: TOutputListRow[]): string => {
-  const headers = ["RUN ID", "SKILL VERSION ID", "STATUS", "CREATED AT"];
+  const headers = ["RUN ID", "SKILL", "STATUS", "CREATED AT"];
   const values = rows.map((row) => [
     row.runId,
-    row.skillVersionId,
+    row.skillSlug,
     row.runStatus,
     row.createdAt,
   ]);
@@ -346,7 +345,7 @@ export const fetchOutputRun = async (
     await deps.persistRunOutput({
       scope,
       runId: run.runId,
-      skillVersionId:
+      skillSlug:
         typeof run.promptVersionId === "string" &&
         run.promptVersionId.length > 0
           ? run.promptVersionId

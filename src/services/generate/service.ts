@@ -11,6 +11,7 @@ import { printResult } from "../output/service";
 import { persistRunOutput } from "../persistence/service";
 import { createRun, parseInputsJson } from "../run/service";
 import { resolveScope } from "../scope/service";
+import { resolvePromptVersionId } from "../skills/resolver";
 import { buildRunPayload, validateGenerateOptions } from "./parsers";
 import { formatPartForTextOutput, isRunResult } from "./presenters";
 
@@ -41,6 +42,7 @@ export const createDefaultGenerateDependencies =
     readStdin,
     isStdinTTY: () => process.stdin.isTTY === true,
     resolveScope,
+    resolvePromptVersionId,
     persistRunOutput,
     printResult: (data, ctx) => printResult(data, ctx),
     error: (message) => {
@@ -56,10 +58,16 @@ export const executeGenerate = async ({
   deps,
   helpText,
   options,
-  skillVersionId,
+  skillSlug,
 }: TExecuteGenerateArgs): Promise<void> => {
   try {
     validateGenerateOptions(options);
+
+    const scope = await deps.resolveScope(ctx);
+    const promptVersionId = await deps.resolvePromptVersionId(
+      skillSlug,
+      scope.rootDir
+    );
 
     let stdinInputs;
     if (options.stdin === true) {
@@ -71,7 +79,7 @@ export const executeGenerate = async ({
     }
 
     const payload = buildRunPayload({
-      skillVersionId,
+      promptVersionId,
       options,
       stdinInputs,
     });
@@ -84,11 +92,10 @@ export const executeGenerate = async ({
     });
 
     if (isRunResult(result)) {
-      const scope = await deps.resolveScope(ctx);
       await deps.persistRunOutput({
         scope,
         runId: result.runId,
-        skillVersionId,
+        skillSlug,
         request: payload,
         response: result,
         metadata: {

@@ -54,11 +54,10 @@ betterprompt skill info seo-blog-writer
 betterprompt skill install seo-blog-writer --project
 ```
 
-4. Get the skill version ID and generate output:
+4. Generate output using the installed skill:
 
 ```bash
-betterprompt skill list --json
-betterprompt generate <skillVersionId> \
+betterprompt generate seo-blog-writer \
   --input topic="best ai prompt tools" \
   --input audience="marketers"
 ```
@@ -157,10 +156,10 @@ betterprompt skill update seo-blog-writer --force
 
 ### Generate
 
-Generate output from an installed skill. Get the `<skillVersionId>` via `betterprompt skill list --json` or `betterprompt skill info <skill-slug> --json`.
+Generate output from an installed skill.
 
 ```bash
-betterprompt generate <skillVersionId> \
+betterprompt generate <skill-slug> \
   [--input <key=value>]... \
   [--image-input-url <url>]... \
   [--image-input-base64 <base64>]... \

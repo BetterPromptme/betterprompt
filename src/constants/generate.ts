@@ -2,12 +2,11 @@ import { SHARED_FLAGS } from "./shared-flags";
 
 export const GENERATE_COMMAND = {
   name: "generate",
-  description:
-    'Generate output from an installed skill. Get <skillVersionId> via "bp skill list" or "bp skill info <skill-slug>".',
+  description: "Generate output from an installed skill.",
   arguments: {
-    skillVersionId: {
-      name: "<skillVersionId>",
-      description: "Skill version ID to run",
+    skillSlug: {
+      name: "<skill-slug>",
+      description: "Installed skill name (slug) to generate output from",
     },
   },
   flags: {

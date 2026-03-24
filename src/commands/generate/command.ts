@@ -42,8 +42,8 @@ export const createGenerateCommand = (
       },
       arguments: [
         {
-          name: GENERATE_COMMAND.arguments.skillVersionId.name,
-          description: GENERATE_COMMAND.arguments.skillVersionId.description,
+          name: GENERATE_COMMAND.arguments.skillSlug.name,
+          description: GENERATE_COMMAND.arguments.skillSlug.description,
         },
       ],
       flags: {
@@ -70,14 +70,10 @@ export const createGenerateCommand = (
       },
       customAction: (cmd, _factoryDeps) => {
         cmd.action(
-          async (
-            skillVersionId: string,
-            opts: TGenerateCommandOptions,
-            command
-          ) => {
+          async (skillSlug: string, opts: TGenerateCommandOptions, command) => {
             try {
               await executeGenerate({
-                skillVersionId,
+                skillSlug,
                 options: buildGenerateOptions(opts),
                 ctx: getCommandContext(command),
                 helpText: cmd.helpInformation(),

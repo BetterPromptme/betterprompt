@@ -3,7 +3,7 @@ import type { TResolvedScope } from "./scope";
 
 export type THistoryEntry = {
   runId: string;
-  skillVersionId: string;
+  skillSlug: string;
   runStatus: string;
   createdAt: string;
   persistedAt: string;
@@ -14,7 +14,7 @@ export type TPersistRunOutputArgs = {
   scope: TResolvedScope;
   now?: Date;
   runId: string;
-  skillVersionId: string;
+  skillSlug: string;
   request: unknown;
   response: {
     runId: string;

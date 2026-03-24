@@ -63,14 +63,14 @@ export type TOutputListFilters = {
 
 export type TOutputListItem = {
   runId: string;
-  skillVersionId: string;
+  skillSlug: string;
   runStatus: RunStatus;
   createdAt: string;
 };
 
 export type TOutputHistoryEntry = {
   runId: string;
-  skillVersionId?: string;
+  skillSlug?: string;
   runStatus?: string;
   createdAt?: string;
   persistedAt?: string;
