@@ -151,7 +151,7 @@ export const persistRunOutput = async (
   );
   const historyEntry: THistoryEntry = {
     runId: args.runId,
-    skillVersionId: args.skillVersionId,
+    skillSlug: args.skillSlug,
     runStatus: args.response.runStatus,
     createdAt:
       typeof args.response.createdAt === "string" &&
