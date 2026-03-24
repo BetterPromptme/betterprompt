@@ -50,9 +50,9 @@ export type TUpdateSkillOptions = {
 
 export type TUpdateSkillResult = {
   skillName: string;
-  fromVersion: string | undefined;
-  toVersion: string;
   updated: boolean;
+  from?: string;
+  to?: string;
 };
 
 export type TUpdateAllSkillsOptions = {

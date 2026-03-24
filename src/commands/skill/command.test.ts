@@ -19,9 +19,9 @@ const createDeps = (overrides: Partial<TSkillDeps> = {}): TSkillDeps => ({
   listSkills: mock(async () => []),
   updateSkill: mock(async () => ({
     skillName: "react-hooks",
-    fromVersion: "1.0.0",
-    toVersion: "2.0.0",
     updated: true,
+    from: "c776916",
+    to: "a1b2c3d",
   })),
   updateAllSkills: mock(async () => []),
   validateQuery: mock((query: string) => query.trim()),

@@ -37,8 +37,6 @@ const createSkillDeps = (searchDeps: TSearchDeps): TSkillDeps => ({
   listSkills: mock(async () => []),
   updateSkill: mock(async () => ({
     skillName: "",
-    fromVersion: undefined,
-    toVersion: "",
     updated: false,
   })),
   updateAllSkills: mock(async () => []),

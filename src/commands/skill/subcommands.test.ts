@@ -30,9 +30,9 @@ type TSkillSummary = {
 
 type TSkillUpdateResult = {
   skillName: string;
-  fromVersion: string | undefined;
-  toVersion: string;
   updated: boolean;
+  from?: string;
+  to?: string;
 };
 
 type TSkillUpdateOptions = {
@@ -92,16 +92,16 @@ const createDeps = (
   listSkills: mock(async () => []),
   updateSkill: mock(async () => ({
     skillName: "react-hooks",
-    fromVersion: "1.0.0",
-    toVersion: "2.0.0",
     updated: true,
+    from: "c776916",
+    to: "a1b2c3d",
   })),
   updateAllSkills: mock(async () => [
     {
       skillName: "react-hooks",
-      fromVersion: "1.0.0",
-      toVersion: "2.0.0",
       updated: true,
+      from: "c776916",
+      to: "a1b2c3d",
     },
   ]),
   ...overrides,
@@ -682,9 +682,9 @@ describe("skill update command", () => {
     ).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(updateData).toEqual({
       skillName: "react-hooks",
-      fromVersion: "1.0.0",
-      toVersion: "2.0.0",
       updated: true,
+      from: "c776916",
+      to: "a1b2c3d",
     });
     expect(updateCtx.outputFormat).toBe("text");
   });
@@ -693,8 +693,6 @@ describe("skill update command", () => {
     const deps = createDeps({
       updateSkill: mock(async () => ({
         skillName: "react-hooks",
-        fromVersion: "2.0.0",
-        toVersion: "2.0.0",
         updated: false,
       })),
     });
@@ -708,9 +706,10 @@ describe("skill update command", () => {
     expect(factory.printResult).toHaveBeenCalled();
     const [noopData] = (factory.printResult as ReturnType<typeof mock>).mock
       .calls[0] as [unknown, { outputFormat: string }];
-    const noopStr = JSON.stringify(noopData);
-    expect(noopStr).toContain("react-hooks");
-    expect(noopStr).toContain("2.0.0");
+    expect(noopData).toEqual({
+      skillName: "react-hooks",
+      updated: false,
+    });
   });
 
   it("forwards --force flag to updateSkill", async () => {
@@ -794,9 +793,9 @@ describe("skill update command", () => {
     ).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(updateJsonData).toEqual({
       skillName: "react-hooks",
-      fromVersion: "1.0.0",
-      toVersion: "2.0.0",
       updated: true,
+      from: "c776916",
+      to: "a1b2c3d",
     });
     expect(updateJsonCtx.outputFormat).toBe("json");
   });
@@ -814,9 +813,9 @@ describe("skill update command", () => {
     expect(updateAllJsonData).toEqual([
       {
         skillName: "react-hooks",
-        fromVersion: "1.0.0",
-        toVersion: "2.0.0",
         updated: true,
+        from: "c776916",
+        to: "a1b2c3d",
       },
     ]);
     expect(updateAllJsonCtx.outputFormat).toBe("json");
