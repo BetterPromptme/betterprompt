@@ -29,6 +29,7 @@ export type TGenerateCommandDependencies = {
   readStdin: () => Promise<string>;
   isStdinTTY: () => boolean;
   resolveScope: TResolveScope;
+  resolvePromptVersionId: (slug: string, rootDir: string) => Promise<string>;
   persistRunOutput: (
     args: TPersistRunOutputArgs
   ) => Promise<TPersistRunOutputResult>;
@@ -42,12 +43,12 @@ export type TExecuteGenerateArgs = {
   deps: TGenerateCommandDependencies;
   helpText: string;
   options: TGenerateOptions;
-  skillVersionId: string;
+  skillSlug: string;
 };
 
 export type TBuildRunPayloadArgs = {
   options: TGenerateOptions;
-  skillVersionId: string;
+  promptVersionId: string;
   stdinInputs?: TRunInputs;
 };
 
