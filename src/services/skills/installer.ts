@@ -45,6 +45,23 @@ const fetchSkillmd = async (url: string): Promise<string> => {
 
 type TSkillManifest = Omit<TSkillSearchRow, "skillId">;
 
+const SHORT_SHA_LENGTH = 7;
+
+const extractShortSha = (
+  skillmdUrl: string | undefined
+): string | undefined => {
+  if (!skillmdUrl) return undefined;
+  try {
+    const segments = new URL(skillmdUrl).pathname.split("/");
+    const sha = segments[3];
+    return sha && sha.length >= SHORT_SHA_LENGTH
+      ? sha.slice(0, SHORT_SHA_LENGTH)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const exists = async (targetPath: string): Promise<boolean> => {
   try {
     await access(targetPath);
@@ -192,36 +209,30 @@ const updateSkillCore = async (
     throw new Error(`Skill "${normalizedSkillName}" is not installed.`);
   }
 
-  let fromVersion: string | undefined;
+  let localSkillmdUrl: string | undefined;
   try {
     const raw = await readFile(path.join(skillDir, "manifest.json"), "utf8");
     const manifest = JSON.parse(raw) as TSkillManifest;
-    fromVersion =
-      typeof manifest.latestPromptVersionId === "string"
-        ? manifest.latestPromptVersionId
-        : undefined;
+    localSkillmdUrl = manifest.metadata?.skillmdUrl;
   } catch {
-    fromVersion = undefined;
+    localSkillmdUrl = undefined;
   }
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
   const { inputMetadata, ...latestManifest } = response;
+  const remoteSkillmdUrl = latestManifest.metadata.skillmdUrl;
 
-  const toVersion =
-    typeof latestManifest.latestPromptVersionId === "string"
-      ? latestManifest.latestPromptVersionId
-      : "latest";
+  const fromSha = extractShortSha(localSkillmdUrl);
+  const toSha = extractShortSha(remoteSkillmdUrl);
 
-  if (fromVersion === toVersion && !options.force) {
+  if (localSkillmdUrl === remoteSkillmdUrl && !options.force) {
     return {
       skillName: normalizedSkillName,
-      fromVersion,
-      toVersion,
       updated: false,
     };
   }
 
-  const skillmd = await fetchSkillmd(latestManifest.metadata.skillmdUrl);
+  const skillmd = await fetchSkillmd(remoteSkillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
   await rm(skillDir, { recursive: true, force: true });
@@ -232,9 +243,9 @@ const updateSkillCore = async (
 
   return {
     skillName: normalizedSkillName,
-    fromVersion,
-    toVersion,
     updated: true,
+    from: fromSha,
+    to: toSha,
   };
 };
 
