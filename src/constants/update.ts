@@ -4,6 +4,10 @@ export const UPDATE_COMMAND = {
   name: "update",
   description: "Check for CLI updates and install when available",
   flags: {
+    registry: {
+      flag: "--registry <url>",
+      description: "Override package registry endpoint",
+    },
     json: SHARED_FLAGS.json,
   },
 } as const;
