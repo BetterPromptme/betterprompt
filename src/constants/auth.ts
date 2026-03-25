@@ -18,7 +18,7 @@ export const AUTH_COMMAND = {
 export const AUTH_MESSAGES = {
   helpText: `
 Examples:
-  $ betterprompt config set apiKey bp_live_123
+  $ betterprompt login
 
 Get an API key: ${AUTH_API_KEY_URL}
 `,
@@ -35,7 +35,7 @@ Get an API key: ${AUTH_API_KEY_URL}
   configMustBeObjectError: "Auth config must be a JSON object.",
   apiKeyVerifyFailedError: "API key verification failed.",
   apiKeyNotFoundError:
-    "API key not found. Run `betterprompt config set apiKey <value>` to configure auth.json.",
+    "API key not found. Run `betterprompt login` to authenticate.",
 } as const;
 
 export const AUTH_STORAGE = {
