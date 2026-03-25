@@ -25,10 +25,6 @@ export const CLI_META = {
       flag: "--dir <path>",
       description: "Use an explicit working directory",
     },
-    registry: {
-      flag: "--registry <url>",
-      description: "Override API registry endpoint",
-    },
     json: SHARED_FLAGS.json,
     quiet: {
       flag: "--quiet",
