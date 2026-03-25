@@ -29,7 +29,6 @@ export const createProgram = (): Command => {
     .option(CLI_META.flags.project.flag, CLI_META.flags.project.description)
     .option(CLI_META.flags.global.flag, CLI_META.flags.global.description)
     .option(CLI_META.flags.dir.flag, CLI_META.flags.dir.description)
-    .option(CLI_META.flags.registry.flag, CLI_META.flags.registry.description)
     .option(CLI_META.flags.json.flag, CLI_META.flags.json.description)
     .option(CLI_META.flags.quiet.flag, CLI_META.flags.quiet.description)
     .option(CLI_META.flags.verbose.flag, CLI_META.flags.verbose.description)
