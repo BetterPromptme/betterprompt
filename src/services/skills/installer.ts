@@ -83,8 +83,6 @@ const AGENT_DIRS = [
   ".antigravity",
 ];
 
-const SYMLINK_TARGETS = AGENT_DIRS.map((dir) => path.join(dir, "skills"));
-
 const isSymlinkSupported = (): boolean =>
   process.platform === "darwin" || process.platform === "linux";
 
@@ -97,10 +95,15 @@ const createSkillSymlinks = async (
 
   const home = homedir();
 
-  for (const target of SYMLINK_TARGETS) {
+  for (const agentDir of AGENT_DIRS) {
     try {
-      const parentDir = path.join(home, target);
-      if (!(await exists(parentDir))) continue;
+      const agentDirPath = path.join(home, agentDir);
+      if (!(await exists(agentDirPath))) continue;
+
+      const parentDir = path.join(agentDirPath, "skills");
+      if (!(await exists(parentDir))) {
+        await mkdir(parentDir, { recursive: true });
+      }
 
       const linkPath = path.join(parentDir, skillName);
       const linkExists = await exists(linkPath);
