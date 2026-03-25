@@ -2,6 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { Command } from "commander";
 
 import { PartType, RunStatus } from "../../enums";
+import { ApiError } from "../../services/api/client";
 import {
   createGenerateCommand,
   formatGenerateOptionErrorMessage,
@@ -646,6 +647,224 @@ describe("generate command", () => {
     );
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining("Usage: betterprompt generate")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("returns structured JSON error for ApiError in json mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "Prompt version not found",
+          status: 404,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "NOT_FOUND_ERROR",
+            message: "Prompt version not found",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123", "--json"], deps);
+
+    expect(deps.printResult).toHaveBeenCalledWith(
+      {
+        error: "NOT_FOUND_ERROR",
+        message: "Prompt version not found",
+        status: 404,
+        data: null,
+      },
+      expect.objectContaining({ outputFormat: "json" })
+    );
+    expect(deps.error).not.toHaveBeenCalled();
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows login instruction for 401 in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "Invalid API token",
+          status: 401,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "UNAUTHORIZED",
+            message: "Invalid API token",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Run `betterprompt login` to authenticate")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows upgrade message for 402 in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "You do not have enough credits",
+          status: 402,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "PAYMENT_REQUIRED_ERROR",
+            message: "You do not have enough credits",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Insufficient credits or upgrade required")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows rate limit message for 429 in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "Too Many Requests",
+          status: 429,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "TOO_MANY_REQUESTS_ERROR",
+            message: "Too Many Requests",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Rate limited. Wait a moment and try again")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows polling command for 504 with runId in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message:
+            "The request is unable to finish processing within the time limit",
+          status: 504,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "GATEWAY_TIMEOUT_ERROR",
+            message:
+              "The request is unable to finish processing within the time limit",
+            data: { runId: "run-timeout-456" },
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("betterprompt outputs run-timeout-456 --sync")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("includes runId in JSON error for 504 timeout", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message:
+            "The request is unable to finish processing within the time limit",
+          status: 504,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "GATEWAY_TIMEOUT_ERROR",
+            message:
+              "The request is unable to finish processing within the time limit",
+            data: { runId: "run-timeout-456" },
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123", "--json"], deps);
+
+    expect(deps.printResult).toHaveBeenCalledWith(
+      {
+        error: "GATEWAY_TIMEOUT_ERROR",
+        message:
+          "The request is unable to finish processing within the time limit",
+        status: 504,
+        data: { runId: "run-timeout-456" },
+      },
+      expect.objectContaining({ outputFormat: "json" })
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("shows server error message for 500 in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "The server had an error while processing your request",
+          status: 500,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "SERVER_ERROR",
+            message: "The server had an error",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Server error. Try again later")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
+  it("passes server message through for 400 in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message: "Message or inputs is required",
+          status: 400,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "BAD_REQUEST_ERROR",
+            message: "Message or inputs is required",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("Message or inputs is required")
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });

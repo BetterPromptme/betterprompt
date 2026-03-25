@@ -179,7 +179,7 @@ describe("auth core", () => {
     await expect(
       readApiKeyFromAuthConfig({ configPath: authConfigPath })
     ).rejects.toThrow(
-      "API key not found. Run `betterprompt config set apiKey <value>` to configure auth.json."
+      "API key not found. Run `betterprompt login` to authenticate."
     );
   });
 
@@ -188,7 +188,7 @@ describe("auth core", () => {
     const configPath = path.join(tempDir, ".betterprompt", "auth.json");
 
     await expect(readApiKeyFromAuthConfig({ configPath })).rejects.toThrow(
-      "API key not found. Run `betterprompt config set apiKey <value>` to configure auth.json."
+      "API key not found. Run `betterprompt login` to authenticate."
     );
   });
 
