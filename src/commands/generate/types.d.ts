@@ -15,7 +15,7 @@ import type { TResolveScope } from "../../types/scope";
 export type TGenerateOptions = {
   input?: string[];
   imageInputUrl?: string[];
-  imageInputBase64?: string[];
+  imageInputPath?: string[];
   inputPayload?: string;
   stdin?: boolean;
   model?: string;
@@ -58,5 +58,3 @@ export type TGenerateRunResult = Pick<
 >;
 
 export type TFormatGeneratePart = (part: TPart) => string;
-
-export type TBuildImageInputs = (options: TGenerateOptions) => TImageInput[];

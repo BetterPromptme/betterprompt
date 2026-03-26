@@ -232,7 +232,7 @@ bp generate <skill-slug> \
   [--input <key=value> ...] \
   [--input-payload <json>] \
   [--image-input-url <url> ...] \
-  [--image-input-base64 <base64> ...] \
+  [--image-input-path <path> ...] \
   [--stdin] \
   [--model <model>] \
   [--options <json>] \
@@ -248,7 +248,7 @@ bp generate seo-blog-writer \
   --input audience="marketers" \
   --input tone="clear" \
   --image-input-url "https://example.com/reference.png" \
-  --image-input-base64 "<base64-image-data>" \
+  --image-input-path "/path/to/image.jpg" \
   --options '{"reasoningEffort":"high","quality":"hd"}'
 
 cat input.json | bp generate seo-blog-writer --stdin --json
@@ -260,10 +260,10 @@ Notes:
 - Internally, the CLI resolves the slug to a `promptVersionId` from the installed skill's manifest and sends it to the API.
 - `--options <json>` accepts a JSON object and maps to the `runOptions` payload field.
 - `--input-payload <json>` accepts a JSON object shaped like `TRunInputs` and maps to `inputs`.
-- `--input-payload` is mutually exclusive with `--input`, `--image-input-url`, `--image-input-base64`, and `--stdin`.
+- `--input-payload` is mutually exclusive with `--input`, `--image-input-url`, `--image-input-path`, and `--stdin`.
 - `--stdin` reads a JSON object shaped like `TRunInputs` from standard input.
 - `--image-input-url <url>` appends `{ "type": "url", "url": "<url>" }` to `inputs.imageInputs`.
-- `--image-input-base64 <base64>` appends `{ "type": "base64", "base64": "<base64>" }` to `inputs.imageInputs`.
+- `--image-input-path <path>` reads the local image file, compresses it (max 2048px edge, JPEG 80%), and appends the result as `{ "type": "base64", "base64": "<base64>" }` to `inputs.imageInputs`.
 
 ### Input precedence
 

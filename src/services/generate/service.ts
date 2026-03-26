@@ -78,7 +78,7 @@ export const executeGenerate = async ({
       stdinInputs = parseInputsJson(rawStdin);
     }
 
-    const payload = buildRunPayload({
+    const payload = await buildRunPayload({
       promptVersionId,
       options,
       stdinInputs,

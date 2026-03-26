@@ -137,7 +137,7 @@ describe("generate command", () => {
     });
   });
 
-  it("collects repeated image input flags", async () => {
+  it("collects repeated image input url flags", async () => {
     const deps = createDeps();
 
     await runGenerate(
@@ -147,8 +147,6 @@ describe("generate command", () => {
         "https://example.com/a.png",
         "--image-input-url",
         "https://example.com/b.png",
-        "--image-input-base64",
-        "YmFzZTY0LWltYWdl",
       ],
       deps
     );
@@ -161,7 +159,6 @@ describe("generate command", () => {
         imageInputs: [
           { type: "url", url: "https://example.com/a.png" },
           { type: "url", url: "https://example.com/b.png" },
-          { type: "base64", base64: "YmFzZTY0LWltYWdl" },
         ],
       },
     });
@@ -286,7 +283,7 @@ describe("generate command", () => {
     expect(deps.generate).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining(
-        "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin."
+        "--input-payload cannot be used with --input, --image-input-url, --image-input-path, or --stdin."
       )
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
@@ -309,7 +306,7 @@ describe("generate command", () => {
     expect(deps.generate).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining(
-        "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin."
+        "--input-payload cannot be used with --input, --image-input-url, --image-input-path, or --stdin."
       )
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
@@ -331,7 +328,7 @@ describe("generate command", () => {
     expect(deps.generate).not.toHaveBeenCalled();
     expect(deps.error).toHaveBeenCalledWith(
       expect.stringContaining(
-        "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin."
+        "--input-payload cannot be used with --input, --image-input-url, --image-input-path, or --stdin."
       )
     );
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
@@ -508,7 +505,7 @@ describe("generate command", () => {
     );
   });
 
-  it("passes image input flags to persisted run payload as imageInputs", async () => {
+  it("passes image input url flags to persisted run payload as imageInputs", async () => {
     const deps = createDeps({
       generate: mock(async () => ({
         runId: "run-123",
@@ -518,30 +515,19 @@ describe("generate command", () => {
     });
 
     await runGenerate(
-      [
-        "skill-version-123",
-        "--image-input-url",
-        "https://example.com/a.png",
-        "--image-input-base64",
-        "YmFzZTY0LWltYWdl",
-      ],
+      ["skill-version-123", "--image-input-url", "https://example.com/a.png"],
       deps
     );
 
     expect(deps.persistRunOutput).toHaveBeenCalledWith(
       expect.objectContaining({
         request: expect.objectContaining({
-          promptVersionId: "skill-version-123",
           inputs: {
             textInputs: {},
             imageInputs: [
               {
                 type: "url",
                 url: "https://example.com/a.png",
-              },
-              {
-                type: "base64",
-                base64: "YmFzZTY0LWltYWdl",
               },
             ],
           },

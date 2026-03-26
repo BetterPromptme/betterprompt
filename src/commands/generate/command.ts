@@ -57,8 +57,8 @@ export const createGenerateCommand = (
           collect: collectInputPairs,
           default: [],
         },
-        imageInputBase64: {
-          ...GENERATE_COMMAND.flags.imageInputBase64,
+        imageInputPath: {
+          ...GENERATE_COMMAND.flags.imageInputPath,
           collect: collectInputPairs,
           default: [],
         },
