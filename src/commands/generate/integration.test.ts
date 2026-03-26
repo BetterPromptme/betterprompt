@@ -819,6 +819,33 @@ describe("generate command", () => {
     expect(deps.setExitCode).toHaveBeenCalledWith(1);
   });
 
+  it("shows outputs list fallback for 504 without runId in text mode", async () => {
+    const deps = createDeps({
+      generate: mock(async () => {
+        throw new ApiError({
+          message:
+            "The request is unable to finish processing within the time limit",
+          status: 504,
+          method: "POST",
+          requestUrl: "/runs",
+          details: {
+            status: "GATEWAY_TIMEOUT_ERROR",
+            message:
+              "The request is unable to finish processing within the time limit",
+            data: null,
+          },
+        });
+      }),
+    });
+
+    await runGenerate(["skill-version-123"], deps);
+
+    expect(deps.error).toHaveBeenCalledWith(
+      expect.stringContaining("betterprompt outputs list --remote")
+    );
+    expect(deps.setExitCode).toHaveBeenCalledWith(1);
+  });
+
   it("shows server error message for 500 in text mode", async () => {
     const deps = createDeps({
       generate: mock(async () => {
