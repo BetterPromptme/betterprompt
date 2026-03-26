@@ -193,12 +193,15 @@ const installSkillCore = async (
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
 
-  for (const agent of mergedAgents) {
+  for (const agent of existingAgents) {
     try {
       await copySkillToAgent(agent, normalizedSkillName, skillDir);
     } catch {
-      // best-effort for previously installed agents
+      // best-effort: skip agents removed from disk since last install
     }
+  }
+  for (const agent of requestedAgents) {
+    await copySkillToAgent(agent, normalizedSkillName, skillDir);
   }
 
   return {
@@ -232,9 +235,15 @@ const uninstallSkillCore = async (
   const agentsToRemove =
     options.agent === "*"
       ? currentAgents
-      : options.agent
+      : options.agent && currentAgents.includes(options.agent)
         ? [options.agent]
         : [];
+
+  if (options.agent && options.agent !== "*" && agentsToRemove.length === 0) {
+    throw new Error(
+      `Skill "${normalizedSkillName}" is not installed in agent "${options.agent}".`
+    );
+  }
 
   const home = homedir();
   for (const agent of agentsToRemove) {
