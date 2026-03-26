@@ -98,15 +98,27 @@ Example:
 
 ### `skills/<skill-slug>/`
 
-One folder per installed skill.
+One folder per installed skill (cache).
 
 Each skill folder contains:
 
 - `SKILL.md` → human-readable skill description and usage
-- `manifest.json` → identity, author, visibility, pricing, prompt id, version
+- `manifest.json` → identity, author, visibility, pricing, prompt id, version, `installedAgents` array
 - `schema.json` → input/output contract
 
 For **private/protected** prompts, do **not** store full underlying prompt text here.
+
+### Agent directories
+
+When a skill is installed with `--agent <name>`, the `SKILL.md` is copied to the agent's skill directory:
+
+```text
+~/.<agent>/skills/<skill-slug>/SKILL.md
+```
+
+Supported agents: `.agents`, `.openclaw`, `.cursor`, `.claude`, `.windsurf`, `.antigravity`.
+
+The `installedAgents` field in `manifest.json` tracks which agents have the skill installed. On `skill update`, SKILL.md is re-copied to all tracked agents. On `skill uninstall --agent <name>`, the agent copy is removed and the agent is removed from `installedAgents`. The cache in `~/.betterprompt/skills/` is always preserved.
 
 ### `outputs/`
 
