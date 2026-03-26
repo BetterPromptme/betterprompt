@@ -1,13 +1,66 @@
+import { existsSync } from "fs";
+import { resolve } from "path";
+import sharp from "sharp";
+
 import type {
   TBuildRunPayloadArgs,
   TGenerateCommandOptions,
   TGenerateOptions,
 } from "../../commands/generate/types";
-import type { TRunInputs, TRunPayload } from "../../types/run";
+import type {
+  TImageInput,
+  TImageInputBase64,
+  TRunInputs,
+  TRunPayload,
+} from "../../types/run";
 import { parseInputsJson, parseRunOptionsJson } from "../run/service";
 
+const MAX_EDGE = 2048;
+const JPEG_QUALITY = 80;
+
 export const GENERATE_INPUT_PAYLOAD_EXCLUSIVE_MESSAGE =
-  "--input-payload cannot be used with --input, --image-input-url, --image-input-base64, or --stdin.";
+  "--input-payload cannot be used with --input, --image-input-url, --image-input-path, or --stdin.";
+
+export async function processImagePath(
+  inputPath: string
+): Promise<TImageInputBase64> {
+  const resolvedPath = resolve(process.cwd(), inputPath);
+
+  if (!existsSync(resolvedPath)) {
+    throw new Error(`Image file not found: ${resolvedPath}`);
+  }
+
+  try {
+    let pipeline = sharp(resolvedPath);
+    const metadata = await pipeline.metadata();
+
+    if (
+      (metadata.width && metadata.width > MAX_EDGE) ||
+      (metadata.height && metadata.height > MAX_EDGE)
+    ) {
+      pipeline = pipeline.resize({
+        width: MAX_EDGE,
+        height: MAX_EDGE,
+        fit: "inside",
+        withoutEnlargement: true,
+      });
+    }
+
+    const buffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
+    const base64 = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+
+    return { type: "base64", base64 };
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      error.message.startsWith("Image file not found")
+    ) {
+      throw error;
+    }
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to process image: ${detail}`);
+  }
+}
 
 const buildTextInputs = (
   input: string[] | undefined
@@ -37,28 +90,29 @@ const buildTextInputs = (
   }, {});
 };
 
-const buildImageInputs = (options: TGenerateOptions) => {
+const buildImageInputs = async (
+  options: TGenerateOptions
+): Promise<TImageInput[]> => {
   const urlInputs = (options.imageInputUrl ?? []).map((url) => ({
     type: "url" as const,
     url,
   }));
-  const base64Inputs = (options.imageInputBase64 ?? []).map((base64) => ({
-    type: "base64" as const,
-    base64,
-  }));
+  const pathInputs = await Promise.all(
+    (options.imageInputPath ?? []).map((p) => processImagePath(p))
+  );
 
-  return [...urlInputs, ...base64Inputs];
+  return [...urlInputs, ...pathInputs];
 };
 
-const mergeRunInputs = (
+const mergeRunInputs = async (
   baseInputs: TRunInputs | undefined,
   options: TGenerateOptions
-): TRunInputs => {
+): Promise<TRunInputs> => {
   const textInputs = {
     ...(baseInputs?.textInputs ?? {}),
     ...buildTextInputs(options.input),
   };
-  const imageInputsFromFlags = buildImageInputs(options);
+  const imageInputsFromFlags = await buildImageInputs(options);
 
   return {
     textInputs,
@@ -89,8 +143,8 @@ export const validateGenerateOptions = (options: TGenerateOptions): void => {
   const hasOtherInputFlags =
     (options.input !== undefined && options.input.length > 0) ||
     (options.imageInputUrl !== undefined && options.imageInputUrl.length > 0) ||
-    (options.imageInputBase64 !== undefined &&
-      options.imageInputBase64.length > 0) ||
+    (options.imageInputPath !== undefined &&
+      options.imageInputPath.length > 0) ||
     options.stdin === true;
 
   if (hasOtherInputFlags) {
@@ -105,9 +159,9 @@ export const buildGenerateOptions = (
     opts.input.length > 0 && { input: opts.input }),
   ...(opts.imageInputUrl !== undefined &&
     opts.imageInputUrl.length > 0 && { imageInputUrl: opts.imageInputUrl }),
-  ...(opts.imageInputBase64 !== undefined &&
-    opts.imageInputBase64.length > 0 && {
-      imageInputBase64: opts.imageInputBase64,
+  ...(opts.imageInputPath !== undefined &&
+    opts.imageInputPath.length > 0 && {
+      imageInputPath: opts.imageInputPath,
     }),
   ...(opts.inputPayload !== undefined && { inputPayload: opts.inputPayload }),
   ...(opts.stdin === true && { stdin: true }),
@@ -115,14 +169,14 @@ export const buildGenerateOptions = (
   ...(opts.options !== undefined && { options: opts.options }),
 });
 
-export const buildRunPayload = ({
+export const buildRunPayload = async ({
   promptVersionId,
   options,
   stdinInputs,
-}: TBuildRunPayloadArgs): TRunPayload => {
+}: TBuildRunPayloadArgs): Promise<TRunPayload> => {
   const runOptions = parseRunOptionsJson(options.options);
   const sourceInputs = resolveSourceInputs(options, stdinInputs);
-  const inputs = mergeRunInputs(sourceInputs, options);
+  const inputs = await mergeRunInputs(sourceInputs, options);
 
   return {
     promptVersionId,
