@@ -16,6 +16,15 @@ type TSkillInstallOptions = {
     path?: string;
   };
   overwrite?: boolean;
+  agents?: string[];
+};
+
+type TSkillUninstallOptions = {
+  scope: {
+    type: "global" | "project" | "dir";
+    path?: string;
+  };
+  agent?: string;
 };
 
 type TSkillListOptions = {
@@ -54,7 +63,7 @@ type TSkillCommandDeps = NonNullable<
   ) => Promise<unknown>;
   uninstallSkill: (
     skillName: string,
-    options: { scope: TSkillInstallOptions["scope"] }
+    options: TSkillUninstallOptions
   ) => Promise<unknown>;
   listSkills: (options: TSkillListOptions) => Promise<TSkillSummary[]>;
   updateSkill: (
@@ -87,7 +96,7 @@ const createDeps = (
   })),
   uninstallSkill: mock(async () => ({
     skillName: "react-hooks",
-    removedPath: "/tmp/project/.betterprompt/skills/react-hooks",
+    removedAgents: ["claude"],
   })),
   listSkills: mock(async () => []),
   updateSkill: mock(async () => ({
@@ -208,15 +217,13 @@ describe("skill install command", () => {
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agents: [],
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [installData, installCtx] = (
       factory.printResult as ReturnType<typeof mock>
     ).mock.calls[0] as [unknown, { outputFormat: string }];
-    expect(installData).toEqual({
-      skillName: "react-hooks",
-      installPath: "/tmp/project/.betterprompt/skills/react-hooks",
-    });
+    expect(installData as string).toContain('Installed "react-hooks"');
     expect(installCtx.outputFormat).toBe("text");
   });
 
@@ -239,6 +246,7 @@ describe("skill install command", () => {
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agents: [],
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [installJsonData, installJsonCtx] = (
@@ -251,6 +259,42 @@ describe("skill install command", () => {
     expect(installJsonCtx.outputFormat).toBe("json");
   });
 
+  it("forwards --agent with --json for install", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--json"],
+      deps,
+      factory
+    );
+
+    expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
+      scope: { type: "global" },
+      agents: ["claude"],
+    });
+    const [, ctx] = (factory.printResult as ReturnType<typeof mock>).mock
+      .calls[0] as [unknown, { outputFormat: string }];
+    expect(ctx.outputFormat).toBe("json");
+  });
+
+  it("forwards --overwrite with --agent combined", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runInstall(
+      ["react-hooks", "--overwrite", "--agent", "claude"],
+      deps,
+      factory
+    );
+
+    expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
+      scope: { type: "global" },
+      overwrite: true,
+      agents: ["claude"],
+    });
+  });
+
   it("forwards project scope when --project is used", async () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
@@ -259,6 +303,7 @@ describe("skill install command", () => {
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
+      agents: [],
     });
   });
 
@@ -270,6 +315,7 @@ describe("skill install command", () => {
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agents: [],
     });
   });
 
@@ -281,6 +327,7 @@ describe("skill install command", () => {
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
+      agents: [],
     });
   });
 
@@ -293,6 +340,35 @@ describe("skill install command", () => {
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
       overwrite: true,
+      agents: [],
+    });
+  });
+
+  it("forwards single --agent flag", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runInstall(["react-hooks", "--agent", "claude"], deps, factory);
+
+    expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
+      scope: { type: "global" },
+      agents: ["claude"],
+    });
+  });
+
+  it("forwards multiple --agent flags", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--agent", "cursor"],
+      deps,
+      factory
+    );
+
+    expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
+      scope: { type: "global" },
+      agents: ["claude", "cursor"],
     });
   });
 
@@ -351,43 +427,75 @@ describe("skill install command", () => {
 });
 
 describe("skill uninstall command", () => {
-  it("uninstalls a skill and prints human-readable output in default mode", async () => {
+  it("uninstalls a skill from a specific agent", async () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps, factory);
+    await runUninstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agent: "claude",
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [uninstallData, uninstallCtx] = (
       factory.printResult as ReturnType<typeof mock>
     ).mock.calls[0] as [unknown, { outputFormat: string }];
-    expect(uninstallData).toEqual({
-      skillName: "react-hooks",
-      removedPath: "/tmp/project/.betterprompt/skills/react-hooks",
-    });
+    expect(uninstallData as string).toContain('Uninstalled "react-hooks"');
+    expect(uninstallData as string).toContain("claude");
     expect(uninstallCtx.outputFormat).toBe("text");
+  });
+
+  it("uninstalls a skill from all agents with --agent *", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runUninstall(["react-hooks", "--agent", "*"], deps, factory);
+
+    expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
+      scope: { type: "global" },
+      agent: "*",
+    });
+  });
+
+  it("fails validation when --agent is not provided", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runUninstall(["react-hooks"], deps, factory);
+
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'Please provide --agent <name> or --agent "*" to uninstall from all agents.'
+      )
+    );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.uninstallSkill).not.toHaveBeenCalled();
   });
 
   it("respects --project and --global scopes", async () => {
     const projectDeps = createDeps();
     const projectFactory = createFactoryDeps();
     await runUninstall(
-      ["react-hooks", "--project"],
+      ["react-hooks", "--agent", "claude", "--project"],
       projectDeps,
       projectFactory
     );
     expect(projectDeps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
+      agent: "claude",
     });
 
     const globalDeps = createDeps();
     const globalFactory = createFactoryDeps();
-    await runUninstall(["react-hooks", "--global"], globalDeps, globalFactory);
+    await runUninstall(
+      ["react-hooks", "--agent", "claude", "--global"],
+      globalDeps,
+      globalFactory
+    );
     expect(globalDeps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agent: "claude",
     });
   });
 
@@ -395,10 +503,15 @@ describe("skill uninstall command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks", "--dir", "/work/demo"], deps, factory);
+    await runUninstall(
+      ["react-hooks", "--agent", "claude", "--dir", "/work/demo"],
+      deps,
+      factory
+    );
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
+      agent: "claude",
     });
   });
 
@@ -406,10 +519,15 @@ describe("skill uninstall command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks", "--json"], deps, factory);
+    await runUninstall(
+      ["react-hooks", "--agent", "claude", "--json"],
+      deps,
+      factory
+    );
 
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agent: "claude",
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [uninstallJsonData, uninstallJsonCtx] = (
@@ -417,7 +535,7 @@ describe("skill uninstall command", () => {
     ).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(uninstallJsonData).toEqual({
       skillName: "react-hooks",
-      removedPath: "/tmp/project/.betterprompt/skills/react-hooks",
+      removedAgents: ["claude"],
     });
     expect(uninstallJsonCtx.outputFormat).toBe("json");
   });
@@ -430,7 +548,7 @@ describe("skill uninstall command", () => {
     });
     const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps, factory);
+    await runUninstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -449,7 +567,7 @@ describe("skill uninstall command", () => {
     });
     const factory = createFactoryDeps();
 
-    await runUninstall(["react-hooks"], deps, factory);
+    await runUninstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: timeout")
@@ -465,12 +583,12 @@ describe("skill list command", () => {
       {
         name: "react-hooks",
         title: "React Hooks",
-        version: "1.2.3",
+        installedAgents: ["claude", "cursor"],
       },
       {
         name: "seo-blog-writer",
         title: "SEO Blog Writer",
-        version: "2.0.0",
+        installedAgents: [],
       },
     ]);
     const deps = createDeps({
@@ -488,10 +606,12 @@ describe("skill list command", () => {
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [listData, listCtx] = (factory.printResult as ReturnType<typeof mock>)
       .mock.calls[0] as [unknown, { outputFormat: string }];
-    expect(listData).toEqual([
-      { name: "react-hooks", title: "React Hooks", version: "1.2.3" },
-      { name: "seo-blog-writer", title: "SEO Blog Writer", version: "2.0.0" },
-    ]);
+    expect(listData as string).toContain("Slug");
+    expect(listData as string).toContain("Installed Agents");
+    expect(listData as string).toContain("react-hooks");
+    expect(listData as string).toContain("claude, cursor");
+    expect(listData as string).toContain("seo-blog-writer");
+    expect(listData as string).toContain("(none)");
     expect(listCtx.outputFormat).toBe("text");
   });
 
@@ -532,12 +652,12 @@ describe("skill list command", () => {
     });
   });
 
-  it("supports --json output for list results", async () => {
+  it("supports --json output for list results with installedAgents", async () => {
     const listSkills = mock(async () => [
       {
         name: "react-hooks",
         title: "React Hooks",
-        version: "1.2.3",
+        installedAgents: ["claude", "cursor"],
       },
     ]);
     const deps = createDeps({
@@ -555,7 +675,11 @@ describe("skill list command", () => {
       factory.printResult as ReturnType<typeof mock>
     ).mock.calls[0] as [unknown, { outputFormat: string }];
     expect(listJsonData).toEqual([
-      { name: "react-hooks", title: "React Hooks", version: "1.2.3" },
+      {
+        name: "react-hooks",
+        title: "React Hooks",
+        installedAgents: ["claude", "cursor"],
+      },
     ]);
     expect(listJsonCtx.outputFormat).toBe("json");
   });
