@@ -19,11 +19,24 @@ export const createSkillListSubcommand = (
       spinnerMessage: "Listing installed skills...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       formatText: (result) => {
-        const skills = result as Array<unknown>;
+        const skills = result as Array<{
+          name: string;
+          title?: string;
+          installedAgents?: string[];
+        }>;
         if (skills.length === 0) {
           return `${logSymbols.warning} ${SKILLS_MESSAGES.emptyListMessage}`;
         }
-        return result;
+        const rows = skills.map((s) => {
+          const agents = s.installedAgents?.length
+            ? s.installedAgents.join(", ")
+            : "(none)";
+          return `  ${s.name.padEnd(30)} ${agents}`;
+        });
+        return [
+          "  Slug                           Installed Agents",
+          ...rows,
+        ].join("\n");
       },
       handler: async ({ ctx }) => {
         return deps.listSkills({ scope: ctx.scope });
