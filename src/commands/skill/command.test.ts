@@ -77,9 +77,10 @@ describe("commands/skill folder tree contract", () => {
     const root = createRoot(deps);
 
     await root.parseAsync(["skill", "info", "react-hooks"], { from: "user" });
-    await root.parseAsync(["skill", "install", "react-hooks"], {
-      from: "user",
-    });
+    await root.parseAsync(
+      ["skill", "install", "react-hooks", "--agent", "claude"],
+      { from: "user" }
+    );
     await root.parseAsync(
       ["skill", "uninstall", "react-hooks", "--agent", "claude"],
       { from: "user" }
@@ -96,7 +97,7 @@ describe("commands/skill folder tree contract", () => {
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
-      agents: [],
+      agents: ["claude"],
     });
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },

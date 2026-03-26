@@ -209,15 +209,28 @@ describe("skill install command", () => {
     ).toBe(false);
   });
 
-  it("installs a skill and prints human-readable output in default mode", async () => {
+  it("fails validation when --agent is not provided", async () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
     await runInstall(["react-hooks"], deps, factory);
 
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("Please provide at least one --agent flag")
+    );
+    expect(factory.setExitCode).toHaveBeenCalledWith(1);
+    expect(deps.installSkill).not.toHaveBeenCalled();
+  });
+
+  it("installs a skill and prints human-readable output in default mode", async () => {
+    const deps = createDeps();
+    const factory = createFactoryDeps();
+
+    await runInstall(["react-hooks", "--agent", "claude"], deps, factory);
+
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
-      agents: [],
+      agents: ["claude"],
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [installData, installCtx] = (
@@ -231,7 +244,7 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps, factory);
+    await runInstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     const [, options] = (deps.installSkill as ReturnType<typeof mock>).mock
       .calls[0] as [string, TSkillInstallOptions];
@@ -242,11 +255,15 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--json"], deps, factory);
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--json"],
+      deps,
+      factory
+    );
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
-      agents: [],
+      agents: ["claude"],
     });
     expect(factory.printResult).toHaveBeenCalledTimes(1);
     const [installJsonData, installJsonCtx] = (
@@ -299,11 +316,15 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--project"], deps, factory);
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--project"],
+      deps,
+      factory
+    );
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "project" },
-      agents: [],
+      agents: ["claude"],
     });
   });
 
@@ -311,11 +332,15 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--global"], deps, factory);
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--global"],
+      deps,
+      factory
+    );
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
-      agents: [],
+      agents: ["claude"],
     });
   });
 
@@ -323,11 +348,15 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--dir", "/work/demo"], deps, factory);
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--dir", "/work/demo"],
+      deps,
+      factory
+    );
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "dir", path: "/work/demo" },
-      agents: [],
+      agents: ["claude"],
     });
   });
 
@@ -335,12 +364,16 @@ describe("skill install command", () => {
     const deps = createDeps();
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks", "--overwrite"], deps, factory);
+    await runInstall(
+      ["react-hooks", "--agent", "claude", "--overwrite"],
+      deps,
+      factory
+    );
 
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
       overwrite: true,
-      agents: [],
+      agents: ["claude"],
     });
   });
 
@@ -380,7 +413,7 @@ describe("skill install command", () => {
     });
     const factory = createFactoryDeps();
 
-    await runInstall(["   "], deps, factory);
+    await runInstall(["   ", "--agent", "claude"], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -399,7 +432,7 @@ describe("skill install command", () => {
     });
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps, factory);
+    await runInstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: Registry unavailable")
@@ -416,7 +449,7 @@ describe("skill install command", () => {
     });
     const factory = createFactoryDeps();
 
-    await runInstall(["react-hooks"], deps, factory);
+    await runInstall(["react-hooks", "--agent", "claude"], deps, factory);
 
     expect(factory.error).toHaveBeenCalledWith(
       expect.stringContaining("Skill command failed: timeout")
