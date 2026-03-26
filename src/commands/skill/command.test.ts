@@ -15,7 +15,10 @@ type TSkillDeps = NonNullable<Parameters<typeof createSkillCommand>[0]>;
 const createDeps = (overrides: Partial<TSkillDeps> = {}): TSkillDeps => ({
   getSkill: mock(async () => ({ name: "react-hooks" })),
   installSkill: mock(async () => ({ skillName: "react-hooks" })),
-  uninstallSkill: mock(async () => ({ skillName: "react-hooks" })),
+  uninstallSkill: mock(async () => ({
+    skillName: "react-hooks",
+    removedAgents: ["claude"],
+  })),
   listSkills: mock(async () => []),
   updateSkill: mock(async () => ({
     skillName: "react-hooks",
@@ -74,12 +77,14 @@ describe("commands/skill folder tree contract", () => {
     const root = createRoot(deps);
 
     await root.parseAsync(["skill", "info", "react-hooks"], { from: "user" });
-    await root.parseAsync(["skill", "install", "react-hooks"], {
-      from: "user",
-    });
-    await root.parseAsync(["skill", "uninstall", "react-hooks"], {
-      from: "user",
-    });
+    await root.parseAsync(
+      ["skill", "install", "react-hooks", "--agent", "claude"],
+      { from: "user" }
+    );
+    await root.parseAsync(
+      ["skill", "uninstall", "react-hooks", "--agent", "claude"],
+      { from: "user" }
+    );
     await root.parseAsync(["skill", "list"], { from: "user" });
     await root.parseAsync(["skill", "update", "react-hooks"], {
       from: "user",
@@ -92,9 +97,11 @@ describe("commands/skill folder tree contract", () => {
     expect(deps.getSkill).toHaveBeenCalledWith("react-hooks");
     expect(deps.installSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agents: ["claude"],
     });
     expect(deps.uninstallSkill).toHaveBeenCalledWith("react-hooks", {
       scope: { type: "global" },
+      agent: "claude",
     });
     expect(deps.listSkills).toHaveBeenCalledWith({
       scope: { type: "global" },

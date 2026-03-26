@@ -1,6 +1,15 @@
 import { SKILL_TYPES } from "./search";
 import { SHARED_FLAGS } from "./shared-flags";
 
+export const AGENT_DIR_NAMES = [
+  "agents",
+  "openclaw",
+  "cursor",
+  "claude",
+  "windsurf",
+  "antigravity",
+] as const;
+
 const SKILL_NAME_ARGUMENT = {
   name: "<skill-slug>",
   description: "Skill name to retrieve",
@@ -42,6 +51,12 @@ export const SKILLS_COMMAND = {
         skillSlug: SKILL_NAME_INSTALL_ARGUMENT,
       },
       flags: {
+        agent: {
+          flag: "--agent <name>",
+          description: "Agent to install skill into (repeatable)",
+          collect: (value: string, prev: string[]) => [...prev, value],
+          default: [] as string[],
+        },
         overwrite: {
           flag: "--overwrite",
           description: "Overwrite an existing installed skill",
@@ -56,6 +71,10 @@ export const SKILLS_COMMAND = {
         skillSlug: SKILL_NAME_UNINSTALL_ARGUMENT,
       },
       flags: {
+        agent: {
+          flag: "--agent <name>",
+          description: 'Agent to uninstall from, or "*" for all',
+        },
         json: SHARED_FLAGS.json,
       },
     },
@@ -150,13 +169,16 @@ export const SKILLS_MESSAGES = {
   helpText: `
 Examples:
   $ betterprompt skill info <skill-name>
-  $ betterprompt skill install <skill-name>
-  $ betterprompt skill uninstall <skill-name>
+  $ betterprompt skill install <skill-name> --agent claude
+  $ betterprompt skill uninstall <skill-name> --agent claude
   $ betterprompt skill list
   $ betterprompt skill update <skill-name>
   $ betterprompt skill update --all
 `,
   invalidSkillNameError: "Skill name must not be empty.",
+  agentRequiredForInstallError: "Please provide at least one --agent flag.",
+  agentRequiredForUninstallError:
+    'Please provide --agent <name> or --agent "*" to uninstall from all agents.',
   updateRequiresSkillNameOrAllError:
     'Please provide a skill name or pass "--all" to update all installed skills.',
   updateAllWithSkillNameError:
@@ -164,3 +186,9 @@ Examples:
   failedPrefix: "Skill command failed:",
   emptyListMessage: "No installed skills found.",
 } as const;
+
+export const agentNotSupportedError = (name: string): string =>
+  `Agent "${name}" is not supported. Supported: ${AGENT_DIR_NAMES.join(", ")}.`;
+
+export const agentDirNotFoundError = (name: string): string =>
+  `Agent directory "~/.${name}" does not exist.`;

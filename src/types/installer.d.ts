@@ -9,6 +9,7 @@ export type TInstallSkillOptions = {
   skillName: string;
   scope: TInstallScope;
   overwrite?: boolean;
+  agents?: string[];
 };
 
 export type TInstallSkillResult = {
@@ -19,11 +20,12 @@ export type TInstallSkillResult = {
 export type TUninstallSkillOptions = {
   skillName: string;
   scope: TInstallScope;
+  agent?: string;
 };
 
 export type TUninstallSkillResult = {
   skillName: string;
-  removedPath: string;
+  removedAgents: string[];
 };
 
 export type TInstallApiClient = {
@@ -38,6 +40,7 @@ export type TSkillSummary = {
   name: string;
   title?: string;
   skillmdUrl?: string;
+  installedAgents?: string[];
 };
 
 export type TListSkillsResult = TSkillSummary[];

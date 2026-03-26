@@ -6,17 +6,22 @@ export type TSkillInstallScope =
 export type TSkillInstallOptions = {
   scope: TSkillInstallScope;
   overwrite?: boolean;
+  agents?: string[];
 };
 
 export type TSkillInstallCommandOptions = {
   overwrite?: boolean;
+  agent?: string[];
 };
 
 export type TSkillUninstallOptions = {
   scope: TSkillInstallScope;
+  agent?: string;
 };
 
-export type TSkillUninstallCommandOptions = Record<string, never>;
+export type TSkillUninstallCommandOptions = {
+  agent?: string;
+};
 
 export type TSkillListOptions = {
   scope: TSkillInstallScope;

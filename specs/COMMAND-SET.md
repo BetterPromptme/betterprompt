@@ -29,7 +29,6 @@ These should work on nearly every command:
 --project               # force project-local scope
 --global                # force global scope
 --dir <path>            # override install/work directory
---registry <url>        # override API/registry endpoint
 --json                  # machine-readable output
 --quiet                 # suppress non-essential output
 --verbose               # extra debug output
@@ -38,6 +37,8 @@ These should work on nearly every command:
 --help                  # help
 -v, --version           # CLI version
 ```
+
+Note: `--registry <url>` is a command-specific flag on `bp update`, not a global flag.
 
 ---
 
@@ -139,6 +140,7 @@ bp skill info seo-blog-writer --json
 
 ```bash
 bp skill install <skill-slug> \
+  [--agent <name> ...] \
   [--overwrite] \
   [--project | --global] \
   [--dir <path>] \
@@ -148,20 +150,24 @@ bp skill install <skill-slug> \
 Examples:
 
 ```bash
-bp skill install seo-blog-writer --project
-bp skill install product-shot-generator --global
+bp skill install seo-blog-writer --agent claude
+bp skill install product-shot-generator --agent claude --agent cursor
+bp skill install seo-blog-writer --agent claude --overwrite
 ```
 
 Behavior:
 
-- installs manifest + schema + metadata + skill wrapper
-- does **not** install private protected prompt text
-- the installed folder uses the `skill-slug` portion only (e.g. `seo-blog-writer` installs to `seo-blog-writer/`). If a different author has the same prompt slug, the later install overwrites.
+- Caches manifest + schema + SKILL.md in `.betterprompt/skills/<slug>/`
+- `--agent` copies `SKILL.md` to `~/.<agent>/skills/<slug>/SKILL.md` (repeatable)
+- Tracks installed agents in `manifest.json` (`installedAgents` array)
+- Supported agents: `agents`, `openclaw`, `cursor`, `claude`, `windsurf`, `antigravity`
+- Does **not** install private protected prompt text
 
 ### Uninstall a skill
 
 ```bash
 bp skill uninstall <skill-slug> \
+  --agent <name> | --agent "*" \
   [--project | --global] \
   [--json]
 ```
@@ -169,9 +175,15 @@ bp skill uninstall <skill-slug> \
 Examples:
 
 ```bash
-bp skill uninstall seo-blog-writer --project
-bp skill uninstall product-shot-generator --global
+bp skill uninstall seo-blog-writer --agent claude
+bp skill uninstall product-shot-generator --agent "*"
 ```
+
+Behavior:
+
+- `--agent` is required — removes SKILL.md from the specified agent directory
+- `--agent "*"` removes from all agents tracked in `installedAgents`
+- Cache in `.betterprompt/skills/<slug>/` is always kept
 
 ### List installed skills
 
@@ -187,6 +199,8 @@ Examples:
 bp skill list
 bp skill list --project
 ```
+
+Text output shows a table with `Slug` and `Installed Agents` columns. JSON output includes `installedAgents` array per skill.
 
 ### Update installed skills
 
@@ -531,14 +545,14 @@ Keeps the focus on what users care about: retrieving their generated content, no
 ```bash
 bp skill search "linkedin carousel"
 bp skill info linkedin-carousel-writer
-bp skill install linkedin-carousel-writer --project
+bp skill install linkedin-carousel-writer --agent claude
 ```
 
 ### Generate with a private prompt
 
 ```bash
 bp auth
-bp skill install internal-sales-reply --project
+bp skill install internal-sales-reply --agent claude --agent cursor
 bp generate internal-sales-reply \
   --input customer_name="Jane" \
   --input context="asked about enterprise pricing" \

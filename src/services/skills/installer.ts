@@ -1,17 +1,20 @@
 import {
   access,
-  lstat,
+  copyFile,
   mkdir,
   readdir,
   readFile,
   rm,
-  symlink,
-  unlink,
   writeFile,
 } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import {
+  AGENT_DIR_NAMES,
+  agentDirNotFoundError,
+  agentNotSupportedError,
+} from "../../constants/skills";
 import type {
   TInstallApiClient,
   TInstallSkillOptions,
@@ -49,6 +52,10 @@ const fetchSkillmd = async (url: string): Promise<string> => {
 
 type TSkillManifest = Omit<TSkillSearchRow, "skillId">;
 
+type TSkillManifestOnDisk = TSkillManifest & {
+  installedAgents?: string[];
+};
+
 const SHORT_SHA_LENGTH = 7;
 
 const extractShortSha = (
@@ -74,55 +81,43 @@ const exists = async (targetPath: string): Promise<boolean> => {
     return false;
   }
 };
-const AGENT_DIRS = [
-  ".agents",
-  ".openclaw",
-  ".cursor",
-  ".claude",
-  ".windsurf",
-  ".antigravity",
-];
 
-const isSymlinkSupported = (): boolean =>
-  process.platform === "darwin" || process.platform === "linux";
+const validateAgent = async (agentName: string): Promise<void> => {
+  if (!(AGENT_DIR_NAMES as readonly string[]).includes(agentName)) {
+    throw new Error(agentNotSupportedError(agentName));
+  }
+  const agentDirPath = path.join(homedir(), `.${agentName}`);
+  if (!(await exists(agentDirPath))) {
+    throw new Error(agentDirNotFoundError(agentName));
+  }
+};
 
-const createSkillSymlinks = async (
+const copySkillToAgent = async (
+  agentName: string,
   skillName: string,
-  skillDir: string,
-  overwrite?: boolean
+  skillDir: string
 ): Promise<void> => {
-  if (!isSymlinkSupported()) return;
+  const agentSkillDir = path.join(
+    homedir(),
+    `.${agentName}`,
+    "skills",
+    skillName
+  );
+  await mkdir(agentSkillDir, { recursive: true });
+  await copyFile(
+    path.join(skillDir, "SKILL.md"),
+    path.join(agentSkillDir, "SKILL.md")
+  );
+};
 
-  const home = homedir();
-
-  for (const agentDir of AGENT_DIRS) {
-    try {
-      const agentDirPath = path.join(home, agentDir);
-      if (!(await exists(agentDirPath))) continue;
-
-      const parentDir = path.join(agentDirPath, "skills");
-      if (!(await exists(parentDir))) {
-        await mkdir(parentDir, { recursive: true });
-      }
-
-      const linkPath = path.join(parentDir, skillName);
-      const linkExists = await exists(linkPath);
-
-      if (linkExists && overwrite) {
-        const stat = await lstat(linkPath);
-        if (stat.isSymbolicLink()) {
-          await unlink(linkPath);
-        } else {
-          continue;
-        }
-      } else if (linkExists) {
-        continue;
-      }
-
-      await symlink(skillDir, linkPath);
-    } catch {
-      // best-effort: skip on any error
-    }
+const readManifestFromDisk = async (
+  skillDir: string
+): Promise<TSkillManifestOnDisk | undefined> => {
+  try {
+    const raw = await readFile(path.join(skillDir, "manifest.json"), "utf8");
+    return JSON.parse(raw) as TSkillManifestOnDisk;
+  } catch {
+    return undefined;
   }
 };
 
@@ -169,21 +164,45 @@ const installSkillCore = async (
     throw new Error(`Skill "${normalizedSkillName}" is already installed.`);
   }
 
+  const requestedAgents = options.agents ?? [];
+  for (const agent of requestedAgents) {
+    await validateAgent(agent);
+  }
+
+  let existingAgents: string[] = [];
+  if (isAlreadyInstalled) {
+    const oldManifest = await readManifestFromDisk(skillDir);
+    existingAgents = oldManifest?.installedAgents ?? [];
+    await rm(skillDir, { recursive: true, force: true });
+  }
+
   const response = await getSkillByName(apiClient, normalizedSkillName);
   const { inputMetadata, ...manifest } = response;
   const skillmd = await fetchSkillmd(manifest.metadata.skillmdUrl);
   const schema = generateZodSchema(inputMetadata).toJSONSchema();
 
-  if (isAlreadyInstalled) {
-    await rm(skillDir, { recursive: true, force: true });
-  }
+  const mergedAgents = Array.from(
+    new Set([...existingAgents, ...requestedAgents])
+  );
 
   await mkdir(skillDir, { recursive: true });
-  await writeJsonFile(path.join(skillDir, "manifest.json"), manifest);
+  await writeJsonFile(path.join(skillDir, "manifest.json"), {
+    ...manifest,
+    installedAgents: mergedAgents,
+  });
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
 
-  await createSkillSymlinks(normalizedSkillName, skillDir, options.overwrite);
+  for (const agent of existingAgents) {
+    try {
+      await copySkillToAgent(agent, normalizedSkillName, skillDir);
+    } catch {
+      // best-effort: skip agents removed from disk since last install
+    }
+  }
+  for (const agent of requestedAgents) {
+    await copySkillToAgent(agent, normalizedSkillName, skillDir);
+  }
 
   return {
     skillName: normalizedSkillName,
@@ -206,11 +225,56 @@ const uninstallSkillCore = async (
     throw new Error(`Skill "${normalizedSkillName}" is not installed.`);
   }
 
-  await rm(skillDir, { recursive: true, force: true });
+  if (options.agent && options.agent !== "*") {
+    await validateAgent(options.agent);
+  }
+
+  const oldManifest = await readManifestFromDisk(skillDir);
+  const currentAgents = oldManifest?.installedAgents ?? [];
+
+  const agentsToRemove =
+    options.agent === "*"
+      ? currentAgents
+      : options.agent && currentAgents.includes(options.agent)
+        ? [options.agent]
+        : [];
+
+  if (options.agent && options.agent !== "*" && agentsToRemove.length === 0) {
+    throw new Error(
+      `Skill "${normalizedSkillName}" is not installed in agent "${options.agent}".`
+    );
+  }
+
+  const home = homedir();
+  for (const agent of agentsToRemove) {
+    try {
+      const agentSkillDir = path.join(
+        home,
+        `.${agent}`,
+        "skills",
+        normalizedSkillName
+      );
+      if (await exists(agentSkillDir)) {
+        await rm(agentSkillDir, { recursive: true, force: true });
+      }
+    } catch {
+      // best-effort
+    }
+  }
+
+  const remainingAgents = currentAgents.filter(
+    (a) => !agentsToRemove.includes(a)
+  );
+  if (oldManifest) {
+    await writeJsonFile(path.join(skillDir, "manifest.json"), {
+      ...oldManifest,
+      installedAgents: remainingAgents,
+    });
+  }
 
   return {
     skillName: normalizedSkillName,
-    removedPath: skillDir,
+    removedAgents: agentsToRemove,
   };
 };
 
@@ -233,7 +297,7 @@ const listSkillsCore = async (
     const manifestPath = path.join(skillsDir, entry.name, "manifest.json");
     try {
       const raw = await readFile(manifestPath, "utf8");
-      const manifest = JSON.parse(raw) as TSkillManifest;
+      const manifest = JSON.parse(raw) as TSkillManifestOnDisk;
       skills.push({
         name: entry.name,
         title: typeof manifest.title === "string" ? manifest.title : undefined,
@@ -241,6 +305,9 @@ const listSkillsCore = async (
           typeof manifest.metadata?.skillmdUrl === "string"
             ? manifest.metadata.skillmdUrl
             : undefined,
+        installedAgents: Array.isArray(manifest.installedAgents)
+          ? manifest.installedAgents
+          : [],
       });
     } catch {
       skills.push({ name: entry.name });
@@ -266,14 +333,9 @@ const updateSkillCore = async (
     throw new Error(`Skill "${normalizedSkillName}" is not installed.`);
   }
 
-  let localSkillmdUrl: string | undefined;
-  try {
-    const raw = await readFile(path.join(skillDir, "manifest.json"), "utf8");
-    const manifest = JSON.parse(raw) as TSkillManifest;
-    localSkillmdUrl = manifest.metadata?.skillmdUrl;
-  } catch {
-    localSkillmdUrl = undefined;
-  }
+  const oldManifest = await readManifestFromDisk(skillDir);
+  const localSkillmdUrl = oldManifest?.metadata?.skillmdUrl;
+  const preservedAgents = oldManifest?.installedAgents ?? [];
 
   const response = await getSkillByName(apiClient, normalizedSkillName);
   const { inputMetadata, ...latestManifest } = response;
@@ -294,11 +356,20 @@ const updateSkillCore = async (
 
   await rm(skillDir, { recursive: true, force: true });
   await mkdir(skillDir, { recursive: true });
-  await writeJsonFile(path.join(skillDir, "manifest.json"), latestManifest);
+  await writeJsonFile(path.join(skillDir, "manifest.json"), {
+    ...latestManifest,
+    installedAgents: preservedAgents,
+  });
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
 
-  await createSkillSymlinks(normalizedSkillName, skillDir, true);
+  for (const agent of preservedAgents) {
+    try {
+      await copySkillToAgent(agent, normalizedSkillName, skillDir);
+    } catch {
+      // best-effort
+    }
+  }
 
   return {
     skillName: normalizedSkillName,
@@ -341,6 +412,7 @@ export const installSkill = async (
     skillName,
     scope: resolvedScope,
     overwrite: options.overwrite,
+    agents: options.agents,
   });
 };
 
@@ -353,6 +425,7 @@ export const uninstallSkill = async (
   return uninstallSkillCore({
     skillName,
     scope: resolvedScope,
+    agent: options.agent,
   });
 };
 
