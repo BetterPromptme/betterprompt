@@ -18,9 +18,9 @@ export const GENERATE_COMMAND = {
       flag: "--image-input-url <url>",
       description: "Pass an image input URL. Can be repeated.",
     },
-    imageInputBase64: {
-      flag: "--image-input-base64 <base64>",
-      description: "Pass a base64 image input. Can be repeated.",
+    imageInputPath: {
+      flag: "--image-input-path <path>",
+      description: "Pass a local image file path. Can be repeated.",
     },
     inputPayload: {
       flag: "--input-payload <json>",

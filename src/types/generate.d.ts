@@ -9,7 +9,7 @@ import type { TResolveScope } from "./scope";
 export type TGenerateOptions = {
   input?: string[];
   imageInputUrl?: string[];
-  imageInputBase64?: string[];
+  imageInputPath?: string[];
   inputPayload?: string;
   stdin?: boolean;
   model?: string;
