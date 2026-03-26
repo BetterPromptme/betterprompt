@@ -51,12 +51,6 @@ export async function processImagePath(
 
     return { type: "base64", base64 };
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.startsWith("Image file not found")
-    ) {
-      throw error;
-    }
     const detail = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to process image: ${detail}`);
   }

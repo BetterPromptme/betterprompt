@@ -58,5 +58,3 @@ export type TGenerateRunResult = Pick<
 >;
 
 export type TFormatGeneratePart = (part: TPart) => string;
-
-export type TBuildImageInputs = (options: TGenerateOptions) => TImageInput[];
