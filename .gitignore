@@ -142,3 +142,4 @@ instructions/*
 tasks/*
 /.prompts
 **/__fixtures__/
+/docs/superpowers
