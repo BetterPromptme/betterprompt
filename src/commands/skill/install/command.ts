@@ -28,6 +28,12 @@ export const createSkillInstallSubcommand = (
       },
       spinnerMessage: "Installing skill...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      validate: ({ opts }) => {
+        const agents = opts.agent as string[] | undefined;
+        if (!agents || agents.length === 0)
+          return SKILLS_MESSAGES.agentRequiredForInstallError;
+        return undefined;
+      },
       formatText: (result) => {
         const r = result as TInstallSkillResult;
         return `${logSymbols.success} Installed "${r.skillName}"`;
