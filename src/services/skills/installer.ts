@@ -1,11 +1,15 @@
 import {
   access,
+  lstat,
   mkdir,
   readdir,
   readFile,
   rm,
+  symlink,
+  unlink,
   writeFile,
 } from "node:fs/promises";
+import { homedir } from "node:os";
 import path from "node:path";
 
 import type {
@@ -70,6 +74,57 @@ const exists = async (targetPath: string): Promise<boolean> => {
     return false;
   }
 };
+const AGENT_DIRS = [
+  ".agents",
+  ".openclaw",
+  ".cursor",
+  ".claude",
+  ".windsurf",
+  ".antigravity",
+];
+
+const isSymlinkSupported = (): boolean =>
+  process.platform === "darwin" || process.platform === "linux";
+
+const createSkillSymlinks = async (
+  skillName: string,
+  skillDir: string,
+  overwrite?: boolean
+): Promise<void> => {
+  if (!isSymlinkSupported()) return;
+
+  const home = homedir();
+
+  for (const agentDir of AGENT_DIRS) {
+    try {
+      const agentDirPath = path.join(home, agentDir);
+      if (!(await exists(agentDirPath))) continue;
+
+      const parentDir = path.join(agentDirPath, "skills");
+      if (!(await exists(parentDir))) {
+        await mkdir(parentDir, { recursive: true });
+      }
+
+      const linkPath = path.join(parentDir, skillName);
+      const linkExists = await exists(linkPath);
+
+      if (linkExists && overwrite) {
+        const stat = await lstat(linkPath);
+        if (stat.isSymbolicLink()) {
+          await unlink(linkPath);
+        } else {
+          continue;
+        }
+      } else if (linkExists) {
+        continue;
+      }
+
+      await symlink(skillDir, linkPath);
+    } catch {
+      // best-effort: skip on any error
+    }
+  }
+};
 
 const writeJsonFile = async (
   targetPath: string,
@@ -127,6 +182,8 @@ const installSkillCore = async (
   await writeJsonFile(path.join(skillDir, "manifest.json"), manifest);
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
+
+  await createSkillSymlinks(normalizedSkillName, skillDir, options.overwrite);
 
   return {
     skillName: normalizedSkillName,
@@ -240,6 +297,8 @@ const updateSkillCore = async (
   await writeJsonFile(path.join(skillDir, "manifest.json"), latestManifest);
   await writeJsonFile(path.join(skillDir, "schema.json"), schema);
   await writeMdFile(path.join(skillDir, "SKILL.md"), skillmd);
+
+  await createSkillSymlinks(normalizedSkillName, skillDir, true);
 
   return {
     skillName: normalizedSkillName,

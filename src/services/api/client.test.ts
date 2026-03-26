@@ -267,7 +267,7 @@ describe("api client", () => {
     });
 
     await expect(client.get("/v1/profile")).rejects.toThrow(
-      "API key not found. Run `betterprompt config set apiKey <value>` to configure auth.json."
+      "API key not found. Run `betterprompt login` to authenticate."
     );
   });
 

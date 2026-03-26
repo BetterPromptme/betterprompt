@@ -5,7 +5,7 @@ import type {
   TExecuteGenerateArgs,
   TGenerateCommandDependencies,
 } from "../../commands/generate/types";
-import { getApiClient } from "../../services/api/client";
+import { ApiError, getApiClient } from "../../services/api/client";
 import { runTaskWithSpinner } from "../error-ux/service";
 import { printResult } from "../output/service";
 import { persistRunOutput } from "../persistence/service";
@@ -119,9 +119,88 @@ export const executeGenerate = async ({
       deps.printResult(formatPartForTextOutput(part), ctx);
     });
   } catch (error) {
+    if (error instanceof ApiError) {
+      handleApiError(error, ctx, deps, helpText);
+      return;
+    }
+
     const errorMessage = error instanceof Error ? error.message : String(error);
     deps.error(`${logSymbols.error} ${GENERATE_FAILED_PREFIX} ${errorMessage}`);
     deps.error(helpText);
     deps.setExitCode(1);
   }
+};
+
+const extractDetailsField = (
+  details: unknown
+): { code?: string; data?: unknown } => {
+  if (details && typeof details === "object") {
+    const d = details as Record<string, unknown>;
+    return {
+      code: typeof d.status === "string" ? d.status : undefined,
+      data: d.data ?? null,
+    };
+  }
+  return { data: null };
+};
+
+const extractRunId = (data: unknown): string | undefined => {
+  if (data && typeof data === "object") {
+    const d = data as Record<string, unknown>;
+    return typeof d.runId === "string" ? d.runId : undefined;
+  }
+  return undefined;
+};
+
+const formatTextError = (error: ApiError): string => {
+  const { data } = extractDetailsField(error.details);
+
+  switch (error.status) {
+    case 401:
+      return "Not authenticated. Run `betterprompt login` to authenticate.";
+    case 402:
+      return "Insufficient credits or upgrade required. Visit https://betterprompt.me to manage your plan.";
+    case 429:
+      return "Rate limited. Wait a moment and try again.";
+    case 504: {
+      const runId = extractRunId(data);
+      if (runId) {
+        return `Generation timed out but may still be running. Check back with:\n  betterprompt outputs ${runId} --sync`;
+      }
+      return "Generation timed out but may still be running. Check back with:\n  betterprompt outputs list --remote";
+    }
+    case 400:
+    case 404:
+    case 422:
+      return error.message;
+    default:
+      return "Server error. Try again later.";
+  }
+};
+
+const handleApiError = (
+  error: ApiError,
+  ctx: TExecuteGenerateArgs["ctx"],
+  deps: TGenerateCommandDependencies,
+  helpText: string
+): void => {
+  if (ctx.outputFormat === "json") {
+    const { code, data } = extractDetailsField(error.details);
+    deps.printResult(
+      {
+        error: code ?? "UNKNOWN_ERROR",
+        message: error.message,
+        status: error.status,
+        data,
+      },
+      ctx
+    );
+  } else {
+    deps.error(
+      `${logSymbols.error} ${GENERATE_FAILED_PREFIX} ${formatTextError(error)}`
+    );
+    deps.error(helpText);
+  }
+
+  deps.setExitCode(1);
 };

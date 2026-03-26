@@ -147,18 +147,6 @@ describe("resolveContext", () => {
     expect(resolveContext(flags).verbosity).toBe("verbose");
   });
 
-  it("sets registry override when --registry is provided", async () => {
-    const resolveContext = await loadResolveContext();
-    const flags = await parseGlobalFlags([
-      "--registry",
-      "https://registry.example.test",
-    ]);
-
-    expect(resolveContext(flags).registry).toBe(
-      "https://registry.example.test"
-    );
-  });
-
   it("sets non-interactive confirmation with --yes", async () => {
     const resolveContext = await loadResolveContext();
     const flags = await parseGlobalFlags(["--yes"]);
@@ -203,8 +191,6 @@ describe("resolveContext", () => {
         "--json",
         "--verbose",
         "--yes",
-        "--registry",
-        "https://registry.example.test",
         "inspect",
       ],
       { from: "node" }
@@ -214,7 +200,7 @@ describe("resolveContext", () => {
       scope: { type: "project" },
       outputFormat: "json",
       verbosity: "verbose",
-      registry: "https://registry.example.test",
+      registry: undefined,
       yes: true,
       color: true,
     });
