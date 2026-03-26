@@ -248,10 +248,18 @@ The canonical layout lives in `specs/DIRECTORY-LAYOUT.md`. Key points:
 │   ├── history.jsonl    # append-only index for fast CLI listing
 │   └── <runId>/         # per-run request/response/metadata + assets
 ├── skills/
-│   └── <skill-slug>/    # SKILL.md, manifest.json, schema.json per skill
+│   └── <skill-slug>/    # SKILL.md, manifest.json (with installedAgents), schema.json
 ├── logs/                # cli.log, auth.log, errors.log
 └── tmp/                 # transient; safe to clear
 ```
+
+Agent directories (created by `bp skill install --agent <name>`):
+
+```text
+~/.<agent>/skills/<skill-slug>/SKILL.md   # copy of SKILL.md for agent integration
+```
+
+Supported agents: `.agents`, `.openclaw`, `.cursor`, `.claude`, `.windsurf`, `.antigravity`.
 
 Project-local counterpart (`<project>/.betterprompt/`) mirrors `skills/`, `outputs/`, `logs/`, and `tmp/`. Project-local overrides global when both exist.
 
