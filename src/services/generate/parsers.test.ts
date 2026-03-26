@@ -21,7 +21,8 @@ describe("processImagePath", () => {
     const result = await processImagePath(testFile);
 
     expect(result.type).toBe("base64");
-    expect(result.base64).toMatch(/^data:image\/jpeg;base64,/);
+    expect(result.base64.length).toBeGreaterThan(0);
+    expect(() => Buffer.from(result.base64, "base64")).not.toThrow();
   });
 
   it("resizes images larger than 2048px on longest edge", async () => {
@@ -41,7 +42,7 @@ describe("processImagePath", () => {
     const result = await processImagePath(testFile);
 
     expect(result.type).toBe("base64");
-    const base64Data = result.base64.split(",")[1]!;
+    const base64Data = result.base64;
     const buffer = Buffer.from(base64Data, "base64");
     const metadata = await sharp(buffer).metadata();
     expect(metadata.width).toBeLessThanOrEqual(2048);
@@ -67,7 +68,8 @@ describe("processImagePath", () => {
     const result = await processImagePath(relativePath);
 
     expect(result.type).toBe("base64");
-    expect(result.base64).toMatch(/^data:image\/jpeg;base64,/);
+    expect(result.base64.length).toBeGreaterThan(0);
+    expect(() => Buffer.from(result.base64, "base64")).not.toThrow();
   });
 
   it("throws when file does not exist", async () => {

@@ -47,7 +47,7 @@ export async function processImagePath(
     }
 
     const buffer = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
-    const base64 = `data:image/jpeg;base64,${buffer.toString("base64")}`;
+    const base64 = buffer.toString("base64");
 
     return { type: "base64", base64 };
   } catch (error) {

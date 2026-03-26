@@ -263,7 +263,7 @@ Notes:
 - `--input-payload` is mutually exclusive with `--input`, `--image-input-url`, `--image-input-path`, and `--stdin`.
 - `--stdin` reads a JSON object shaped like `TRunInputs` from standard input.
 - `--image-input-url <url>` appends `{ "type": "url", "url": "<url>" }` to `inputs.imageInputs`.
-- `--image-input-path <path>` reads the local image file, compresses it (max 2048px edge, JPEG 80%), and appends the result as `{ "type": "base64", "base64": "<data-uri>" }` to `inputs.imageInputs`.
+- `--image-input-path <path>` reads the local image file, compresses it (max 2048px edge, JPEG 80%), and appends the result as `{ "type": "base64", "base64": "<base64>" }` to `inputs.imageInputs`.
 
 ### Input precedence
 
