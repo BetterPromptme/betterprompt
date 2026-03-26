@@ -65,7 +65,7 @@ const imageItem = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("base64"),
-    base64: z.base64(),
+    base64: z.string().min(1),
   }),
 ]);
 
