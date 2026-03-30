@@ -1,8 +1,13 @@
 import logSymbols from "log-symbols";
 
-import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+import {
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
+import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TUpdateSkillResult } from "../../../types/installer";
 import type { TSkillCommandDependencies } from "../types";
@@ -64,6 +69,7 @@ export const createSkillUpdateSubcommand = (
         return undefined;
       },
       handler: async ({ opts, args, ctx, deps: handlerDeps }) => {
+        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name
         ] as string | undefined;
@@ -74,19 +80,26 @@ export const createSkillUpdateSubcommand = (
 
         // Two distinct spinner messages depending on --all, so the factory's
         // single spinnerMessage field isn't used; we drive the spinner manually.
+        let result;
         if (skillName !== undefined) {
-          return runTaskWithSpinner({
+          result = await runTaskWithSpinner({
             message: "Updating skill...",
             createSpinner: handlerDeps.createSpinner,
             task: () => deps.updateSkill(skillName, options),
           });
+        } else {
+          result = await runTaskWithSpinner({
+            message: "Updating all skills...",
+            createSpinner: handlerDeps.createSpinner,
+            task: () => deps.updateAllSkills(options),
+          });
         }
-
-        return runTaskWithSpinner({
-          message: "Updating all skills...",
-          createSpinner: handlerDeps.createSpinner,
-          task: () => deps.updateAllSkills(options),
+        void track({
+          command: TELEMETRY_COMMANDS["skill:update"],
+          startedAt: start,
+          metadata: { skillSlug: skillName },
         });
+        return result;
       },
     },
     factoryDeps

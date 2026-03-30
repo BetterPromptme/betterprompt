@@ -1,7 +1,12 @@
 import logSymbols from "log-symbols";
 
-import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
+import {
+  CONFIG_COMMAND,
+  CONFIG_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
+import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TConfigCommandDependencies, TSystemConfigKey } from "../types";
 import { parseConfigKey } from "../utils";
@@ -26,9 +31,15 @@ export const createConfigUnsetSubcommand = (
       ],
       formatText: () => `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
       handler: async ({ args, setExitCode, deps: fd }) => {
+        const start = performance.now();
         const key = args[configUnset.arguments.key.name] as TSystemConfigKey;
         try {
           await deps.unsetValue(key);
+          void track({
+            command: TELEMETRY_COMMANDS["config:unset"],
+            startedAt: start,
+            metadata: { key: args.key },
+          });
           return { success: true, key };
         } catch (error) {
           const fallbackPath = deps.resolveConfigPath(key);

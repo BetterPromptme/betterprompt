@@ -1,8 +1,13 @@
 import logSymbols from "log-symbols";
 
-import { DOCTOR_COMMAND, DOCTOR_MESSAGES } from "../../constants";
+import {
+  DOCTOR_COMMAND,
+  DOCTOR_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runDoctorChecks } from "../../services/doctor/service";
+import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TDoctorCommandDependencies,
@@ -40,10 +45,16 @@ export const createDoctorCommand = (
       spinnerMessage: "Running doctor checks...",
       errorPrefix: `${logSymbols.error} ${DOCTOR_MESSAGES.failedPrefix}`,
       handler: async ({ opts, setExitCode }) => {
+        const start = performance.now();
         const result = await deps.runDoctorChecks({ fix: opts.fix === true });
         if (!result.healthy) {
           setExitCode(1);
         }
+        void track({
+          command: TELEMETRY_COMMANDS.doctor,
+          startedAt: start,
+          metadata: {},
+        });
         return result;
       },
       formatText: (result) => formatTextResult(result as TDoctorResult),

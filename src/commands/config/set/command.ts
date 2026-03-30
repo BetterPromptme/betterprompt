@@ -1,7 +1,12 @@
 import logSymbols from "log-symbols";
 
-import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
+import {
+  CONFIG_COMMAND,
+  CONFIG_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
+import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type {
   TConfigCommandDependencies,
@@ -35,6 +40,7 @@ export const createConfigSetSubcommand = (
       errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
       formatText: () => `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
       handler: async ({ args, deps: fd, setExitCode }) => {
+        const start = performance.now();
         const key = args[configSet.arguments.key.name] as TSystemConfigKey;
         const value = args[configSet.arguments.value.name] as string;
 
@@ -53,6 +59,11 @@ export const createConfigSetSubcommand = (
           }
 
           await deps.setValue(key, value);
+          void track({
+            command: TELEMETRY_COMMANDS["config:set"],
+            startedAt: start,
+            metadata: { key: args.key },
+          });
           return { success: true, key };
         } catch (error) {
           const fallbackPath = deps.resolveConfigPath(key);

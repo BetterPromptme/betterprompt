@@ -1,8 +1,10 @@
 import logSymbols from "log-symbols";
 
+import { TELEMETRY_COMMANDS } from "../../constants";
 import { UPDATE_COMMAND, UPDATE_MESSAGES } from "../../constants/update";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../services/error-ux/service";
+import { track } from "../../services/telemetry/service";
 import {
   checkForUpdate as checkForUpdateService,
   performUpdate as performUpdateService,
@@ -26,6 +28,7 @@ export const createUpdateCommand = (
       flags: UPDATE_COMMAND.flags,
       errorPrefix: `${logSymbols.error} ${UPDATE_MESSAGES.failedPrefix}`,
       handler: async ({ ctx, deps: resolvedDeps }) => {
+        const start = performance.now();
         const checkResult = await runTaskWithSpinner({
           message: "Checking for updates...",
           createSpinner: resolvedDeps.createSpinner,
@@ -46,12 +49,18 @@ export const createUpdateCommand = (
           updated = updateResult.updated;
         }
 
-        return {
+        const result = {
           currentVersion: checkResult.currentVersion,
           latestVersion: checkResult.latestVersion,
           hasUpdate: checkResult.hasUpdate,
           updated,
         };
+        void track({
+          command: TELEMETRY_COMMANDS.update,
+          startedAt: start,
+          metadata: {},
+        });
+        return result;
       },
       formatText: (result) => {
         const r = result as {

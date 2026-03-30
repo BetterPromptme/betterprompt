@@ -1,7 +1,12 @@
 import logSymbols from "log-symbols";
 
-import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
+import {
+  CONFIG_COMMAND,
+  CONFIG_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
+import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type {
   TConfigCommandDependencies,
@@ -30,6 +35,7 @@ export const createConfigGetSubcommand = (
       ],
       errorPrefix: `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix}`,
       handler: async ({ args, ctx, deps: fd, setExitCode }) => {
+        const start = performance.now();
         const key = args[configGet.arguments.key.name] as
           | TSystemConfigKey
           | undefined;
@@ -44,6 +50,11 @@ export const createConfigGetSubcommand = (
 
             if (ctx.outputFormat === "json") {
               fd.printResult(masked, ctx);
+              void track({
+                command: TELEMETRY_COMMANDS["config:get"],
+                startedAt: start,
+                metadata: { key: args.key },
+              });
               return undefined;
             }
 
@@ -53,6 +64,11 @@ export const createConfigGetSubcommand = (
 
             if (!entries.length) {
               fd.printResult("No config values set.", ctx);
+              void track({
+                command: TELEMETRY_COMMANDS["config:get"],
+                startedAt: start,
+                metadata: { key: args.key },
+              });
               return undefined;
             }
 
@@ -61,6 +77,11 @@ export const createConfigGetSubcommand = (
                 entryKey === "apiKey" ? maskApiKey(value as string) : value;
               fd.printResult(`${entryKey}=${display}`, ctx);
             }
+            void track({
+              command: TELEMETRY_COMMANDS["config:get"],
+              startedAt: start,
+              metadata: { key: args.key },
+            });
             return undefined;
           }
 
@@ -75,6 +96,11 @@ export const createConfigGetSubcommand = (
           } else {
             fd.printResult(`${logSymbols.info} ${displayValue}`, ctx);
           }
+          void track({
+            command: TELEMETRY_COMMANDS["config:get"],
+            startedAt: start,
+            metadata: { key: args.key },
+          });
           return undefined;
         } catch (error) {
           const fallbackPath = deps.resolveConfigPath(key);

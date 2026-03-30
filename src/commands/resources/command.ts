@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { RESOURCES_COMMAND, RESOURCES_MESSAGES } from "../../constants";
+import {
+  RESOURCES_COMMAND,
+  RESOURCES_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import {
@@ -8,6 +12,7 @@ import {
   loadLocalResources,
   saveLocalResources,
 } from "../../services/resources/service";
+import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TResourceModel,
@@ -83,6 +88,7 @@ export const createResourcesCommand = (
         return undefined;
       },
       handler: async ({ opts }) => {
+        const start = performance.now();
         let data: TResourcesData;
 
         if (opts.remote) {
@@ -101,10 +107,19 @@ export const createResourcesCommand = (
         }
 
         // In JSON mode, formatText is skipped — return filtered data for --models-only
-        if (opts.modelsOnly) {
-          return { kind: "models" as const, data: data.resources.models };
-        }
-        return { kind: "full" as const, data };
+        const result = opts.modelsOnly
+          ? { kind: "models" as const, data: data.resources.models }
+          : { kind: "full" as const, data };
+        void track({
+          command: TELEMETRY_COMMANDS.resources,
+          startedAt: start,
+          metadata: {
+            resultCount: Array.isArray(result.data)
+              ? result.data.length
+              : undefined,
+          },
+        });
+        return result;
       },
       formatText: (result) => {
         const r = result as

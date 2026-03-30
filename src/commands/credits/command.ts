@@ -1,9 +1,14 @@
 import logSymbols from "log-symbols";
 
-import { CREDITS_COMMAND, CREDITS_MESSAGES } from "../../constants";
+import {
+  CREDITS_COMMAND,
+  CREDITS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { getCredits } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
+import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import { formatCredits } from "../../utils/format-credits";
 import type { TCreditBalance, TCreditsDependencies } from "./types";
@@ -26,7 +31,16 @@ export const createCreditsCommand = (
       flags: CREDITS_COMMAND.flags,
       spinnerMessage: "Fetching credits balance...",
       errorPrefix: `${logSymbols.error} ${CREDITS_MESSAGES.failedPrefix}`,
-      handler: () => deps.getCredits(),
+      handler: async () => {
+        const start = performance.now();
+        const result = await deps.getCredits();
+        void track({
+          command: TELEMETRY_COMMANDS.credits,
+          startedAt: start,
+          metadata: {},
+        });
+        return result;
+      },
       formatText: (result) => formatCreditsText(result as TCreditBalance),
     },
     factoryDeps
