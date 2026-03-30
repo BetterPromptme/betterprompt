@@ -86,14 +86,14 @@ export const createGenerateCommand = (
               });
               void track({
                 event: TELEMETRY_EVENTS.generate,
-                skillSlug: skillVersionId,
+                skillSlug,
                 model: opts.model as string | undefined,
                 success: true,
               });
             } catch (error) {
               void track({
                 event: TELEMETRY_EVENTS.generate,
-                skillSlug: skillVersionId,
+                skillSlug,
                 model: opts.model as string | undefined,
                 success: false,
               });
