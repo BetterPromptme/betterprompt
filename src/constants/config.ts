@@ -104,4 +104,6 @@ Examples:
   verifyingApiKey: "Verifying API key...",
   verifiedApiKey: "API key verified.",
   failedVerifyApiKey: "API key verification failed.",
+  invalidTelemetryValue:
+    "Invalid telemetry value. Use 'true', 'false', or '{\"enabled\":true,\"commands\":[]}'",
 } as const;

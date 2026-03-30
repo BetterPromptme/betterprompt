@@ -11,6 +11,7 @@ import path from "node:path";
 
 import {
   API_CONFIG,
+  CONFIG_MESSAGES,
   SYSTEM_CONFIG,
   SYSTEM_MESSAGES,
   SYSTEM_STORAGE,
@@ -62,8 +63,26 @@ const sanitizeConfig = (
     changed = true;
   }
 
-  const telemetry =
-    typeof value.telemetry === "boolean" ? value.telemetry : undefined;
+  let telemetry: TSystemConfig["telemetry"] = undefined;
+  if (typeof value.telemetry === "boolean") {
+    telemetry = value.telemetry;
+  } else if (
+    typeof value.telemetry === "object" &&
+    value.telemetry !== null &&
+    typeof (value.telemetry as Record<string, unknown>).enabled === "boolean"
+  ) {
+    const obj = value.telemetry as Record<string, unknown>;
+    const config: { enabled: boolean; commands?: string[] } = {
+      enabled: obj.enabled as boolean,
+    };
+    if (
+      Array.isArray(obj.commands) &&
+      obj.commands.every((c: unknown) => typeof c === "string")
+    ) {
+      config.commands = obj.commands as string[];
+    }
+    telemetry = config;
+  }
 
   if (
     "default_output_format" in value ||
@@ -194,9 +213,9 @@ export const getSystemConfigValue = async (
     return config.apiBaseUrl;
   }
   if (key === "telemetry") {
-    return config.telemetry === undefined
-      ? undefined
-      : String(config.telemetry);
+    if (config.telemetry === undefined) return undefined;
+    if (typeof config.telemetry === "boolean") return String(config.telemetry);
+    return JSON.stringify(config.telemetry);
   }
   return undefined;
 };
@@ -222,12 +241,38 @@ export const setSystemConfigValue = async (
   }
 
   if (key === "telemetry") {
-    if (value !== "true" && value !== "false") {
-      throw new Error(
-        `Invalid value "${value}" for telemetry. Expected "true" or "false".`
-      );
+    if (value === "true") {
+      nextConfig.telemetry = true;
+    } else if (value === "false") {
+      nextConfig.telemetry = false;
+    } else {
+      try {
+        const parsed = JSON.parse(value);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          typeof parsed.enabled === "boolean"
+        ) {
+          const telemetryConfig: { enabled: boolean; commands?: string[] } = {
+            enabled: parsed.enabled,
+          };
+          if (
+            Array.isArray(parsed.commands) &&
+            parsed.commands.every((c: unknown) => typeof c === "string")
+          ) {
+            telemetryConfig.commands = parsed.commands;
+          }
+          nextConfig.telemetry = telemetryConfig;
+        } else {
+          throw new Error(CONFIG_MESSAGES.invalidTelemetryValue);
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          throw new Error(CONFIG_MESSAGES.invalidTelemetryValue);
+        }
+        throw e;
+      }
     }
-    nextConfig.telemetry = value === "true";
   }
 
   await writeSystemConfig(configPath, nextConfig);
