@@ -123,7 +123,7 @@ describe("resolvePromptVersionId", () => {
 
     const mockApi: TSkillSearchApi = {
       get: mock(() =>
-        Promise.resolve({ status: "ERROR", message: "Skill not found" })
+        Promise.reject(new Error("Skill not found"))
       ) as TSkillSearchApi["get"],
     };
 

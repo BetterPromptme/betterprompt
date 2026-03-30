@@ -200,24 +200,14 @@ export const getCurrentUser = async (
   apiClient: TCurrentUserApi
 ): Promise<TUserIdentity> => {
   const response = await apiClient.get("/me");
-
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message ?? "Failed to fetch current user.");
+  return response.data!;
 };
 
 export const getCredits = async (
   apiClient: TCreditsApi
 ): Promise<TCreditBalance> => {
   const response = await apiClient.get("/me/credits");
-
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message ?? "Failed to fetch credits.");
+  return response.data!;
 };
 
 /**

@@ -96,19 +96,6 @@ describe("skills core", () => {
       },
     });
   });
-
-  it("throws when api returns non-SUCCESS status", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "ERROR",
-        message: "Search is unavailable",
-      })),
-    } as Parameters<typeof searchSkills>[0];
-
-    await expect(searchSkills(apiClient, "react")).rejects.toThrow(
-      "Search is unavailable"
-    );
-  });
 });
 
 describe("getSkillByName", () => {
@@ -186,19 +173,6 @@ describe("getSkillByName", () => {
 
     await expect(getSkillByName(apiClient, "   ")).rejects.toThrow(
       "Skill name must not be empty."
-    );
-  });
-
-  it("throws when api returns non-SUCCESS status", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "ERROR",
-        message: "Skill not found",
-      })),
-    } as Parameters<typeof getSkillByName>[0];
-
-    await expect(getSkillByName(apiClient, "react-hooks")).rejects.toThrow(
-      "Skill not found"
     );
   });
 });
