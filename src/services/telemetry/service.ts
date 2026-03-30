@@ -170,7 +170,10 @@ export const track = (
   params.set("e", event.command);
   params.set("v", deps.getCliVersion());
   params.set("sid", getSessionId());
-  params.set("m", JSON.stringify(metadata));
+
+  if (Object.keys(metadata).length > 0) {
+    params.set("m", JSON.stringify(metadata));
+  }
 
   const url = `${deps.getBaseUrl()}${TELEMETRY_CONFIG.endpoint}?${params.toString()}`;
 
