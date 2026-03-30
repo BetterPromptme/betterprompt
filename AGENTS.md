@@ -185,22 +185,23 @@ export const creditsCommand = createCreditsCommand();
 
 ### Spec Fields Reference
 
-| Field                      | Type                        | Required                               | Description                                              |
-| -------------------------- | --------------------------- | -------------------------------------- | -------------------------------------------------------- |
-| `name`                     | `string`                    | Yes                                    | Command name from constants                              |
-| `description`              | `string`                    | Yes                                    | Command description from constants                       |
-| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                          |
-| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                          |
-| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help            |
-| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch     |
-| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                  |
-| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                 |
-| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`) |
-| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`      |
-| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)  |
-| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                           |
-| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                       |
-| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                            |
+| Field                      | Type                        | Required                               | Description                                                     |
+| -------------------------- | --------------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| `name`                     | `string`                    | Yes                                    | Command name from constants                                     |
+| `description`              | `string`                    | Yes                                    | Command description from constants                              |
+| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                                 |
+| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                                 |
+| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help                   |
+| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch            |
+| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                         |
+| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                        |
+| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`)        |
+| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`             |
+| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)         |
+| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                                  |
+| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                              |
+| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                                   |
+| `telemetry`                | `TTelemetrySpec<TOpts>`     | No                                     | Declarative telemetry; factory calls `track()` on success/error |
 
 ### Constants convention
 

@@ -29,4 +29,9 @@ Anonymous, fire-and-forget CLI usage tracking. Sends a GET request to `/t/cli` w
 
 ## Integration
 
-`track()` is called with `void` prefix in command files. It is a cross-cutting concern, not part of core business logic.
+`track()` can be invoked two ways:
+
+1. **Declarative (preferred):** Add a `telemetry` field to the command spec (`TTelemetrySpec`). The command factory (`wireAction`) calls `track()` automatically on success and error, including `errorType`/`errorData` on failures.
+2. **Manual (escape hatch):** Call `track()` with `void` prefix directly in `customAction` handlers or other non-factory code.
+
+Telemetry is a cross-cutting concern, not part of core business logic.
