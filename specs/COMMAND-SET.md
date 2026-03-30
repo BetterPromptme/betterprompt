@@ -449,6 +449,7 @@ bp config get
 bp config get apiBaseUrl --json
 bp config set apiBaseUrl https://api.betterprompt.me/v1
 bp config set telemetry false
+bp config set telemetry '{"enabled":true,"commands":["generate","search"]}'
 bp config unset telemetry
 ```
 
