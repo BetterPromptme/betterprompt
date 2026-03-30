@@ -6,7 +6,6 @@ import {
   TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TUninstallSkillResult } from "../../../types/installer";
 import type { TSkillCommandDependencies } from "../types";
@@ -44,21 +43,22 @@ export const createSkillUninstallSubcommand = (
         if (!opts.agent) return SKILLS_MESSAGES.agentRequiredForUninstallError;
         return undefined;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:uninstall"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.name
+          ] as string,
+        }),
+      },
       handler: async ({ args, opts, ctx }) => {
-        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.name
         ] as string;
-        const result = await deps.uninstallSkill(skillName, {
+        return deps.uninstallSkill(skillName, {
           scope: ctx.scope,
           agent: opts.agent as string,
         });
-        void track({
-          command: TELEMETRY_COMMANDS["skill:uninstall"],
-          startedAt: start,
-          metadata: { skillSlug: skillName },
-        });
-        return result;
       },
     },
     factoryDeps

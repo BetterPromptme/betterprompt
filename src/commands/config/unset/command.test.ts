@@ -62,9 +62,9 @@ describe("config unset subcommand", () => {
 
     await runConfig(["unset", "apiBaseUrl"], deps, factory);
 
-    expect(factory.error).toHaveBeenCalledTimes(2);
-    expect(factory.error).toHaveBeenLastCalledWith(
-      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
+    expect(factory.error).toHaveBeenCalledTimes(1);
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("apiBaseUrl is not set in config.json.")
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });

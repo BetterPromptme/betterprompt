@@ -7,7 +7,6 @@ import {
 } from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runDoctorChecks } from "../../services/doctor/service";
-import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TDoctorCommandDependencies,
@@ -44,17 +43,12 @@ export const createDoctorCommand = (
       flags: DOCTOR_COMMAND.flags,
       spinnerMessage: "Running doctor checks...",
       errorPrefix: `${logSymbols.error} ${DOCTOR_MESSAGES.failedPrefix}`,
+      telemetry: { command: TELEMETRY_COMMANDS.doctor },
       handler: async ({ opts, setExitCode }) => {
-        const start = performance.now();
         const result = await deps.runDoctorChecks({ fix: opts.fix === true });
         if (!result.healthy) {
           setExitCode(1);
         }
-        void track({
-          command: TELEMETRY_COMMANDS.doctor,
-          startedAt: start,
-          metadata: {},
-        });
         return result;
       },
       formatText: (result) => formatTextResult(result as TDoctorResult),

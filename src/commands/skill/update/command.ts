@@ -7,7 +7,6 @@ import {
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../../services/error-ux/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TUpdateSkillResult } from "../../../types/installer";
 import type { TSkillCommandDependencies } from "../types";
@@ -68,8 +67,15 @@ export const createSkillUpdateSubcommand = (
         }
         return undefined;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:update"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name
+          ] as string | undefined,
+        }),
+      },
       handler: async ({ opts, args, ctx, deps: handlerDeps }) => {
-        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.update.arguments.skillSlug.name
         ] as string | undefined;
@@ -94,11 +100,6 @@ export const createSkillUpdateSubcommand = (
             task: () => deps.updateAllSkills(options),
           });
         }
-        void track({
-          command: TELEMETRY_COMMANDS["skill:update"],
-          startedAt: start,
-          metadata: { skillSlug: skillName },
-        });
         return result;
       },
     },

@@ -6,7 +6,6 @@ import {
   TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
 
@@ -43,17 +42,14 @@ export const createSkillListSubcommand = (
           ...rows,
         ].join("\n");
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:list"],
+        getMetadata: (result) => ({
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ ctx }) => {
-        const start = performance.now();
-        const result = await deps.listSkills({ scope: ctx.scope });
-        void track({
-          command: TELEMETRY_COMMANDS["skill:list"],
-          startedAt: start,
-          metadata: {
-            resultCount: Array.isArray(result) ? result.length : undefined,
-          },
-        });
-        return result;
+        return deps.listSkills({ scope: ctx.scope });
       },
     },
     factoryDeps

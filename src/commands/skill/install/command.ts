@@ -6,7 +6,6 @@ import {
   TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TInstallSkillResult } from "../../../types/installer";
 import type { TSkillCommandDependencies } from "../types";
@@ -43,8 +42,15 @@ export const createSkillInstallSubcommand = (
         const r = result as TInstallSkillResult;
         return `${logSymbols.success} Installed "${r.skillName}"`;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:install"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.install.arguments.skillSlug.name
+          ] as string,
+        }),
+      },
       handler: async ({ args, opts, ctx }) => {
-        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.install.arguments.skillSlug.name
         ] as string;
@@ -55,13 +61,7 @@ export const createSkillInstallSubcommand = (
           }),
           agents: opts.agent as string[],
         };
-        const result = await deps.installSkill(skillName, options);
-        void track({
-          command: TELEMETRY_COMMANDS["skill:install"],
-          startedAt: start,
-          metadata: { skillSlug: skillName },
-        });
-        return result;
+        return deps.installSkill(skillName, options);
       },
     },
     factoryDeps

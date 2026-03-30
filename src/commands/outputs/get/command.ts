@@ -7,7 +7,6 @@ import {
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { fetchOutputRun } from "../../../services/outputs/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type {
   TOutputsCommandDependencies,
@@ -48,12 +47,12 @@ export const createOutputsGetSubcommand = (
       flags: outputsGet.flags,
       spinnerMessage: "Fetching output run...",
       errorPrefix: `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix}`,
+      telemetry: { command: TELEMETRY_COMMANDS["outputs:get"] },
       handler: async ({ opts, args, ctx, command }) => {
-        const start = performance.now();
         const runId = args[outputsGet.arguments.runId.name] as string;
         const rootRemote =
           command.parent?.opts<{ remote?: boolean }>().remote === true;
-        const result = await fetchOutputRun(
+        return fetchOutputRun(
           deps,
           runId,
           {
@@ -62,12 +61,6 @@ export const createOutputsGetSubcommand = (
           },
           ctx
         );
-        void track({
-          command: TELEMETRY_COMMANDS["outputs:get"],
-          startedAt: start,
-          metadata: {},
-        });
-        return result;
       },
       formatText: formatRunOutputText,
     },

@@ -6,7 +6,6 @@ import {
   TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
 
@@ -30,18 +29,19 @@ export const createSkillInfoSubcommand = (
       },
       spinnerMessage: "Fetching skill details...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:info"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.info.arguments.skillSlug.name
+          ] as string,
+        }),
+      },
       handler: async ({ args }) => {
-        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.info.arguments.skillSlug.name
         ] as string;
-        const result = await deps.getSkill(skillName);
-        void track({
-          command: TELEMETRY_COMMANDS["skill:info"],
-          startedAt: start,
-          metadata: { skillSlug: skillName },
-        });
-        return result;
+        return deps.getSkill(skillName);
       },
     },
     factoryDeps

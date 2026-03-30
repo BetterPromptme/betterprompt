@@ -7,7 +7,6 @@ import {
   TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
-import { track } from "../../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSearchFilters } from "../../../types/search";
 import type { TSkillCommandDependencies } from "../types";
@@ -54,23 +53,22 @@ export const createSkillSearchSubcommand = (
       },
       spinnerMessage: "Searching skills...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:search"],
+        getMetadata: (result, _o, args) => ({
+          query: args[
+            SKILLS_COMMAND.subcommands.search.arguments.query.name
+          ] as string,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ args, opts }) => {
-        const start = performance.now();
         const query = args[
           SKILLS_COMMAND.subcommands.search.arguments.query.name
         ] as string;
         const normalizedQuery = deps.validateQuery(query);
         const filters = buildSearchFilters(opts);
-        const result = await deps.search(normalizedQuery, filters);
-        void track({
-          command: TELEMETRY_COMMANDS["skill:search"],
-          startedAt: start,
-          metadata: {
-            query: normalizedQuery,
-            resultCount: Array.isArray(result) ? result.length : undefined,
-          },
-        });
-        return result;
+        return deps.search(normalizedQuery, filters);
       },
     },
     factoryDeps

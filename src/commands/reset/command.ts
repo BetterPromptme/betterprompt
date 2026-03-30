@@ -8,7 +8,6 @@ import {
 } from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runReset as runResetService } from "../../services/reset/service";
-import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TResetCommandDependencies } from "./types";
 
@@ -33,24 +32,13 @@ export const createResetCommand = (
       description: RESET_COMMAND.description,
       flags: RESET_COMMAND.flags,
       errorPrefix: `${logSymbols.error} ${RESET_MESSAGES.failedPrefix}`,
+      telemetry: { command: TELEMETRY_COMMANDS.reset },
       handler: async ({ ctx }) => {
-        const start = performance.now();
         const confirmed = ctx.yes ? true : await deps.confirmReset();
         if (!confirmed) {
-          void track({
-            command: TELEMETRY_COMMANDS.reset,
-            startedAt: start,
-            metadata: {},
-          });
           return RESET_MESSAGES.cancelled;
         }
-        const result = await deps.runReset({ force: true });
-        void track({
-          command: TELEMETRY_COMMANDS.reset,
-          startedAt: start,
-          metadata: {},
-        });
-        return result;
+        return deps.runReset({ force: true });
       },
       formatText: (result) => {
         if (typeof result === "string") return result;

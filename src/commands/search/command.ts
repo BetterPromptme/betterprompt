@@ -12,7 +12,6 @@ import {
   searchSkills,
   validateSearchQuery,
 } from "../../services/skills/service";
-import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TSearchCommandDependencies,
@@ -70,22 +69,19 @@ export const createSearchCommand = (
         }
         return undefined;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS.search,
+        getMetadata: (result, _o, args) => ({
+          query: args[SEARCH_COMMAND.arguments.query.name] as string,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ args, opts }) => {
-        const start = performance.now();
         const query = deps.validateQuery(
           args[SEARCH_COMMAND.arguments.query.name] as string
         );
         const filters = buildSearchFilters(opts);
-        const result = await deps.search(query, filters);
-        void track({
-          command: TELEMETRY_COMMANDS.search,
-          startedAt: start,
-          metadata: {
-            query,
-            resultCount: Array.isArray(result) ? result.length : undefined,
-          },
-        });
-        return result;
+        return deps.search(query, filters);
       },
     },
     factoryDeps

@@ -12,7 +12,6 @@ import {
   loadLocalResources,
   saveLocalResources,
 } from "../../services/resources/service";
-import { track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TResourceModel,
@@ -87,8 +86,13 @@ export const createResourcesCommand = (
         }
         return undefined;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS.resources,
+        getMetadata: (result) => ({
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ opts }) => {
-        const start = performance.now();
         let data: TResourcesData;
 
         if (opts.remote) {
@@ -107,19 +111,9 @@ export const createResourcesCommand = (
         }
 
         // In JSON mode, formatText is skipped — return filtered data for --models-only
-        const result = opts.modelsOnly
+        return opts.modelsOnly
           ? { kind: "models" as const, data: data.resources.models }
           : { kind: "full" as const, data };
-        void track({
-          command: TELEMETRY_COMMANDS.resources,
-          startedAt: start,
-          metadata: {
-            resultCount: Array.isArray(result.data)
-              ? result.data.length
-              : undefined,
-          },
-        });
-        return result;
       },
       formatText: (result) => {
         const r = result as

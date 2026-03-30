@@ -106,9 +106,9 @@ describe("config set subcommand", () => {
 
     expect(deps.verifyApiKey).toHaveBeenCalledWith("bp_bad_key");
     expect(deps.setValue).not.toHaveBeenCalled();
-    expect(factory.error).toHaveBeenCalledTimes(2);
-    expect(factory.error).toHaveBeenLastCalledWith(
-      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
+    expect(factory.error).toHaveBeenCalledTimes(1);
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("API key verification failed. Unauthorized")
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
@@ -127,8 +127,8 @@ describe("config set subcommand", () => {
       factory
     );
 
-    expect(factory.error).toHaveBeenLastCalledWith(
-      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/config.json`
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("write failed")
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });
