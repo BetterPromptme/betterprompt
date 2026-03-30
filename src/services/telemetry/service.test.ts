@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 
 import type { TTelemetryDependencies } from "../../types/telemetry.d.ts";
+import { ApiError } from "../api/client";
 import {
   extractErrorData,
+  getErrorType,
   isEnabled,
   resetTelemetryForTests,
   track,
@@ -174,19 +176,62 @@ describe("telemetry service", () => {
     });
   });
 
+  describe("getErrorType", () => {
+    it("returns api_error for ApiError instances", () => {
+      const error = new ApiError({
+        message: "Not found",
+        status: 404,
+        method: "GET",
+        requestUrl: "/skills/test",
+      });
+      expect(getErrorType(error)).toBe("api_error");
+    });
+
+    it("returns timeout_error for AbortError", () => {
+      const error = new DOMException("Aborted", "AbortError");
+      expect(getErrorType(error)).toBe("timeout_error");
+    });
+
+    it("returns unknown_error for plain Error", () => {
+      expect(getErrorType(new Error("fail"))).toBe("unknown_error");
+    });
+
+    it("returns unknown_error for non-Error objects", () => {
+      expect(getErrorType("string error")).toBe("unknown_error");
+    });
+  });
+
   describe("extractErrorData", () => {
-    it("returns data from ApiError-like objects", () => {
-      const error = {
+    it("returns details.data from ApiError", () => {
+      const error = new ApiError({
+        message: "Validation failed",
+        status: 400,
         details: { data: { code: "INVALID_INPUT", field: "name" } },
-      };
+        method: "POST",
+        requestUrl: "/skills",
+      });
       expect(extractErrorData(error)).toEqual({
         code: "INVALID_INPUT",
         field: "name",
       });
     });
 
+    it("returns undefined for ApiError without details.data", () => {
+      const error = new ApiError({
+        message: "Server error",
+        status: 500,
+        method: "GET",
+        requestUrl: "/skills",
+      });
+      expect(extractErrorData(error)).toBeUndefined();
+    });
+
     it("returns undefined for plain errors", () => {
       expect(extractErrorData(new Error("fail"))).toBeUndefined();
+    });
+
+    it("returns undefined for non-Error objects", () => {
+      expect(extractErrorData("string")).toBeUndefined();
     });
   });
 });

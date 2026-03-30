@@ -4,8 +4,8 @@ Anonymous, fire-and-forget CLI usage tracking. Sends a GET request to `/t/cli` w
 
 ## Key Files
 
-- `service.ts` — `track()` (fire-and-forget event sender), `isEnabled()` (opt-out check), `isCommandEnabled()` (per-command allowlist), `buildMetadata()` (whitelist-filtered metadata builder), `extractErrorData()` (ApiError data extractor), session ID management
-- `service.test.ts` — Unit tests for enable/disable logic, metadata filtering, query param construction, error extraction
+- `service.ts` — `track()` (fire-and-forget event sender), `isEnabled()` (opt-out check), `isCommandEnabled()` (per-command allowlist), `buildMetadata()` (whitelist-filtered metadata builder), `getErrorType()` (classifies errors as `api_error`, `timeout_error`, or `unknown_error`), `extractErrorData()` (extracts `details.data` from `ApiError` instances), session ID management
+- `service.test.ts` — Unit tests for enable/disable logic, metadata filtering, query param construction, error type classification, error data extraction
 
 ## Patterns
 

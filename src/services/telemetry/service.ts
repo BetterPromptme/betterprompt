@@ -9,6 +9,7 @@ import type {
   TTelemetryDependencies,
   TTelemetryEvent,
 } from "../../types/telemetry.d.ts";
+import { ApiError } from "../api/client";
 import { getLoadedSystemConfig, loadOrInitConfig } from "../config/service";
 
 let sessionId: string | undefined;
@@ -129,19 +130,29 @@ export const buildMetadata = (
   return filtered;
 };
 
+export const getErrorType = (error: unknown): string => {
+  if (error instanceof ApiError) {
+    return "api_error";
+  }
+  if (error instanceof Error && error.name === "AbortError") {
+    return "timeout_error";
+  }
+  return "unknown_error";
+};
+
 export const extractErrorData = (
   error: unknown
 ): Record<string, unknown> | undefined => {
+  if (!(error instanceof ApiError)) return undefined;
+
+  const details = error.details;
   if (
-    error &&
-    typeof error === "object" &&
-    "details" in error &&
-    error.details &&
-    typeof error.details === "object" &&
-    "data" in error.details &&
-    error.details.data !== undefined
+    details &&
+    typeof details === "object" &&
+    "data" in (details as Record<string, unknown>) &&
+    (details as Record<string, unknown>).data !== undefined
   ) {
-    return error.details.data as Record<string, unknown>;
+    return (details as Record<string, unknown>).data as Record<string, unknown>;
   }
   return undefined;
 };
