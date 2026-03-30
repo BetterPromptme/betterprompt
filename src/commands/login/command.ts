@@ -21,7 +21,11 @@ import { openBrowser } from "../../services/login/browser";
 import { startCallbackServer } from "../../services/login/callback-server";
 import { executeLogin } from "../../services/login/service";
 import { waitForKeypress } from "../../services/login/wait-for-keypress";
-import { track } from "../../services/telemetry/service";
+import {
+  extractErrorData,
+  getErrorType,
+  track,
+} from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TLoginDependencies } from "../../types/login";
 
@@ -72,7 +76,11 @@ export const createLoginCommand = (
             void track({
               command: TELEMETRY_COMMANDS.login,
               startedAt: start,
-              metadata: { success: false, errorType: "login_error" },
+              metadata: {
+                success: false,
+                errorType: getErrorType(error),
+                errorData: extractErrorData(error),
+              },
             });
             const message =
               error instanceof Error ? error.message : String(error);

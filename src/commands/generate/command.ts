@@ -10,7 +10,11 @@ import {
   createDefaultGenerateDependencies,
   executeGenerate,
 } from "../../services/generate/service";
-import { extractErrorData, track } from "../../services/telemetry/service";
+import {
+  extractErrorData,
+  getErrorType,
+  track,
+} from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TGenerateCommandDependencies,
@@ -102,7 +106,7 @@ export const createGenerateCommand = (
                   skillSlug,
                   model: opts.model as string | undefined,
                   success: false,
-                  errorType: "generate_error",
+                  errorType: getErrorType(error),
                   errorData: extractErrorData(error),
                 },
               });

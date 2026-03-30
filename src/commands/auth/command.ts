@@ -11,7 +11,11 @@ import {
 } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
-import { track } from "../../services/telemetry/service";
+import {
+  extractErrorData,
+  getErrorType,
+  track,
+} from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TAuthDependencies } from "./types";
 
@@ -59,7 +63,11 @@ export const createAuthCommand = (
             void track({
               command: TELEMETRY_COMMANDS.auth,
               startedAt: start,
-              metadata: { success: false, errorType: "auth_error" },
+              metadata: {
+                success: false,
+                errorType: getErrorType(error),
+                errorData: extractErrorData(error),
+              },
             });
             const message =
               error instanceof Error ? error.message : String(error);
