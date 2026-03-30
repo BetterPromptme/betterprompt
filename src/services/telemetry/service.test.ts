@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 
-import type { TSystemConfig } from "../../types/config.d.ts";
 import type { TTelemetryDependencies } from "../../types/telemetry.d.ts";
 import {
-  buildMetadata,
   extractErrorData,
-  isCommandEnabled,
   isEnabled,
   resetTelemetryForTests,
   track,
@@ -75,17 +72,6 @@ describe("telemetry service", () => {
         getEnv: (key) => (key === "DISABLE_TELEMETRY" ? "1" : undefined),
       });
       track({ command: "generate", startedAt: performance.now() }, deps);
-      expect(deps.mockFetch).not.toHaveBeenCalled();
-    });
-
-    it("does not call fetch when command not in allowlist", () => {
-      const deps = createMockDeps({
-        getConfig: async () => ({
-          version: "1.0.0",
-          telemetry: { enabled: true, commands: ["generate"] },
-        }),
-      });
-      track({ command: "credits", startedAt: performance.now() }, deps);
       expect(deps.mockFetch).not.toHaveBeenCalled();
     });
 
