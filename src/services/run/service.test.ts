@@ -113,6 +113,7 @@ describe("createRun", () => {
     };
 
     const mockResult = {
+      status: "SUCCESS",
       data: {
         runId: "run-1",
         outputs: [],
@@ -142,6 +143,7 @@ describe("createRun", () => {
 
     const apiClient = {
       post: mock(async () => ({
+        status: "SUCCESS",
         data: {
           runId: "run-2",
           outputs: [],

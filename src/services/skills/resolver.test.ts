@@ -31,7 +31,7 @@ describe("resolvePromptVersionId", () => {
 
   const createMockApiClient = (response: unknown): TSkillSearchApi => ({
     get: mock(() =>
-      Promise.resolve({ data: response })
+      Promise.resolve({ status: "SUCCESS", data: response })
     ) as TSkillSearchApi["get"],
   });
 
