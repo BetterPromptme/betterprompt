@@ -62,6 +62,8 @@ export const TELEMETRY_WHITELIST: Record<string, readonly string[]> = {
     "query",
     "resultCount",
     "success",
+    "errorType",
+    "errorData",
     "durationMs",
   ],
   [TELEMETRY_COMMANDS["skill:info"]]: [
@@ -114,8 +116,18 @@ export const TELEMETRY_WHITELIST: Record<string, readonly string[]> = {
     "errorData",
     "durationMs",
   ],
-  [TELEMETRY_COMMANDS.auth]: ["success", "errorType", "durationMs"],
-  [TELEMETRY_COMMANDS.login]: ["success", "errorType", "durationMs"],
+  [TELEMETRY_COMMANDS.auth]: [
+    "success",
+    "errorType",
+    "errorData",
+    "durationMs",
+  ],
+  [TELEMETRY_COMMANDS.login]: [
+    "success",
+    "errorType",
+    "errorData",
+    "durationMs",
+  ],
   [TELEMETRY_COMMANDS.credits]: [
     "success",
     "errorType",
