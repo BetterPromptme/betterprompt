@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
-import { CLI_HOSTS, CLI_META } from "../../constants/cli";
+import { CLI_META } from "../../constants/cli";
+import { API_CONFIG } from "../../constants/config";
 import {
   TELEMETRY_CONFIG,
   TELEMETRY_WHITELIST,
@@ -37,7 +38,7 @@ const defaultDeps: TTelemetryDependencies = {
   getConfig: () => loadOrInitConfig(),
   getEnv: (key: string) => process.env[key],
   fetch: globalThis.fetch,
-  getBaseUrl: () => CLI_HOSTS.api,
+  getBaseUrl: () => getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl,
   getCliVersion: () => CLI_META.version,
   getPlatform: () => process.platform,
   getArch: () => process.arch,

@@ -280,7 +280,7 @@ describe("api client", () => {
       JSON.stringify(
         {
           version: "0.0.1",
-          apiBaseUrl: "https://runtime.example/api",
+          apiBaseUrl: "https://runtime.example",
           auth: {},
         },
         null,
@@ -302,9 +302,9 @@ describe("api client", () => {
       fetch: fetchMock,
       getApiKey: () => "bp_test_key",
     });
-    await client.get("/v1/me");
+    await client.get("/me");
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("https://runtime.example/api/v1/me");
+    expect(url).toBe("https://runtime.example/v1/me");
   });
 });
