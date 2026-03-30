@@ -1,13 +1,17 @@
-import type { TSystemConfig } from "./config";
+import type { TSystemConfig } from "./config.d.ts";
 
 export type TTelemetryEvent = {
-  event: string;
-  skillSlug?: string;
-  model?: string;
-  success?: boolean;
-  query?: string;
-  resultCount?: number;
+  command: string;
+  startedAt: number;
+  metadata?: Record<string, unknown>;
 };
+
+export type TTelemetryConfig =
+  | boolean
+  | {
+      enabled: boolean;
+      commands?: string[];
+    };
 
 export type TTelemetryDependencies = {
   getConfig: () => Promise<TSystemConfig>;

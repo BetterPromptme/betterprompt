@@ -1,7 +1,9 @@
+import type { TTelemetryConfig } from "./telemetry.d.ts";
+
 export type TSystemConfig = {
   version: string;
   apiBaseUrl?: string;
-  telemetry?: boolean;
+  telemetry?: TTelemetryConfig;
 };
 
 export type TSystemConfigKey = "apiKey" | "apiBaseUrl" | "telemetry";
