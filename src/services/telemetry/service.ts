@@ -1,23 +1,15 @@
 import crypto from "node:crypto";
-import os from "node:os";
 
-import { TELEMETRY_CONFIG } from "../../constants";
 import { CLI_HOSTS, CLI_META } from "../../constants/cli";
+import {
+  TELEMETRY_CONFIG,
+  TELEMETRY_WHITELIST,
+} from "../../constants/telemetry";
 import type {
   TTelemetryDependencies,
   TTelemetryEvent,
-} from "../../types/telemetry";
+} from "../../types/telemetry.d.ts";
 import { getLoadedSystemConfig, loadOrInitConfig } from "../config/service";
-
-const CI_ENV_VARS = [
-  "CI",
-  "GITHUB_ACTIONS",
-  "GITLAB_CI",
-  "CIRCLECI",
-  "JENKINS_URL",
-  "BUILDKITE",
-  "TRAVIS",
-];
 
 let sessionId: string | undefined;
 
@@ -30,74 +22,151 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-const detectCI = (getEnv: (key: string) => string | undefined): boolean =>
-  CI_ENV_VARS.some((v) => getEnv(v) !== undefined && getEnv(v) !== "");
+const CI_ENV_VARS = [
+  "CI",
+  "GITHUB_ACTIONS",
+  "GITLAB_CI",
+  "CIRCLECI",
+  "JENKINS_URL",
+  "BUILDKITE",
+  "TRAVIS",
+];
 
 const defaultDeps: TTelemetryDependencies = {
   getConfig: () => loadOrInitConfig(),
-  getEnv: (key) => process.env[key],
+  getEnv: (key: string) => process.env[key],
   fetch: globalThis.fetch,
   getBaseUrl: () => CLI_HOSTS.api,
   getCliVersion: () => CLI_META.version,
-  getPlatform: () => os.platform(),
-  getArch: () => os.arch(),
-  isCI: () => detectCI((key) => process.env[key]),
+  getPlatform: () => process.platform,
+  getArch: () => process.arch,
+  isCI: () => CI_ENV_VARS.some((v) => process.env[v]),
 };
 
 export const isEnabled = (
   deps: Pick<TTelemetryDependencies, "getEnv"> = defaultDeps
 ): boolean => {
-  if (
-    deps.getEnv(TELEMETRY_CONFIG.envVars.disableTelemetry) === "1" ||
-    deps.getEnv(TELEMETRY_CONFIG.envVars.doNotTrack) === "1"
-  ) {
-    return false;
-  }
+  const disableTelemetry = deps.getEnv(
+    TELEMETRY_CONFIG.envVars.disableTelemetry
+  );
+  if (disableTelemetry === "1") return false;
+
+  const doNotTrack = deps.getEnv(TELEMETRY_CONFIG.envVars.doNotTrack);
+  if (doNotTrack === "1") return false;
 
   const config = getLoadedSystemConfig();
-  if (config?.telemetry === false) {
-    return false;
+  if (config) {
+    const telemetry = config.telemetry;
+    if (telemetry === false) return false;
+    if (
+      typeof telemetry === "object" &&
+      telemetry !== null &&
+      telemetry.enabled === false
+    ) {
+      return false;
+    }
   }
 
   return true;
+};
+
+export const isCommandEnabled = (
+  command: string,
+  deps: Pick<TTelemetryDependencies, "getEnv"> = defaultDeps
+): boolean => {
+  if (!isEnabled(deps)) return false;
+
+  const config = getLoadedSystemConfig();
+  if (
+    config &&
+    typeof config.telemetry === "object" &&
+    config.telemetry !== null
+  ) {
+    const { commands } = config.telemetry;
+    if (commands && !commands.includes(command)) return false;
+  }
+
+  return true;
+};
+
+export const buildMetadata = (
+  command: string,
+  rawData: Record<string, unknown>,
+  startedAt: number,
+  deps: Pick<
+    TTelemetryDependencies,
+    "getPlatform" | "getArch" | "isCI"
+  > = defaultDeps
+): Record<string, unknown> => {
+  const allowedKeys = TELEMETRY_WHITELIST[command] ?? [];
+  const filtered: Record<string, unknown> = {};
+
+  for (const key of allowedKeys) {
+    if (key in rawData && rawData[key] !== undefined) {
+      if (key === "query" && typeof rawData[key] === "string") {
+        filtered[key] = (rawData[key] as string).slice(
+          0,
+          TELEMETRY_CONFIG.maxQueryLength
+        );
+      } else {
+        filtered[key] = rawData[key];
+      }
+    }
+  }
+
+  if (!("success" in filtered) && allowedKeys.includes("success")) {
+    filtered.success = true;
+  }
+
+  if (allowedKeys.includes("durationMs")) {
+    filtered.durationMs = Math.round(performance.now() - startedAt);
+  }
+
+  filtered.os = deps.getPlatform();
+  filtered.arch = deps.getArch();
+  filtered.isCi = deps.isCI();
+
+  return filtered;
+};
+
+export const extractErrorData = (
+  error: unknown
+): Record<string, unknown> | undefined => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "details" in error &&
+    error.details &&
+    typeof error.details === "object" &&
+    "data" in error.details &&
+    error.details.data !== undefined
+  ) {
+    return error.details.data as Record<string, unknown>;
+  }
+  return undefined;
 };
 
 export const track = (
   event: TTelemetryEvent,
   deps: TTelemetryDependencies = defaultDeps
 ): void => {
-  if (!isEnabled(deps)) {
-    return;
-  }
+  if (!isCommandEnabled(event.command, deps)) return;
+
+  const metadata = buildMetadata(
+    event.command,
+    event.metadata ?? {},
+    event.startedAt,
+    deps
+  );
 
   const params = new URLSearchParams();
-  params.set("e", event.event);
+  params.set("e", event.command);
   params.set("v", deps.getCliVersion());
-  params.set("os", deps.getPlatform());
-  params.set("arch", deps.getArch());
   params.set("sid", getSessionId());
-
-  if (deps.isCI()) {
-    params.set("ci", "1");
-  }
-
-  if (event.skillSlug !== undefined) {
-    params.set("sk", event.skillSlug);
-  }
-  if (event.model !== undefined) {
-    params.set("m", event.model);
-  }
-  if (event.success !== undefined) {
-    params.set("s", event.success ? "1" : "0");
-  }
-  if (event.query !== undefined) {
-    params.set("q", event.query.slice(0, TELEMETRY_CONFIG.maxQueryLength));
-  }
-  if (event.resultCount !== undefined) {
-    params.set("rc", String(event.resultCount));
-  }
+  params.set("m", JSON.stringify(metadata));
 
   const url = `${deps.getBaseUrl()}${TELEMETRY_CONFIG.endpoint}?${params.toString()}`;
+
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
