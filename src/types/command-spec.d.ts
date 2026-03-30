@@ -31,6 +31,15 @@ export type TValidateFn<TOpts> = (params: {
   ctx: TCliContext;
 }) => string | undefined;
 
+export type TTelemetrySpec<TOpts> = {
+  command: string;
+  getMetadata?: (
+    result: unknown,
+    opts: TOpts,
+    args: Record<string, unknown>
+  ) => Record<string, unknown>;
+};
+
 type TCommandSpecCore = {
   name: string;
   description: string;
@@ -49,6 +58,7 @@ type TCommandSpecWithHandler<TOpts> = TCommandSpecCore & {
   spinnerMessage?: string;
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
   validate?: TValidateFn<TOpts>;
+  telemetry?: TTelemetrySpec<TOpts>;
 };
 
 type TCommandSpecWithCustomAction = TCommandSpecCore & {
@@ -75,6 +85,7 @@ type TParentCommandSpecWithHandler<TOpts> = TParentCommandSpecCore & {
   spinnerMessage?: string;
   errorPrefix?: string;
   validate?: TValidateFn<TOpts>;
+  telemetry?: TTelemetrySpec<TOpts>;
 };
 
 type TParentCommandSpecWithoutHandler = TParentCommandSpecCore & {
