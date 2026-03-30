@@ -3,7 +3,8 @@ import { CLI_HOSTS, CLI_META } from "./cli";
 import { SHARED_FLAGS } from "./shared-flags";
 
 export const API_CONFIG = {
-  baseUrl: `${CLI_HOSTS.api}/v1`,
+  baseUrl: CLI_HOSTS.api,
+  pathPrefix: "/v1",
   timeoutMs: 5 * 60 * 1000, // 5 min
   authHeader: "authorization",
   authScheme: "Bearer",
@@ -43,7 +44,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "[key]",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
       },
       flags: {
@@ -56,7 +57,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "<key>",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
         value: {
           name: "<value>",
@@ -73,7 +74,7 @@ export const CONFIG_COMMAND = {
       arguments: {
         key: {
           name: "<key>",
-          description: "Config key (apiKey | apiBaseUrl)",
+          description: "Config key (apiKey | apiBaseUrl | telemetry)",
         },
       },
       flags: {
@@ -92,9 +93,11 @@ Examples:
   $ betterprompt config set apiKey bp_live_123
   $ betterprompt config get apiBaseUrl
   $ betterprompt config set apiBaseUrl https://betterprompt.me/api
+  $ betterprompt config get telemetry
+  $ betterprompt config set telemetry false
 `,
   invalidKeyError: (key: string) =>
-    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl.`,
+    `Invalid config key "${key}". Supported keys: apiKey, apiBaseUrl, telemetry.`,
   missingValueError: (key: string) => `${key} is not set in config.json.`,
   savedSuccess: "Config updated successfully.",
   failedPrefix: "Config command failed:",
@@ -102,4 +105,6 @@ Examples:
   verifyingApiKey: "Verifying API key...",
   verifiedApiKey: "API key verified.",
   failedVerifyApiKey: "API key verification failed.",
+  invalidTelemetryValue:
+    "Invalid telemetry value. Use 'true', 'false', or '{\"enabled\":true,\"commands\":[]}'",
 } as const;

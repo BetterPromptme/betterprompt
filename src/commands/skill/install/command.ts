@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+import {
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TInstallSkillResult } from "../../../types/installer";
@@ -37,6 +41,14 @@ export const createSkillInstallSubcommand = (
       formatText: (result) => {
         const r = result as TInstallSkillResult;
         return `${logSymbols.success} Installed "${r.skillName}"`;
+      },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:install"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.install.arguments.skillSlug.name
+          ] as string,
+        }),
       },
       handler: async ({ args, opts, ctx }) => {
         const skillName = args[

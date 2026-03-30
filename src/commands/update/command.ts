@@ -1,5 +1,6 @@
 import logSymbols from "log-symbols";
 
+import { TELEMETRY_COMMANDS } from "../../constants";
 import { UPDATE_COMMAND, UPDATE_MESSAGES } from "../../constants/update";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runTaskWithSpinner } from "../../services/error-ux/service";
@@ -25,6 +26,7 @@ export const createUpdateCommand = (
       description: UPDATE_COMMAND.description,
       flags: UPDATE_COMMAND.flags,
       errorPrefix: `${logSymbols.error} ${UPDATE_MESSAGES.failedPrefix}`,
+      telemetry: { command: TELEMETRY_COMMANDS.update },
       handler: async ({ ctx, deps: resolvedDeps }) => {
         const checkResult = await runTaskWithSpinner({
           message: "Checking for updates...",

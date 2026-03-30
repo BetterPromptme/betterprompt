@@ -236,7 +236,6 @@ describe("auth core", () => {
   it("returns current user identity when api response is successful", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: {
           username: "jane",
           displayName: "Jane Doe",
@@ -255,21 +254,9 @@ describe("auth core", () => {
     });
   });
 
-  it("throws response message when current user payload is not successful", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "FAILED",
-        message: "Unauthorized",
-      })),
-    };
-
-    await expect(getCurrentUser(apiClient)).rejects.toThrow("Unauthorized");
-  });
-
   it("returns credits balance when api response is successful", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: {
           credits: 1250,
         },
@@ -282,16 +269,5 @@ describe("auth core", () => {
     expect(result).toEqual({
       credits: 1250,
     });
-  });
-
-  it("throws response message when credits payload is not successful", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "FAILED",
-        message: "Unauthorized",
-      })),
-    };
-
-    await expect(getCredits(apiClient)).rejects.toThrow("Unauthorized");
   });
 });

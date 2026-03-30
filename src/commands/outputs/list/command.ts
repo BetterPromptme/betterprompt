@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { OUTPUTS_COMMAND, OUTPUTS_MESSAGES } from "../../../constants";
+import {
+  OUTPUTS_COMMAND,
+  OUTPUTS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import {
   fetchOutputsList,
@@ -26,6 +30,14 @@ export const createOutputsListSubcommand = (
       flags: outputsList.flags,
       spinnerMessage: "Loading outputs list...",
       errorPrefix: `${logSymbols.error} ${OUTPUTS_MESSAGES.failedPrefix}`,
+      telemetry: {
+        command: TELEMETRY_COMMANDS["outputs:list"],
+        getMetadata: (result) => ({
+          resultCount: Array.isArray(result)
+            ? (result as unknown[]).length
+            : undefined,
+        }),
+      },
       handler: async ({ opts, ctx, command }) => {
         const rootRemote =
           command.parent?.opts<{ remote?: boolean }>().remote === true;

@@ -60,6 +60,7 @@ src/
     outputs/
     resources/
     skills/
+    telemetry/
     run/
     scope/
     bootstrap/
@@ -75,6 +76,7 @@ src/
     context.d.ts
     error-ux.d.ts
     login.d.ts
+    telemetry.d.ts
     *.d.ts
 tsconfig.json
 package.json
@@ -183,22 +185,23 @@ export const creditsCommand = createCreditsCommand();
 
 ### Spec Fields Reference
 
-| Field                      | Type                        | Required                               | Description                                              |
-| -------------------------- | --------------------------- | -------------------------------------- | -------------------------------------------------------- |
-| `name`                     | `string`                    | Yes                                    | Command name from constants                              |
-| `description`              | `string`                    | Yes                                    | Command description from constants                       |
-| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                          |
-| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                          |
-| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help            |
-| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch     |
-| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                  |
-| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                 |
-| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`) |
-| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`      |
-| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)  |
-| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                           |
-| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                       |
-| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                            |
+| Field                      | Type                        | Required                               | Description                                                     |
+| -------------------------- | --------------------------- | -------------------------------------- | --------------------------------------------------------------- |
+| `name`                     | `string`                    | Yes                                    | Command name from constants                                     |
+| `description`              | `string`                    | Yes                                    | Command description from constants                              |
+| `flags`                    | `Record<string, TFlagSpec>` | No                                     | Flag definitions from constants                                 |
+| `arguments`                | `TArgumentSpec[]`           | No                                     | Positional argument definitions                                 |
+| `helpText`                 | `string`                    | No                                     | Additional help text shown after default help                   |
+| `handler`                  | `TCommandHandler<TOpts>`    | Mutually exclusive with `customAction` | Async handler; factory manages spinner + error catch            |
+| `customAction`             | `(cmd, deps) => void`       | Mutually exclusive with `handler`      | Escape hatch for full Commander control                         |
+| `spinnerMessage`           | `string`                    | No                                     | If set, factory wraps handler in spinner                        |
+| `errorPrefix`              | `string`                    | No                                     | Prefix for error messages (default: `"Command failed:"`)        |
+| `validate`                 | `TValidateFn<TOpts>`        | No                                     | Sync validation; return error string or `undefined`             |
+| `formatText`               | `(result, ctx) => unknown`  | No                                     | Transform result for text output (skipped in JSON mode)         |
+| `configureOutput`          | `OutputConfiguration`       | No                                     | Commander output configuration                                  |
+| `showHelpAfterError`       | `boolean`                   | No                                     | Show help on error                                              |
+| `showSuggestionAfterError` | `boolean`                   | No                                     | Show did-you-mean suggestions                                   |
+| `telemetry`                | `TTelemetrySpec<TOpts>`     | No                                     | Declarative telemetry; factory calls `track()` on success/error |
 
 ### Constants convention
 
@@ -235,6 +238,9 @@ Current files:
 - `README.md`: CLI usage and behavior docs.
 - `install.sh`: standalone binary installer (macOS/Linux) via GitHub Releases.
 - `specs/DIRECTORY-LAYOUT.md`: canonical `~/.betterprompt` and project-local directory layout spec.
+- `specs/COMMAND-SET.md`: canonical CLI command syntax, flags, and examples.
+
+**Specs maintenance:** When making changes that affect the CLI surface (commands, flags, config keys, directory layout), the agent MUST update the corresponding files in `specs/` to keep them in sync with the implementation.
 
 ## `~/.betterprompt` Directory Layout
 

@@ -4,6 +4,7 @@ import {
   SKILL_TYPES,
   SKILLS_COMMAND,
   SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
@@ -52,6 +53,15 @@ export const createSkillSearchSubcommand = (
       },
       spinnerMessage: "Searching skills...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:search"],
+        getMetadata: (result, _o, args) => ({
+          query: args[
+            SKILLS_COMMAND.subcommands.search.arguments.query.name
+          ] as string,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ args, opts }) => {
         const query = args[
           SKILLS_COMMAND.subcommands.search.arguments.query.name

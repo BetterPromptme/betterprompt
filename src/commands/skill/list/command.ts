@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+import {
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
@@ -37,6 +41,12 @@ export const createSkillListSubcommand = (
           "  Slug                           Installed Agents",
           ...rows,
         ].join("\n");
+      },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:list"],
+        getMetadata: (result) => ({
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
       },
       handler: async ({ ctx }) => {
         return deps.listSkills({ scope: ctx.scope });

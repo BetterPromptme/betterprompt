@@ -1,9 +1,11 @@
 import logSymbols from "log-symbols";
 
 import { LOGIN_CALLBACK, LOGIN_MESSAGES } from "../../constants";
+import { TELEMETRY_COMMANDS } from "../../constants/telemetry";
 import type { TCliContext } from "../../types/context";
 import type { TCallbackServer, TLoginDependencies } from "../../types/login";
 import { createErrorFormatter, CTRL_C_EXIT_CODE } from "../error-ux/service";
+import { extractErrorData, getErrorType, track } from "../telemetry/service";
 import { parseCallbackUrl } from "./parse-callback-url";
 
 export const buildLoginUrl = (port: number, state: string): string => {
@@ -18,6 +20,7 @@ export const executeLogin = async (
   ctx: TCliContext,
   deps: TLoginDependencies
 ): Promise<void> => {
+  const start = performance.now();
   deps.intro(LOGIN_MESSAGES.introTitle);
   const formatError = createErrorFormatter({ color: ctx.color });
   const s = deps.spinner;
@@ -173,10 +176,26 @@ export const executeLogin = async (
 
     const configPath = await deps.saveAuthConfig(apiKey);
     deps.outro(`${LOGIN_MESSAGES.successPrefix} ${configPath}`);
+
+    void track({
+      command: TELEMETRY_COMMANDS.login,
+      startedAt: start,
+      metadata: {},
+    });
   } catch (error) {
     if (canceled) {
       return;
     }
+
+    void track({
+      command: TELEMETRY_COMMANDS.login,
+      startedAt: start,
+      metadata: {
+        errorType: getErrorType(error),
+        errorData: extractErrorData(error),
+      },
+    });
+
     const message = error instanceof Error ? error.message : String(error);
     deps.error(formatError(LOGIN_MESSAGES.failedPrefix, message));
     deps.setExitCode(1);

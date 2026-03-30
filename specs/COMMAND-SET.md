@@ -446,10 +446,11 @@ Examples:
 
 ```bash
 bp config get
-bp config get default_org --json
-bp config set default_org acme
-bp config set skills_dir ~/.betterprompt/skills
-bp config unset skills_dir
+bp config get apiBaseUrl --json
+bp config set apiBaseUrl https://api.betterprompt.me/v1
+bp config set telemetry false
+bp config set telemetry '{"enabled":true,"commands":["generate","search"]}'
+bp config unset telemetry
 ```
 
 ### Doctor

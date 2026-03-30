@@ -44,15 +44,8 @@ export const createAuthCommand = (
       helpText: AUTH_MESSAGES.helpText,
       customAction: (cmd, _factoryDeps) => {
         cmd.action(async (opts: TAuthOpts, command) => {
-          try {
-            const ctx = getCommandContext(command);
-            await executeAuth(opts.apiKey, ctx, deps);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            deps.error(message);
-            deps.setExitCode(1);
-          }
+          const ctx = getCommandContext(command);
+          await executeAuth(opts.apiKey, ctx, deps);
         });
       },
     },

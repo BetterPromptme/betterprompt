@@ -48,7 +48,6 @@ describe("fetchResources", () => {
   it("returns TResourcesData on SUCCESS response", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: sampleData,
       })),
     };
@@ -57,29 +56,6 @@ describe("fetchResources", () => {
 
     expect(apiClient.get).toHaveBeenCalledWith("/resources");
     expect(result).toEqual(sampleData);
-  });
-
-  it("throws on non-SUCCESS response with message", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "FAILED",
-        message: "Unauthorized",
-      })),
-    };
-
-    await expect(fetchResources(apiClient)).rejects.toThrow("Unauthorized");
-  });
-
-  it("throws fallback message when response has no message", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "FAILED",
-      })),
-    };
-
-    await expect(fetchResources(apiClient)).rejects.toThrow(
-      "Failed to fetch resources."
-    );
   });
 });
 

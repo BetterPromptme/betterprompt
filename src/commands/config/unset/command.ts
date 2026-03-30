@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { CONFIG_COMMAND, CONFIG_MESSAGES } from "../../../constants";
+import {
+  CONFIG_COMMAND,
+  CONFIG_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TConfigCommandDependencies, TSystemConfigKey } from "../types";
@@ -25,22 +29,14 @@ export const createConfigUnsetSubcommand = (
         },
       ],
       formatText: () => `${logSymbols.success} ${CONFIG_MESSAGES.savedSuccess}`,
-      handler: async ({ args, setExitCode, deps: fd }) => {
+      telemetry: {
+        command: TELEMETRY_COMMANDS["config:unset"],
+        getMetadata: (_r, _o, args) => ({ key: args.key }),
+      },
+      handler: async ({ args }) => {
         const key = args[configUnset.arguments.key.name] as TSystemConfigKey;
-        try {
-          await deps.unsetValue(key);
-          return { success: true, key };
-        } catch (error) {
-          const fallbackPath = deps.resolveConfigPath(key);
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          fd.error(
-            `${logSymbols.error} ${CONFIG_MESSAGES.failedPrefix} ${errorMessage}`
-          );
-          fd.error(`${CONFIG_MESSAGES.failedNoChangesPrefix} ${fallbackPath}`);
-          setExitCode(1);
-          return undefined;
-        }
+        await deps.unsetValue(key);
+        return { success: true, key };
       },
     },
     factoryDeps

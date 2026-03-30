@@ -52,7 +52,8 @@ Example:
 
 ```json
 {
-  "default_registry": "https://api.betterprompt.me",
+  "version": "0.1.0",
+  "apiBaseUrl": "https://api.betterprompt.me/v1",
   "telemetry": false
 }
 ```

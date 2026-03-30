@@ -23,12 +23,7 @@ export const fetchResources = async (
   apiClient: TResourcesApi
 ): Promise<TResourcesData> => {
   const response = await apiClient.get("/resources");
-
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message ?? "Failed to fetch resources.");
+  return response.data!;
 };
 
 export const loadLocalResources = async (

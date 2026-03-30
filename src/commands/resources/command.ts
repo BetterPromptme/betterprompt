@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { RESOURCES_COMMAND, RESOURCES_MESSAGES } from "../../constants";
+import {
+  RESOURCES_COMMAND,
+  RESOURCES_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import {
@@ -82,6 +86,12 @@ export const createResourcesCommand = (
         }
         return undefined;
       },
+      telemetry: {
+        command: TELEMETRY_COMMANDS.resources,
+        getMetadata: (result) => ({
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
+      },
       handler: async ({ opts }) => {
         let data: TResourcesData;
 
@@ -101,10 +111,9 @@ export const createResourcesCommand = (
         }
 
         // In JSON mode, formatText is skipped — return filtered data for --models-only
-        if (opts.modelsOnly) {
-          return { kind: "models" as const, data: data.resources.models };
-        }
-        return { kind: "full" as const, data };
+        return opts.modelsOnly
+          ? { kind: "models" as const, data: data.resources.models }
+          : { kind: "full" as const, data };
       },
       formatText: (result) => {
         const r = result as

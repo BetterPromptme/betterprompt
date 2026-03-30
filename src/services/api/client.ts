@@ -138,7 +138,8 @@ const formatAuthorizationValue = (token: string, scheme: string): string => {
 };
 
 const resolveRuntimeBaseUrl = (): string =>
-  getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl;
+  (getLoadedSystemConfig()?.apiBaseUrl ?? API_CONFIG.baseUrl) +
+  API_CONFIG.pathPrefix;
 
 let modelsHashPromise: Promise<string | null> | undefined;
 let syncInFlight: Promise<void> | undefined;

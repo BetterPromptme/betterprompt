@@ -7,11 +7,13 @@ import type {
   TCommandSpec,
   TFlagSpec,
   TParentCommandSpec,
+  TTelemetrySpec,
   TValidateFn,
 } from "../../types/command-spec";
 import type { TCliContext } from "../../types/context";
 import { getCommandContext } from "../context/service";
 import { runTaskWithSpinner } from "../error-ux/service";
+import { extractErrorData, getErrorType, track } from "../telemetry/service";
 import { createDefaultCommandFactoryDeps } from "./deps";
 
 const DEFAULT_ERROR_PREFIX = "Command failed:";
@@ -59,6 +61,7 @@ type TActionSpec<TOpts> = {
   formatText?: (result: unknown, ctx: TCliContext) => unknown;
   validate?: TValidateFn<TOpts>;
   errorPrefix?: string;
+  telemetry?: TTelemetrySpec<TOpts>;
 };
 
 const wireAction = <TOpts>(
@@ -77,6 +80,8 @@ const wireAction = <TOpts>(
         args[argSpec.name] = positionalArgs[i];
       });
     }
+
+    const start = performance.now();
 
     try {
       const ctx = getCommandContext(command);
@@ -117,6 +122,15 @@ const wireAction = <TOpts>(
         });
       }
 
+      if (spec.telemetry) {
+        const metadata = spec.telemetry.getMetadata?.(result, opts, args) ?? {};
+        void track({
+          command: spec.telemetry.command,
+          startedAt: start,
+          metadata,
+        });
+      }
+
       if (result !== undefined) {
         if (ctx.outputFormat !== "json" && spec.formatText) {
           deps.printResult(spec.formatText(result, ctx), ctx);
@@ -125,6 +139,17 @@ const wireAction = <TOpts>(
         }
       }
     } catch (error) {
+      if (spec.telemetry) {
+        void track({
+          command: spec.telemetry.command,
+          startedAt: start,
+          metadata: {
+            errorType: getErrorType(error),
+            errorData: extractErrorData(error),
+          },
+        });
+      }
+
       const message = error instanceof Error ? error.message : String(error);
       const prefix = spec.errorPrefix ?? DEFAULT_ERROR_PREFIX;
       deps.error(`${prefix} ${message}`);

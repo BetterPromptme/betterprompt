@@ -56,11 +56,7 @@ export const searchSkills = async (
     query: queryParams,
   });
 
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data.rows;
-  }
-
-  throw new Error(response.message);
+  return response.data!.rows;
 };
 
 export const getSkillByName = async (
@@ -75,11 +71,7 @@ export const getSkillByName = async (
     `/skills/${skillName.trim()}`
   );
 
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message);
+  return response.data!;
 };
 
 export const createDefaultSkillCommandDependencies =

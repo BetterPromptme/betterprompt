@@ -10,6 +10,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { API_CONFIG, AUTH_MESSAGES, AUTH_STORAGE } from "../../constants";
+import { TELEMETRY_COMMANDS } from "../../constants/telemetry";
 import type { TFetchLike } from "../../types/api";
 import type { TApiResponse } from "../../types/api";
 import type { TAuthConfig, TAuthDependencies } from "../../types/auth";
@@ -19,6 +20,7 @@ import type { TCreditBalance } from "../../types/credits";
 import type { TUserIdentity } from "../../types/whoami";
 import { loadOrInitConfig, resolveSystemConfigPath } from "../config/service";
 import { createErrorFormatter, runTaskWithSpinner } from "../error-ux/service";
+import { extractErrorData, getErrorType, track } from "../telemetry/service";
 
 export const resolveAuthConfigPath = (
   getHomeDir: () => string = os.homedir
@@ -200,24 +202,14 @@ export const getCurrentUser = async (
   apiClient: TCurrentUserApi
 ): Promise<TUserIdentity> => {
   const response = await apiClient.get("/me");
-
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message ?? "Failed to fetch current user.");
+  return response.data!;
 };
 
 export const getCredits = async (
   apiClient: TCreditsApi
 ): Promise<TCreditBalance> => {
   const response = await apiClient.get("/me/credits");
-
-  if (response.status === "SUCCESS" && response.data) {
-    return response.data;
-  }
-
-  throw new Error(response.message ?? "Failed to fetch credits.");
+  return response.data!;
 };
 
 /**
@@ -232,6 +224,7 @@ export const executeAuth = async (
   ctx: TCliContext,
   deps: TAuthDependencies
 ): Promise<void> => {
+  const start = performance.now();
   deps.intro(AUTH_MESSAGES.introTitle);
   const formatError = createErrorFormatter({ color: ctx.color });
 
@@ -271,7 +264,22 @@ export const executeAuth = async (
 
     const configPath = await deps.saveAuthConfig(resolvedApiKey);
     deps.outro(`${AUTH_MESSAGES.successPrefix} ${configPath}`);
+
+    void track({
+      command: TELEMETRY_COMMANDS.auth,
+      startedAt: start,
+      metadata: {},
+    });
   } catch (error) {
+    void track({
+      command: TELEMETRY_COMMANDS.auth,
+      startedAt: start,
+      metadata: {
+        errorType: getErrorType(error),
+        errorData: extractErrorData(error),
+      },
+    });
+
     const fallbackPath = deps.resolveAuthConfigPath();
     const errorMessage = error instanceof Error ? error.message : String(error);
     deps.error(formatError(AUTH_MESSAGES.failedPrefix, errorMessage));

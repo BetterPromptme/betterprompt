@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+import {
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TSkillCommandDependencies } from "../types";
@@ -25,6 +29,14 @@ export const createSkillInfoSubcommand = (
       },
       spinnerMessage: "Fetching skill details...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:info"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.info.arguments.skillSlug.name
+          ] as string,
+        }),
+      },
       handler: async ({ args }) => {
         const skillName = args[
           SKILLS_COMMAND.subcommands.info.arguments.skillSlug.name

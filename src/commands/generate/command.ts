@@ -71,20 +71,13 @@ export const createGenerateCommand = (
       customAction: (cmd, _factoryDeps) => {
         cmd.action(
           async (skillSlug: string, opts: TGenerateCommandOptions, command) => {
-            try {
-              await executeGenerate({
-                skillSlug,
-                options: buildGenerateOptions(opts),
-                ctx: getCommandContext(command),
-                helpText: cmd.helpInformation(),
-                deps,
-              });
-            } catch (error) {
-              const message =
-                error instanceof Error ? error.message : String(error);
-              deps.error(message);
-              deps.setExitCode(1);
-            }
+            await executeGenerate({
+              skillSlug,
+              options: buildGenerateOptions(opts),
+              ctx: getCommandContext(command),
+              helpText: cmd.helpInformation(),
+              deps,
+            });
           }
         );
       },

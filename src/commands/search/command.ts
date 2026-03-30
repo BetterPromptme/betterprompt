@@ -1,6 +1,11 @@
 import logSymbols from "log-symbols";
 
-import { SEARCH_COMMAND, SEARCH_MESSAGES, SKILL_TYPES } from "../../constants";
+import {
+  SEARCH_COMMAND,
+  SEARCH_MESSAGES,
+  SKILL_TYPES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import {
@@ -63,6 +68,13 @@ export const createSearchCommand = (
           return `Invalid skill type "${opts.type}". Expected one of: ${SKILL_TYPES.join(", ")}.`;
         }
         return undefined;
+      },
+      telemetry: {
+        command: TELEMETRY_COMMANDS.search,
+        getMetadata: (result, _o, args) => ({
+          query: args[SEARCH_COMMAND.arguments.query.name] as string,
+          resultCount: Array.isArray(result) ? result.length : undefined,
+        }),
       },
       handler: async ({ args, opts }) => {
         const query = deps.validateQuery(

@@ -57,15 +57,8 @@ export const createLoginCommand = (
       description: LOGIN_COMMAND.description,
       customAction: (cmd, _factoryDeps) => {
         cmd.action(async (_opts, command) => {
-          try {
-            const ctx = getCommandContext(command);
-            await executeLogin(ctx, deps);
-          } catch (error) {
-            const message =
-              error instanceof Error ? error.message : String(error);
-            deps.error(message);
-            deps.setExitCode(1);
-          }
+          const ctx = getCommandContext(command);
+          await executeLogin(ctx, deps);
         });
       },
     },

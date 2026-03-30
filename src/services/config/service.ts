@@ -11,6 +11,7 @@ import path from "node:path";
 
 import {
   API_CONFIG,
+  CONFIG_MESSAGES,
   SYSTEM_CONFIG,
   SYSTEM_MESSAGES,
   SYSTEM_STORAGE,
@@ -62,10 +63,30 @@ const sanitizeConfig = (
     changed = true;
   }
 
+  let telemetry: TSystemConfig["telemetry"] = undefined;
+  if (typeof value.telemetry === "boolean") {
+    telemetry = value.telemetry;
+  } else if (
+    typeof value.telemetry === "object" &&
+    value.telemetry !== null &&
+    typeof (value.telemetry as Record<string, unknown>).enabled === "boolean"
+  ) {
+    const obj = value.telemetry as Record<string, unknown>;
+    const config: { enabled: boolean; commands?: string[] } = {
+      enabled: obj.enabled as boolean,
+    };
+    if (
+      Array.isArray(obj.commands) &&
+      obj.commands.every((c: unknown) => typeof c === "string")
+    ) {
+      config.commands = obj.commands as string[];
+    }
+    telemetry = config;
+  }
+
   if (
     "default_output_format" in value ||
     "cache_ttl_seconds" in value ||
-    "telemetry" in value ||
     "skillsDir" in value ||
     "skills_dir" in value
   ) {
@@ -75,6 +96,7 @@ const sanitizeConfig = (
   const config: TSystemConfig = {
     version,
     apiBaseUrl,
+    ...(telemetry !== undefined && { telemetry }),
   };
 
   return { config, changed };
@@ -190,6 +212,11 @@ export const getSystemConfigValue = async (
   if (key === "apiBaseUrl") {
     return config.apiBaseUrl;
   }
+  if (key === "telemetry") {
+    if (config.telemetry === undefined) return undefined;
+    if (typeof config.telemetry === "boolean") return String(config.telemetry);
+    return JSON.stringify(config.telemetry);
+  }
   return undefined;
 };
 
@@ -213,6 +240,41 @@ export const setSystemConfigValue = async (
     nextConfig.apiBaseUrl = normalizeApiBaseUrl(value);
   }
 
+  if (key === "telemetry") {
+    if (value === "true") {
+      nextConfig.telemetry = true;
+    } else if (value === "false") {
+      nextConfig.telemetry = false;
+    } else {
+      try {
+        const parsed = JSON.parse(value);
+        if (
+          typeof parsed === "object" &&
+          parsed !== null &&
+          typeof parsed.enabled === "boolean"
+        ) {
+          const telemetryConfig: { enabled: boolean; commands?: string[] } = {
+            enabled: parsed.enabled,
+          };
+          if (
+            Array.isArray(parsed.commands) &&
+            parsed.commands.every((c: unknown) => typeof c === "string")
+          ) {
+            telemetryConfig.commands = parsed.commands;
+          }
+          nextConfig.telemetry = telemetryConfig;
+        } else {
+          throw new Error(CONFIG_MESSAGES.invalidTelemetryValue);
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          throw new Error(CONFIG_MESSAGES.invalidTelemetryValue);
+        }
+        throw e;
+      }
+    }
+  }
+
   await writeSystemConfig(configPath, nextConfig);
   loadedSystemConfig = nextConfig;
   return configPath;
@@ -227,15 +289,29 @@ export const unsetSystemConfigValue = async (
       `Cannot unset "${key}" via system config. API keys are stored in auth.json.`
     );
   }
-  if (key !== "apiBaseUrl") {
+  if (key !== "apiBaseUrl" && key !== "telemetry") {
     throw new Error(
-      `Cannot unset "${key}" via system config. Only "apiBaseUrl" can be unset.`
+      `Cannot unset "${key}" via system config. Only "apiBaseUrl" and "telemetry" can be unset.`
     );
   }
 
   const configPath =
     options.configPath ?? resolveSystemConfigPath(options.getHomeDir);
   const existing = await loadOrInitConfig({ ...options, configPath });
+
+  if (key === "telemetry") {
+    if (existing.telemetry === undefined) {
+      throw new Error(`${key} is not set in config.json.`);
+    }
+    const nextConfig: TSystemConfig = {
+      version: existing.version,
+      ...(existing.apiBaseUrl && { apiBaseUrl: existing.apiBaseUrl }),
+    };
+    await writeSystemConfig(configPath, nextConfig);
+    loadedSystemConfig = nextConfig;
+    return configPath;
+  }
+
   const currentValue = existing.apiBaseUrl;
 
   if (
@@ -248,6 +324,7 @@ export const unsetSystemConfigValue = async (
 
   const nextConfig: TSystemConfig = {
     version: existing.version,
+    ...(existing.telemetry !== undefined && { telemetry: existing.telemetry }),
   };
 
   await writeSystemConfig(configPath, nextConfig);

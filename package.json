@@ -1,6 +1,6 @@
 {
   "name": "betterprompt",
-  "version": "0.1.6",
+  "version": "0.1.7-dev.2",
   "type": "module",
   "description": "BetterPrompt CLI Tools.",
   "license": "MIT",

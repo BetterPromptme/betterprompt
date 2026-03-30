@@ -1,6 +1,10 @@
 import logSymbols from "log-symbols";
 
-import { SKILLS_COMMAND, SKILLS_MESSAGES } from "../../../constants";
+import {
+  SKILLS_COMMAND,
+  SKILLS_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
 import type { TUninstallSkillResult } from "../../../types/installer";
@@ -38,6 +42,14 @@ export const createSkillUninstallSubcommand = (
       validate: ({ opts }) => {
         if (!opts.agent) return SKILLS_MESSAGES.agentRequiredForUninstallError;
         return undefined;
+      },
+      telemetry: {
+        command: TELEMETRY_COMMANDS["skill:uninstall"],
+        getMetadata: (_r, _o, args) => ({
+          skillSlug: args[
+            SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.name
+          ] as string,
+        }),
       },
       handler: async ({ args, opts, ctx }) => {
         const skillName = args[

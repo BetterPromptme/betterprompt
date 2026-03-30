@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 
-import { CONFIG_MESSAGES } from "../../../constants";
 import { createFactoryDeps } from "../../../services/command-factory/test-helpers";
 import type { TSystemConfigKey } from "../../../types";
 import type { TCommandFactoryDeps } from "../../../types/command-factory";
@@ -147,9 +146,9 @@ describe("config get subcommand", () => {
 
     await runConfig(["get", "apiKey"], deps, factory);
 
-    expect(factory.error).toHaveBeenCalledTimes(2);
-    expect(factory.error).toHaveBeenLastCalledWith(
-      `${CONFIG_MESSAGES.failedNoChangesPrefix} /tmp/.betterprompt/auth.json`
+    expect(factory.error).toHaveBeenCalledTimes(1);
+    expect(factory.error).toHaveBeenCalledWith(
+      expect.stringContaining("apiKey is not set in config.json.")
     );
     expect(factory.setExitCode).toHaveBeenCalledWith(1);
   });

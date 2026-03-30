@@ -1,7 +1,11 @@
 import chalk from "chalk";
 import logSymbols from "log-symbols";
 
-import { WHOAMI_COMMAND, WHOAMI_MESSAGES } from "../../constants";
+import {
+  TELEMETRY_COMMANDS,
+  WHOAMI_COMMAND,
+  WHOAMI_MESSAGES,
+} from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { getCurrentUser } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
@@ -30,7 +34,10 @@ export const createWhoamiCommand = (
       flags: WHOAMI_COMMAND.flags,
       spinnerMessage: "Fetching account identity...",
       errorPrefix: `${logSymbols.error} ${WHOAMI_MESSAGES.failedPrefix}`,
-      handler: () => deps.getCurrentUser(),
+      telemetry: { command: TELEMETRY_COMMANDS.whoami },
+      handler: async () => {
+        return deps.getCurrentUser();
+      },
       formatText: (result) => formatIdentityText(result as TUserIdentity),
     },
     factoryDeps

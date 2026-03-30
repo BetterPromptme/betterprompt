@@ -11,5 +11,6 @@ export * from "./resources";
 export * from "./search";
 export * from "./shared-flags";
 export * from "./skills";
+export * from "./telemetry";
 export * from "./update";
 export * from "./whoami";

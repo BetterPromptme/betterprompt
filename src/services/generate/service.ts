@@ -5,6 +5,7 @@ import type {
   TExecuteGenerateArgs,
   TGenerateCommandDependencies,
 } from "../../commands/generate/types";
+import { TELEMETRY_COMMANDS } from "../../constants/telemetry";
 import { ApiError, getApiClient } from "../../services/api/client";
 import { runTaskWithSpinner } from "../error-ux/service";
 import { printResult } from "../output/service";
@@ -12,6 +13,7 @@ import { persistRunOutput } from "../persistence/service";
 import { createRun, parseInputsJson } from "../run/service";
 import { resolveScope } from "../scope/service";
 import { resolvePromptVersionId } from "../skills/resolver";
+import { extractErrorData, getErrorType, track } from "../telemetry/service";
 import { buildRunPayload, validateGenerateOptions } from "./parsers";
 import { formatPartForTextOutput, isRunResult } from "./presenters";
 
@@ -60,6 +62,7 @@ export const executeGenerate = async ({
   options,
   skillSlug,
 }: TExecuteGenerateArgs): Promise<void> => {
+  const start = performance.now();
   try {
     validateGenerateOptions(options);
 
@@ -118,7 +121,24 @@ export const executeGenerate = async ({
     result.outputs.forEach((part) => {
       deps.printResult(formatPartForTextOutput(part), ctx);
     });
+
+    void track({
+      command: TELEMETRY_COMMANDS.generate,
+      startedAt: start,
+      metadata: { skillSlug, model: options.model },
+    });
   } catch (error) {
+    void track({
+      command: TELEMETRY_COMMANDS.generate,
+      startedAt: start,
+      metadata: {
+        skillSlug,
+        model: options.model,
+        errorType: getErrorType(error),
+        errorData: extractErrorData(error),
+      },
+    });
+
     if (error instanceof ApiError) {
       handleApiError(error, ctx, deps, helpText);
       return;

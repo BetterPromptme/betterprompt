@@ -1,7 +1,11 @@
 import { confirm } from "@clack/prompts";
 import logSymbols from "log-symbols";
 
-import { RESET_COMMAND, RESET_MESSAGES } from "../../constants";
+import {
+  RESET_COMMAND,
+  RESET_MESSAGES,
+  TELEMETRY_COMMANDS,
+} from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { runReset as runResetService } from "../../services/reset/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
@@ -28,6 +32,7 @@ export const createResetCommand = (
       description: RESET_COMMAND.description,
       flags: RESET_COMMAND.flags,
       errorPrefix: `${logSymbols.error} ${RESET_MESSAGES.failedPrefix}`,
+      telemetry: { command: TELEMETRY_COMMANDS.reset },
       handler: async ({ ctx }) => {
         const confirmed = ctx.yes ? true : await deps.confirmReset();
         if (!confirmed) {

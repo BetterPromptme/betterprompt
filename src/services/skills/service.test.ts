@@ -16,7 +16,6 @@ describe("skills core", () => {
   it("calls api client get with normalized query", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: { rows: [] },
       })),
     } as Parameters<typeof searchSkills>[0];
@@ -46,7 +45,6 @@ describe("skills core", () => {
 
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: { rows },
       })),
     } as Parameters<typeof searchSkills>[0];
@@ -57,7 +55,6 @@ describe("skills core", () => {
   it("forwards --type and --author filters as query params", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: { rows: [] },
       })),
     } as Parameters<typeof searchSkills>[0];
@@ -79,7 +76,6 @@ describe("skills core", () => {
   it("omits undefined filter values", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: { rows: [] },
       })),
     } as Parameters<typeof searchSkills>[0];
@@ -95,19 +91,6 @@ describe("skills core", () => {
         author: "alice",
       },
     });
-  });
-
-  it("throws when api returns non-SUCCESS status", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "ERROR",
-        message: "Search is unavailable",
-      })),
-    } as Parameters<typeof searchSkills>[0];
-
-    await expect(searchSkills(apiClient, "react")).rejects.toThrow(
-      "Search is unavailable"
-    );
   });
 });
 
@@ -130,7 +113,6 @@ describe("getSkillByName", () => {
 
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: skillDetail,
       })),
     } as Parameters<typeof getSkillByName>[0];
@@ -159,7 +141,6 @@ describe("getSkillByName", () => {
 
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: skillDetail,
       })),
     } as Parameters<typeof getSkillByName>[0];
@@ -171,7 +152,7 @@ describe("getSkillByName", () => {
 
   it("throws when skill name is empty", async () => {
     const apiClient = {
-      get: mock(async () => ({ status: "SUCCESS", data: undefined })),
+      get: mock(async () => ({ data: undefined })),
     } as Parameters<typeof getSkillByName>[0];
 
     await expect(getSkillByName(apiClient, "")).rejects.toThrow(
@@ -181,24 +162,11 @@ describe("getSkillByName", () => {
 
   it("throws when skill name is whitespace only", async () => {
     const apiClient = {
-      get: mock(async () => ({ status: "SUCCESS", data: undefined })),
+      get: mock(async () => ({ data: undefined })),
     } as Parameters<typeof getSkillByName>[0];
 
     await expect(getSkillByName(apiClient, "   ")).rejects.toThrow(
       "Skill name must not be empty."
-    );
-  });
-
-  it("throws when api returns non-SUCCESS status", async () => {
-    const apiClient = {
-      get: mock(async () => ({
-        status: "ERROR",
-        message: "Skill not found",
-      })),
-    } as Parameters<typeof getSkillByName>[0];
-
-    await expect(getSkillByName(apiClient, "react-hooks")).rejects.toThrow(
-      "Skill not found"
     );
   });
 });
