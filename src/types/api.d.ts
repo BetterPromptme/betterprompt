@@ -34,6 +34,5 @@ export type TApiRequestOptions = Omit<
 
 export type TApiResponse<TData = unknown> = {
   data?: TData;
-  status: string;
   message?: string;
 };

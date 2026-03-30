@@ -236,7 +236,6 @@ describe("auth core", () => {
   it("returns current user identity when api response is successful", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: {
           username: "jane",
           displayName: "Jane Doe",
@@ -258,7 +257,6 @@ describe("auth core", () => {
   it("returns credits balance when api response is successful", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: {
           credits: 1250,
         },

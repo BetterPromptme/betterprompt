@@ -48,7 +48,6 @@ describe("fetchResources", () => {
   it("returns TResourcesData on SUCCESS response", async () => {
     const apiClient = {
       get: mock(async () => ({
-        status: "SUCCESS",
         data: sampleData,
       })),
     };
