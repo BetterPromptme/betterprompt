@@ -1,5 +1,5 @@
 export const TELEMETRY_CONFIG = {
-  endpoint: "/t/cli",
+  endpoint: "/api/t/cli",
   sessionIdLength: 12,
   maxQueryLength: 200,
   maxMetadataSize: 2048,
