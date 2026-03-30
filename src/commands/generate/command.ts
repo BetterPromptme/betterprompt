@@ -1,7 +1,7 @@
 import {
   GENERATE_COMMAND,
   GENERATE_MESSAGES,
-  TELEMETRY_EVENTS,
+  TELEMETRY_COMMANDS,
 } from "../../constants";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
@@ -10,7 +10,7 @@ import {
   createDefaultGenerateDependencies,
   executeGenerate,
 } from "../../services/generate/service";
-import { track } from "../../services/telemetry/service";
+import { extractErrorData, track } from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type {
   TGenerateCommandDependencies,
@@ -76,6 +76,7 @@ export const createGenerateCommand = (
       customAction: (cmd, _factoryDeps) => {
         cmd.action(
           async (skillSlug: string, opts: TGenerateCommandOptions, command) => {
+            const start = performance.now();
             try {
               await executeGenerate({
                 skillSlug,
@@ -85,17 +86,25 @@ export const createGenerateCommand = (
                 deps,
               });
               void track({
-                event: TELEMETRY_EVENTS.generate,
-                skillSlug,
-                model: opts.model as string | undefined,
-                success: true,
+                command: TELEMETRY_COMMANDS.generate,
+                startedAt: start,
+                metadata: {
+                  skillSlug,
+                  model: opts.model as string | undefined,
+                  success: true,
+                },
               });
             } catch (error) {
               void track({
-                event: TELEMETRY_EVENTS.generate,
-                skillSlug,
-                model: opts.model as string | undefined,
-                success: false,
+                command: TELEMETRY_COMMANDS.generate,
+                startedAt: start,
+                metadata: {
+                  skillSlug,
+                  model: opts.model as string | undefined,
+                  success: false,
+                  errorType: "generate_error",
+                  errorData: extractErrorData(error),
+                },
               });
               const message =
                 error instanceof Error ? error.message : String(error);

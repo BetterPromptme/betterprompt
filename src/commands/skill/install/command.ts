@@ -3,7 +3,7 @@ import logSymbols from "log-symbols";
 import {
   SKILLS_COMMAND,
   SKILLS_MESSAGES,
-  TELEMETRY_EVENTS,
+  TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { track } from "../../../services/telemetry/service";
@@ -44,6 +44,7 @@ export const createSkillInstallSubcommand = (
         return `${logSymbols.success} Installed "${r.skillName}"`;
       },
       handler: async ({ args, opts, ctx }) => {
+        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.install.arguments.skillSlug.name
         ] as string;
@@ -56,8 +57,9 @@ export const createSkillInstallSubcommand = (
         };
         const result = await deps.installSkill(skillName, options);
         void track({
-          event: TELEMETRY_EVENTS.skillInstall,
-          skillSlug: skillName,
+          command: TELEMETRY_COMMANDS["skill:install"],
+          startedAt: start,
+          metadata: { skillSlug: skillName },
         });
         return result;
       },

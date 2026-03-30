@@ -3,7 +3,7 @@ import logSymbols from "log-symbols";
 import {
   SKILLS_COMMAND,
   SKILLS_MESSAGES,
-  TELEMETRY_EVENTS,
+  TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { track } from "../../../services/telemetry/service";
@@ -45,6 +45,7 @@ export const createSkillUninstallSubcommand = (
         return undefined;
       },
       handler: async ({ args, opts, ctx }) => {
+        const start = performance.now();
         const skillName = args[
           SKILLS_COMMAND.subcommands.uninstall.arguments.skillSlug.name
         ] as string;
@@ -53,8 +54,9 @@ export const createSkillUninstallSubcommand = (
           agent: opts.agent as string,
         });
         void track({
-          event: TELEMETRY_EVENTS.skillUninstall,
-          skillSlug: skillName,
+          command: TELEMETRY_COMMANDS["skill:uninstall"],
+          startedAt: start,
+          metadata: { skillSlug: skillName },
         });
         return result;
       },

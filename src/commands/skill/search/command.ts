@@ -4,7 +4,7 @@ import {
   SKILL_TYPES,
   SKILLS_COMMAND,
   SKILLS_MESSAGES,
-  TELEMETRY_EVENTS,
+  TELEMETRY_COMMANDS,
 } from "../../../constants";
 import { createCommandFromSpec } from "../../../services/command-factory/service";
 import { track } from "../../../services/telemetry/service";
@@ -55,6 +55,7 @@ export const createSkillSearchSubcommand = (
       spinnerMessage: "Searching skills...",
       errorPrefix: `${logSymbols.error} ${SKILLS_MESSAGES.failedPrefix}`,
       handler: async ({ args, opts }) => {
+        const start = performance.now();
         const query = args[
           SKILLS_COMMAND.subcommands.search.arguments.query.name
         ] as string;
@@ -62,9 +63,12 @@ export const createSkillSearchSubcommand = (
         const filters = buildSearchFilters(opts);
         const result = await deps.search(normalizedQuery, filters);
         void track({
-          event: TELEMETRY_EVENTS.skillSearch,
-          query: normalizedQuery,
-          resultCount: Array.isArray(result) ? result.length : undefined,
+          command: TELEMETRY_COMMANDS["skill:search"],
+          startedAt: start,
+          metadata: {
+            query: normalizedQuery,
+            resultCount: Array.isArray(result) ? result.length : undefined,
+          },
         });
         return result;
       },

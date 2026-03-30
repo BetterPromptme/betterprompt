@@ -4,7 +4,7 @@ import {
   SEARCH_COMMAND,
   SEARCH_MESSAGES,
   SKILL_TYPES,
-  TELEMETRY_EVENTS,
+  TELEMETRY_COMMANDS,
 } from "../../constants";
 import { getApiClient } from "../../services/api/client";
 import { createCommandFromSpec } from "../../services/command-factory/service";
@@ -71,15 +71,19 @@ export const createSearchCommand = (
         return undefined;
       },
       handler: async ({ args, opts }) => {
+        const start = performance.now();
         const query = deps.validateQuery(
           args[SEARCH_COMMAND.arguments.query.name] as string
         );
         const filters = buildSearchFilters(opts);
         const result = await deps.search(query, filters);
         void track({
-          event: TELEMETRY_EVENTS.search,
-          query,
-          resultCount: Array.isArray(result) ? result.length : undefined,
+          command: TELEMETRY_COMMANDS.search,
+          startedAt: start,
+          metadata: {
+            query,
+            resultCount: Array.isArray(result) ? result.length : undefined,
+          },
         });
         return result;
       },
