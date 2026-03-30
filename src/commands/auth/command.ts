@@ -64,7 +64,6 @@ export const createAuthCommand = (
               command: TELEMETRY_COMMANDS.auth,
               startedAt: start,
               metadata: {
-                success: false,
                 errorType: getErrorType(error),
                 errorData: extractErrorData(error),
               },

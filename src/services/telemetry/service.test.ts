@@ -167,12 +167,12 @@ describe("telemetry service", () => {
       expect(url1.searchParams.get("sid")).toBe(url2.searchParams.get("sid"));
     });
 
-    it("sends success:true by default when not specified", () => {
+    it("does not include success field in metadata", () => {
       const deps = createMockDeps();
       track({ command: "credits", startedAt: performance.now() }, deps);
 
       const metadata = getCalledMetadata(deps.mockFetch);
-      expect(metadata.success).toBe(true);
+      expect(metadata).not.toHaveProperty("success");
     });
   });
 

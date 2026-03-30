@@ -115,10 +115,6 @@ export const buildMetadata = (
     }
   }
 
-  if (!("success" in filtered) && allowedKeys.includes("success")) {
-    filtered.success = true;
-  }
-
   if (allowedKeys.includes("durationMs")) {
     filtered.durationMs = Math.round(performance.now() - startedAt);
   }

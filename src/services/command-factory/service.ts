@@ -144,7 +144,6 @@ const wireAction = <TOpts>(
           command: spec.telemetry.command,
           startedAt: start,
           metadata: {
-            success: false,
             errorType: getErrorType(error),
             errorData: extractErrorData(error),
           },

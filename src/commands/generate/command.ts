@@ -95,7 +95,6 @@ export const createGenerateCommand = (
                 metadata: {
                   skillSlug,
                   model: opts.model as string | undefined,
-                  success: true,
                 },
               });
             } catch (error) {
@@ -105,7 +104,6 @@ export const createGenerateCommand = (
                 metadata: {
                   skillSlug,
                   model: opts.model as string | undefined,
-                  success: false,
                   errorType: getErrorType(error),
                   errorData: extractErrorData(error),
                 },
