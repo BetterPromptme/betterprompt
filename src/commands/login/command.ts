@@ -9,7 +9,6 @@ import {
 } from "@clack/prompts";
 
 import { LOGIN_COMMAND } from "../../constants";
-import { TELEMETRY_COMMANDS } from "../../constants/telemetry";
 import { saveAuthConfig, verifyApiKey } from "../../services/auth/service";
 import { createCommandFromSpec } from "../../services/command-factory/service";
 import { getCommandContext } from "../../services/context/service";
@@ -21,11 +20,6 @@ import { openBrowser } from "../../services/login/browser";
 import { startCallbackServer } from "../../services/login/callback-server";
 import { executeLogin } from "../../services/login/service";
 import { waitForKeypress } from "../../services/login/wait-for-keypress";
-import {
-  extractErrorData,
-  getErrorType,
-  track,
-} from "../../services/telemetry/service";
 import type { TCommandFactoryDeps } from "../../types/command-factory";
 import type { TLoginDependencies } from "../../types/login";
 
@@ -63,29 +57,8 @@ export const createLoginCommand = (
       description: LOGIN_COMMAND.description,
       customAction: (cmd, _factoryDeps) => {
         cmd.action(async (_opts, command) => {
-          const start = performance.now();
-          try {
-            const ctx = getCommandContext(command);
-            await executeLogin(ctx, deps);
-            void track({
-              command: TELEMETRY_COMMANDS.login,
-              startedAt: start,
-              metadata: {},
-            });
-          } catch (error) {
-            void track({
-              command: TELEMETRY_COMMANDS.login,
-              startedAt: start,
-              metadata: {
-                errorType: getErrorType(error),
-                errorData: extractErrorData(error),
-              },
-            });
-            const message =
-              error instanceof Error ? error.message : String(error);
-            deps.error(message);
-            deps.setExitCode(1);
-          }
+          const ctx = getCommandContext(command);
+          await executeLogin(ctx, deps);
         });
       },
     },
